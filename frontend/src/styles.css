@@ -507,6 +507,139 @@ h3 {
   color: #68777c;
 }
 
+.preference-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 18px;
+}
+
+.preference-pill {
+  background: #f4f1e9;
+  border: 1px solid #e4dbcc;
+  border-radius: 999px;
+  color: #405056;
+  font-size: 0.82rem;
+  font-weight: 850;
+  padding: 9px 11px;
+}
+
+.preference-pill.selected {
+  background: #172126;
+  border-color: #172126;
+  color: white;
+}
+
+.switch-row {
+  align-items: center;
+  border-top: 1px solid #eee7dc;
+  display: flex;
+  justify-content: space-between;
+  padding: 14px 0;
+}
+
+.switch-row span {
+  color: #35464d;
+  font-weight: 850;
+}
+
+.switch-row input {
+  accent-color: #0f766e;
+  height: 20px;
+  width: 20px;
+}
+
+.frequency-row {
+  background: #f4f1e9;
+  border-radius: 18px;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: 8px;
+  padding: 6px;
+}
+
+.frequency-row span {
+  background: white;
+  border-radius: 13px;
+  color: #496067;
+  font-size: 0.76rem;
+  font-weight: 900;
+  padding: 9px 4px;
+  text-align: center;
+}
+
+.notification-list {
+  display: grid;
+  gap: 10px;
+}
+
+.notification-list article {
+  background: white;
+  border: 1px solid #e9e2d5;
+  border-radius: 20px;
+  padding: 14px;
+}
+
+.notification-list strong,
+.notification-list span {
+  display: block;
+}
+
+.notification-list span {
+  color: #68777c;
+  font-size: 0.88rem;
+  margin-top: 4px;
+}
+
+.booking-form {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 16px 0;
+}
+
+.booking-form label {
+  color: #607077;
+  display: grid;
+  font-size: 0.78rem;
+  font-weight: 900;
+  gap: 6px;
+}
+
+.booking-form input {
+  background: #f6f4ee;
+  border: 1px solid #e4dbcc;
+  border-radius: 14px;
+  color: #172126;
+  font-weight: 850;
+  min-width: 0;
+  padding: 11px 10px;
+}
+
+.price-box {
+  align-items: center;
+  background: #172126;
+  border-radius: 20px;
+  color: white;
+  display: grid;
+  gap: 2px;
+  grid-template-columns: 1fr auto;
+  margin: 14px 0;
+  padding: 16px;
+}
+
+.price-box span,
+.price-box small {
+  color: rgba(255, 255, 255, 0.72);
+  font-weight: 850;
+}
+
+.price-box strong {
+  font-size: 1.35rem;
+  grid-row: span 2;
+}
+
 .organizer-panel {
   background: linear-gradient(145deg, #ffffff 0%, #eef7f4 100%);
 }
