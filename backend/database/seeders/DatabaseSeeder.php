@@ -5,10 +5,14 @@ namespace Database\Seeders;
 use App\Enums\EventStatus;
 use App\Enums\UserRole;
 use App\Models\Booking;
+use App\Models\Campaign;
 use App\Models\Category;
 use App\Models\Event;
+use App\Models\EventStatistic;
+use App\Models\ExperienceView;
 use App\Models\Municipality;
 use App\Models\NotificationPreference;
+use App\Models\OrganizerStatistic;
 use App\Models\OrganizerProfile;
 use App\Models\OrganizerSubscription;
 use App\Models\Province;
@@ -252,6 +256,62 @@ class DatabaseSeeder extends Seeder
             'quantity' => 1,
             'unit_price_cents' => 800,
             'total_price_cents' => 800,
+        ]);
+
+        ExperienceView::query()->create([
+            'event_id' => $event->id,
+            'user_id' => $customer->id,
+            'source' => 'demo',
+            'viewed_at' => now(),
+        ]);
+
+        EventStatistic::query()->create([
+            'event_id' => $event->id,
+            'views' => 318,
+            'bookings_count' => 1,
+            'participants_total' => 3,
+            'fill_rate' => 12,
+            'average_rating' => 4.7,
+            'calculated_at' => now(),
+        ]);
+
+        OrganizerStatistic::query()->create([
+            'organizer_profile_id' => $profile->id,
+            'period_start' => now()->startOfMonth()->toDateString(),
+            'period_end' => now()->endOfMonth()->toDateString(),
+            'published_events' => 1,
+            'future_events' => 1,
+            'completed_events' => 0,
+            'cancelled_events' => 0,
+            'sold_out_events' => 0,
+            'bookings_count' => 1,
+            'participants_total' => 3,
+            'unique_participants' => 1,
+            'returning_participants' => 0,
+            'returning_rate' => 0,
+            'average_rating' => 4.7,
+            'followers_total' => 1,
+            'new_followers' => 1,
+            'calculated_at' => now(),
+        ]);
+
+        $campaign = Campaign::query()->create([
+            'ulid' => (string) Str::ulid(),
+            'organizer_profile_id' => $profile->id,
+            'event_id' => $event->id,
+            'name' => 'Campagna Laboratorio Fattoria',
+            'description' => 'Tracciamento demo per promuovere il laboratorio creativo.',
+            'starts_at' => now(),
+            'ends_at' => now()->addWeek(),
+            'status' => 'active',
+        ]);
+
+        $campaign->statistics()->create([
+            'views' => 640,
+            'clicks' => 112,
+            'bookings_generated' => 41,
+            'conversion_rate' => 36.61,
+            'calculated_at' => now(),
         ]);
     }
 }

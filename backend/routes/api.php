@@ -9,8 +9,11 @@ use App\Http\Controllers\Api\V1\EventController;
 use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\NotificationPreferenceController;
+use App\Http\Controllers\Api\V1\OrganizerAnalyticsController;
 use App\Http\Controllers\Api\V1\OrganizerDashboardController;
 use App\Http\Controllers\Api\V1\OrganizerEventController;
+use App\Http\Controllers\Api\V1\OrganizerOpportunityController;
+use App\Http\Controllers\Api\V1\OrganizerPlanningController;
 use App\Http\Controllers\Api\V1\OrganizerPublicController;
 use App\Http\Controllers\Api\V1\OrganizerProfileController;
 use App\Http\Controllers\Api\V1\PreferenceController;
@@ -48,6 +51,15 @@ Route::prefix('v1')->group(function (): void {
 
         Route::post('/organizers', [OrganizerProfileController::class, 'store']);
         Route::get('/organizer/dashboard', [OrganizerDashboardController::class, 'show']);
+        Route::get('/organizer/statistics', [OrganizerAnalyticsController::class, 'statistics']);
+        Route::get('/organizer/analytics', [OrganizerAnalyticsController::class, 'analytics']);
+        Route::get('/organizer/followers', [OrganizerAnalyticsController::class, 'followers']);
+        Route::get('/organizer/categories', [OrganizerAnalyticsController::class, 'categories']);
+        Route::get('/organizer/opportunities', [OrganizerOpportunityController::class, 'index']);
+        Route::post('/organizer/campaigns', [OrganizerAnalyticsController::class, 'storeCampaign']);
+        Route::get('/organizer/campaigns', [OrganizerAnalyticsController::class, 'campaigns']);
+        Route::get('/organizer/calendar', [OrganizerPlanningController::class, 'calendar']);
+        Route::get('/organizer/map', [OrganizerPlanningController::class, 'map']);
         Route::get('/organizer/profile', [OrganizerProfileController::class, 'show']);
         Route::post('/organizer/profile', [OrganizerProfileController::class, 'store']);
         Route::put('/organizer/profile', [OrganizerProfileController::class, 'update']);

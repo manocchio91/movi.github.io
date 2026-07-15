@@ -32,3 +32,7 @@ Docker Compose avvia:
 - Redis predisposto per job asincroni, notifiche e rate limiting.
 - Booking domain implementato con transazione, lock pessimista, idempotency key e aggiornamento disponibilita.
 - Le notifiche vengono calcolate da preferenze categoria e organizzatori seguiti, con deduplication key.
+- Business Intelligence modulare: `OrganizerDashboardMetrics` calcola KPI, categorie migliori e partecipanti di ritorno.
+- Organizer Opportunity Engine deterministico: analizza data, comune, categorie e sovrapposizioni prima della pubblicazione.
+- Predisposizione AI tramite interfaccia `OrganizerAdvisor`, attualmente implementata da adapter deterministico senza LLM.
+- Campagne promozionali iniziali solo come tracciamento, con statistiche aggiornabili via job.

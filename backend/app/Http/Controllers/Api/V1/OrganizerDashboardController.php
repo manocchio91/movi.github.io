@@ -4,12 +4,13 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\EventStatus;
 use App\Http\Controllers\Controller;
+use App\Services\BusinessIntelligence\OrganizerDashboardMetrics;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
 class OrganizerDashboardController extends Controller
 {
-    public function show(): JsonResponse
+    public function show(OrganizerDashboardMetrics $metrics): JsonResponse
     {
         $profile = request()->user()->organizerProfile;
         abort_unless($profile, 403);
@@ -20,6 +21,8 @@ class OrganizerDashboardController extends Controller
         return response()->json([
             'data' => [
                 'subscription' => $profile->subscription?->load('plan.features'),
+                'bi' => $metrics->calculate($profile),
+                'category_performance' => $metrics->categoryPerformance($profile),
                 'active_experiences' => (clone $events)->whereIn('status', [EventStatus::Published->value, EventStatus::SoldOut->value])->count(),
                 'future_experiences' => (clone $events)->where('starts_at', '>=', now())->count(),
                 'completed_experiences' => (clone $events)->where('status', EventStatus::Completed->value)->count(),

@@ -339,6 +339,41 @@ export default defineComponent({
         h('div', [h('strong', '72'), h('span', 'prenotazioni')]),
         h('div', [h('strong', '318'), h('span', 'visualizzazioni')]),
         h('div', [h('strong', '46'), h('span', 'follower')]),
+        h('div', [h('strong', '42%'), h('span', 'ritorno clienti')]),
+        h('div', [h('strong', '2'), h('span', 'sold out')]),
+      ]),
+      h('div', { class: 'info-panel bi-panel' }, [
+        h('h3', 'Organizer Opportunity Engine'),
+        h('p', 'Analisi deterministica dello slot selezionato prima della pubblicazione.'),
+        h('div', { class: 'suggestion-list' }, [
+          h('span', 'Nessuna esperienza gastronomica nello stesso orario.'),
+          h('span', 'Nello stesso comune e presente un laboratorio bambini alle 17:00.'),
+          h('span', 'Valuta fascia 20:30 per ridurre sovrapposizioni.'),
+        ]),
+      ]),
+      h('div', { class: 'chart-panel' }, [
+        h('div', { class: 'section-title compact' }, [h('h2', 'Prenotazioni mensili'), h('span', 'BI')]),
+        h('div', { class: 'bar-chart' }, [42, 58, 37, 74, 91, 66].map((value) => h('span', { style: { height: `${value}%` } }))),
+      ]),
+      h('div', { class: 'info-panel' }, [
+        h('h3', 'Categorie migliori'),
+        h('div', { class: 'split-row' }, [h('span', 'Cene a tema'), h('strong', '145 prenotazioni')]),
+        h('div', { class: 'split-row' }, [h('span', 'Degustazioni'), h('strong', '84 prenotazioni')]),
+        h('div', { class: 'split-row' }, [h('span', 'Laboratori'), h('strong', '22 prenotazioni')]),
+      ]),
+      h('div', { class: 'planning-grid' }, [
+        h('div', { class: 'planning-card calendar-card' }, [h('strong', 'Calendario'), h('span', '3 esperienze oggi'), h('small', 'colori per categoria')]),
+        h('div', { class: 'planning-card map-card' }, [h('strong', 'Mappa'), h('span', '5 marker vicini'), h('small', 'distanza e fascia oraria')]),
+      ]),
+      h('div', { class: 'campaign-card' }, [
+        h('span', 'Campagna attiva'),
+        h('h3', 'Cena Messicana'),
+        h('div', { class: 'campaign-metrics' }, [
+          h('div', [h('strong', '640'), h('small', 'views')]),
+          h('div', [h('strong', '112'), h('small', 'click')]),
+          h('div', [h('strong', '41'), h('small', 'booking')]),
+          h('div', [h('strong', '36%'), h('small', 'conversione')]),
+        ]),
       ]),
       h('div', { class: 'review-list' }, [
         h('article', { class: 'review-item' }, [h('div', [h('strong', 'Laboratorio creativo'), h('span', '22 posti disponibili')]), h('small', 'published')]),

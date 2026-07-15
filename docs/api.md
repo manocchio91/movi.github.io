@@ -38,6 +38,15 @@ Per `POST /events/{event}/bookings` usare `Idempotency-Key` per evitare prenotaz
 ## Organizzatore
 - `GET /organizer/profile`
 - `GET /organizer/dashboard`
+- `GET /organizer/statistics`
+- `GET /organizer/analytics`
+- `GET /organizer/followers`
+- `GET /organizer/categories`
+- `GET /organizer/opportunities`
+- `POST /organizer/campaigns`
+- `GET /organizer/campaigns`
+- `GET /organizer/calendar`
+- `GET /organizer/map`
 - `POST /organizer/profile`
 - `PUT /organizer/profile`
 - `GET /organizer/events`

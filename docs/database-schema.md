@@ -9,6 +9,13 @@
 - `invoices`: fatture predisposte per provider esterno.
 - `organizer_followers`: utenti che seguono un organizzatore.
 - `experience_views`: visualizzazioni esperienza per analytics e raccomandazioni future.
+- `campaigns`: campagne promozionali semplici per tracciamento.
+- `campaign_statistics`: views, click, booking e conversione campagna.
+- `organizer_statistics`: KPI aggregati per periodo.
+- `event_statistics`: KPI aggregati per esperienza.
+- `analytics_events`: eventi analytics atomici.
+- `dashboard_cache`: cache dashboard ricalcolabile da job.
+- `organizer_opportunity_reports`: report deterministici dell'Organizer Opportunity Engine.
 - `regions`, `provinces`, `municipalities`: territorio italiano estendibile.
 - `categories`: macroaree gestite da database.
 - `user_event_preferences`: relazione molti-a-molti tra clienti e macroaree preferite.
@@ -32,6 +39,7 @@
 - Una prenotazione duplicata con stessa idempotency key non viene ricreata.
 - Le notifiche usano `deduplication_key` per evitare duplicati.
 - Un follower riceve notifiche per nuove esperienze dell'organizzatore anche senza match categoria.
+- Le statistiche aggregate sono progettate per evitare query pesanti in dashboard.
 
 ## Tabelle predisposte
 `user_profiles`, `organizer_members`, `user_location_preferences`, `event_schedules`, `booking_participants_summary`, `waitlist_entries`, `check_ins`, `favorites`, `reviews`, `media`, `reports`, `idempotency_keys`.

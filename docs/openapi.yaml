@@ -163,6 +163,59 @@ paths:
       summary: Dashboard SaaS organizzatore
       responses:
         "200": { description: KPI subscription, esperienze, prenotazioni, follower e views }
+  /organizer/statistics:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: KPI business intelligence organizzatore
+      responses:
+        "200": { description: KPI e performance categorie }
+  /organizer/analytics:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Eventi analytics recenti
+      responses:
+        "200": { description: Lista analytics events }
+  /organizer/followers:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Utenti che seguono il locale
+      responses:
+        "200": { description: Lista follower }
+  /organizer/categories:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Performance categorie
+      responses:
+        "200": { description: Categoria, eventi, prenotazioni, fill rate }
+  /organizer/opportunities:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Organizer Opportunity Engine
+      responses:
+        "200": { description: Concorrenza, sovrapposizioni e suggerimenti deterministici }
+  /organizer/campaigns:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Campagne tracciate
+      responses:
+        "200": { description: Lista campagne con statistiche }
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Crea campagna promozionale semplice
+      responses:
+        "201": { description: Campagna creata }
+  /organizer/calendar:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Vista calendario giornaliera o mensile
+      responses:
+        "200": { description: Esperienze con colore categoria }
+  /organizer/map:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Vista mappa esperienze vicine
+      responses:
+        "200": { description: Marker con categoria, luogo e distanza }
   /organizer/events:
     get:
       security: [{ bearerAuth: [] }]

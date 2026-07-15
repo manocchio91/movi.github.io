@@ -687,6 +687,101 @@ h3 {
   padding: 10px 12px;
 }
 
+.bi-panel {
+  background: linear-gradient(145deg, #ffffff 0%, #ecf7ff 100%);
+}
+
+.suggestion-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.suggestion-list span {
+  background: white;
+  border: 1px solid #e1e8ed;
+  border-radius: 14px;
+  color: #405056;
+  font-size: 0.86rem;
+  font-weight: 800;
+  padding: 10px;
+}
+
+.chart-panel,
+.campaign-card,
+.planning-card {
+  background: white;
+  border: 1px solid #e9e2d5;
+  border-radius: 24px;
+  margin-bottom: 14px;
+  padding: 16px;
+}
+
+.bar-chart {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(6, 1fr);
+  height: 130px;
+  padding-top: 10px;
+}
+
+.bar-chart span {
+  background: linear-gradient(180deg, #0f766e, #e2aa43);
+  border-radius: 999px 999px 8px 8px;
+  min-height: 18px;
+}
+
+.planning-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, 1fr);
+  margin-bottom: 14px;
+}
+
+.planning-card strong,
+.planning-card span,
+.planning-card small,
+.campaign-card span,
+.campaign-card small {
+  display: block;
+}
+
+.planning-card span,
+.planning-card small,
+.campaign-card span,
+.campaign-card small {
+  color: #68777c;
+  margin-top: 4px;
+}
+
+.calendar-card {
+  background: linear-gradient(145deg, #ffffff, #eef8ee);
+}
+
+.map-card {
+  background: linear-gradient(145deg, #ffffff, #edf5ff);
+}
+
+.campaign-card {
+  background: linear-gradient(145deg, #fff9ea 0%, #ffffff 100%);
+}
+
+.campaign-metrics {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, 1fr);
+  margin-top: 12px;
+}
+
+.campaign-metrics div {
+  background: white;
+  border: 1px solid #eee3cd;
+  border-radius: 14px;
+  padding: 10px 6px;
+  text-align: center;
+}
+
 .stepper {
   display: grid;
   gap: 8px;

@@ -105,6 +105,35 @@ class EventPlatformTest extends TestCase
             ->assertJsonPath('data.0.slug', 'starter');
     }
 
+    public function test_organizer_opportunity_engine_reports_competing_events(): void
+    {
+        [, $organizer, $event, $categories, $municipality] = $this->setupDomain();
+
+        $this->actingAs($organizer, 'sanctum')
+            ->getJson('/api/v1/organizer/opportunities?starts_at='.$event->starts_at->toIso8601String().'&municipality_id='.$municipality->id.'&category_ids[]='.$categories['bambini']->id)
+            ->assertOk()
+            ->assertJsonPath('data.summary.events_same_day', 1)
+            ->assertJsonPath('data.summary.similar_category_events', 1);
+    }
+
+    public function test_organizer_can_create_tracking_campaign(): void
+    {
+        [, $organizer, $event] = $this->setupDomain();
+
+        $this->actingAs($organizer, 'sanctum')
+            ->postJson('/api/v1/organizer/campaigns', [
+                'event_id' => $event->id,
+                'name' => 'Campagna Cena',
+                'description' => 'Tracciamento campagna demo',
+                'starts_at' => now()->toIso8601String(),
+                'ends_at' => now()->addWeek()->toIso8601String(),
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.name', 'Campagna Cena');
+
+        $this->assertDatabaseHas('campaign_statistics', ['views' => 0, 'clicks' => 0, 'bookings_generated' => 0]);
+    }
+
     public function test_customer_books_event_and_duplicate_idempotency_does_not_create_second_booking(): void
     {
         [$customer, , $event] = $this->setupDomain(capacity: 2);
