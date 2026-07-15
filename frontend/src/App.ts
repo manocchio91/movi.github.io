@@ -76,6 +76,50 @@ const demoEvents: EventItem[] = [
   },
 ];
 
+const ratingBreakdown = [
+  { label: 'Qualita esperienza', value: 5 },
+  { label: 'Organizzazione', value: 4 },
+  { label: 'Location', value: 5 },
+  { label: 'Qualita/prezzo', value: 4 },
+  { label: 'Orari', value: 5 },
+  { label: 'Staff', value: 5 },
+];
+
+const demoReviews = [
+  {
+    author: 'Marta C.',
+    event: 'Laboratorio creativo in fattoria',
+    rating: 5,
+    comment: 'Esperienza curata, bambini coinvolti e staff molto presente.',
+    date: '12 lug',
+    recommend: true,
+  },
+  {
+    author: 'Luca P.',
+    event: 'Cena con delitto nel borgo',
+    rating: 4,
+    comment: 'Formato riuscito, tempi leggermente lunghi tra una portata e l altra.',
+    date: '08 lug',
+    recommend: true,
+  },
+  {
+    author: 'Sara M.',
+    event: 'Escursione guidata sul tratturo',
+    rating: 3,
+    comment: 'Bella guida, ma serviva una comunicazione migliore sul punto di ritrovo.',
+    date: '02 lug',
+    recommend: false,
+  },
+];
+
+const starDistribution = [
+  { stars: 5, count: 28 },
+  { stars: 4, count: 11 },
+  { stars: 3, count: 4 },
+  { stars: 2, count: 1 },
+  { stars: 1, count: 0 },
+];
+
 export default defineComponent({
   name: 'App',
   setup() {
@@ -88,6 +132,9 @@ export default defineComponent({
     const internalNotifications = ref(true);
     const emailNotifications = ref(true);
     const promotionalNotifications = ref(true);
+    const reviewRating = ref(5);
+    const reviewRecommend = ref(true);
+    const reviewChildren = ref(true);
 
     onMounted(async () => {
       try {
@@ -175,6 +222,42 @@ export default defineComponent({
         h('button', { class: 'primary-action', type: 'button', onClick: () => { activeTab.value = 'booking'; } }, 'Prenota ora'),
       ]),
     ]);
+
+    const renderScoreDots = (value: number, onSelect?: (score: number) => void) => h('div', { class: 'score-dots' }, [1, 2, 3, 4, 5].map((score) => h('button', {
+      class: score <= value ? 'active' : '',
+      type: 'button',
+      onClick: () => { onSelect?.(score); },
+    }, `${score}`)));
+
+    const renderReviewSummary = (compact = false) => h('div', { class: ['review-summary', compact ? 'compact' : ''] }, [
+      h('div', { class: 'rating-widget' }, [
+        h('strong', '4.7'),
+        h('span', 'media generale'),
+        h('small', '44 recensioni'),
+      ]),
+      h('div', { class: 'review-kpis' }, [
+        h('div', [h('strong', '91%'), h('span', 'soddisfatti')]),
+        h('div', [h('strong', '88%'), h('span', 'consigliano')]),
+      ]),
+    ]);
+
+    const renderStarChart = () => h('div', { class: 'star-chart' }, starDistribution.map((row) => h('div', { class: 'star-row', key: row.stars }, [
+      h('span', `${row.stars}`),
+      h('div', { class: 'star-track' }, [h('i', { style: { width: `${(row.count / 28) * 100}%` } })]),
+      h('strong', `${row.count}`),
+    ])));
+
+    const renderReviewList = () => h('div', { class: 'review-feed' }, demoReviews.map((review) => h('article', { class: 'review-card', key: `${review.author}-${review.event}` }, [
+      h('div', { class: 'review-head' }, [
+        h('div', [h('strong', review.author), h('span', review.event)]),
+        h('b', `${review.rating}/5`),
+      ]),
+      h('p', review.comment),
+      h('div', { class: 'review-foot' }, [
+        h('span', review.date),
+        h('button', { type: 'button' }, 'Segnala'),
+      ]),
+    ])));
 
     const renderEvents = () => h('section', { class: 'screen-content' }, [
       h('div', { class: 'mobile-hero' }, [
@@ -278,6 +361,12 @@ export default defineComponent({
         h('article', [h('strong', 'Nuovo evento per bambini'), h('span', 'Laboratorio creativo in fattoria - 7 posti disponibili')]),
         h('article', [h('strong', 'Prenotazione confermata'), h('span', 'Codice EVT-DEMO01, pagamento sul posto')]),
       ]),
+      h('div', { class: 'section-title' }, [
+        h('h2', 'Recensioni pubblicate'),
+        h('span', 'recenti'),
+      ]),
+      renderReviewSummary(true),
+      renderReviewList(),
     ]);
 
     const renderBooking = () => h('section', { class: 'screen-content' }, [
@@ -306,6 +395,41 @@ export default defineComponent({
         h('div', { class: 'split-row' }, [h('span', 'EVT-DEMO01'), h('strong', 'confirmed')]),
         h('div', { class: 'split-row' }, [h('span', 'Posti'), h('strong', '3')]),
         h('div', { class: 'split-row' }, [h('span', 'QR ingresso'), h('strong', 'pronto')]),
+      ]),
+      h('div', { class: 'review-form-panel' }, [
+        h('div', { class: 'section-title compact' }, [
+          h('h2', 'Lascia recensione'),
+          h('span', 'check-in ok'),
+        ]),
+        h('div', { class: 'overall-rating' }, [
+          h('span', 'Valutazione generale'),
+          renderScoreDots(reviewRating.value, (score) => { reviewRating.value = score; }),
+        ]),
+        h('div', { class: 'rating-breakdown' }, ratingBreakdown.map((item) => h('div', { class: 'rating-line', key: item.label }, [
+          h('span', item.label),
+          renderScoreDots(item.value),
+        ]))),
+        h('div', { class: 'toggle-grid' }, [
+          h('button', {
+            class: reviewChildren.value ? 'active' : '',
+            type: 'button',
+            onClick: () => { reviewChildren.value = !reviewChildren.value; },
+          }, 'Adatto ai bambini'),
+          h('button', {
+            class: reviewRecommend.value ? 'active' : '',
+            type: 'button',
+            onClick: () => { reviewRecommend.value = !reviewRecommend.value; },
+          }, 'Lo consiglierei'),
+        ]),
+        h('label', { class: 'comment-box' }, [
+          h('span', 'Commento'),
+          h('textarea', { value: 'Esperienza molto curata, staff gentile e orari rispettati.', readonly: true }),
+        ]),
+        h('div', { class: 'image-upload-placeholder' }, [
+          h('strong', 'Immagini'),
+          h('span', 'Upload predisposto'),
+        ]),
+        h('button', { class: 'primary-action wide', type: 'button' }, 'Invia recensione'),
       ]),
     ]);
 
@@ -342,6 +466,11 @@ export default defineComponent({
         h('div', [h('strong', '42%'), h('span', 'ritorno clienti')]),
         h('div', [h('strong', '2'), h('span', 'sold out')]),
       ]),
+      renderReviewSummary(),
+      h('div', { class: 'chart-panel' }, [
+        h('div', { class: 'section-title compact' }, [h('h2', 'Distribuzione stelle'), h('span', 'review')]),
+        renderStarChart(),
+      ]),
       h('div', { class: 'info-panel bi-panel' }, [
         h('h3', 'Organizer Opportunity Engine'),
         h('p', 'Analisi deterministica dello slot selezionato prima della pubblicazione.'),
@@ -355,12 +484,21 @@ export default defineComponent({
         h('div', { class: 'section-title compact' }, [h('h2', 'Prenotazioni mensili'), h('span', 'BI')]),
         h('div', { class: 'bar-chart' }, [42, 58, 37, 74, 91, 66].map((value) => h('span', { style: { height: `${value}%` } }))),
       ]),
-      h('div', { class: 'info-panel' }, [
-        h('h3', 'Categorie migliori'),
-        h('div', { class: 'split-row' }, [h('span', 'Cene a tema'), h('strong', '145 prenotazioni')]),
-        h('div', { class: 'split-row' }, [h('span', 'Degustazioni'), h('strong', '84 prenotazioni')]),
-        h('div', { class: 'split-row' }, [h('span', 'Laboratori'), h('strong', '22 prenotazioni')]),
+      h('div', { class: 'chart-panel' }, [
+        h('div', { class: 'section-title compact' }, [h('h2', 'Evoluzione recensioni'), h('span', '30 giorni')]),
+        h('div', { class: 'line-chart-lite' }, [32, 38, 35, 44, 51, 47, 58].map((value) => h('span', { style: { height: `${value}%` } }))),
       ]),
+      h('div', { class: 'info-panel' }, [
+        h('h3', 'Categorie migliori per recensioni'),
+        h('div', { class: 'split-row' }, [h('span', 'Cene a tema'), h('strong', '4.8/5')]),
+        h('div', { class: 'split-row' }, [h('span', 'Degustazioni'), h('strong', '4.6/5')]),
+        h('div', { class: 'split-row' }, [h('span', 'Laboratori'), h('strong', '4.5/5')]),
+      ]),
+      h('div', { class: 'section-title' }, [
+        h('h2', 'Recensioni organizer'),
+        h('span', 'migliori e critiche'),
+      ]),
+      renderReviewList(),
       h('div', { class: 'planning-grid' }, [
         h('div', { class: 'planning-card calendar-card' }, [h('strong', 'Calendario'), h('span', '3 esperienze oggi'), h('small', 'colori per categoria')]),
         h('div', { class: 'planning-card map-card' }, [h('strong', 'Mappa'), h('span', '5 marker vicini'), h('small', 'distanza e fascia oraria')]),

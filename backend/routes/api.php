@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\EventModerationController;
 use App\Http\Controllers\Api\V1\Admin\OrganizerModerationController;
+use App\Http\Controllers\Api\V1\Admin\ReviewModerationController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\CategoryController;
@@ -15,8 +16,10 @@ use App\Http\Controllers\Api\V1\OrganizerEventController;
 use App\Http\Controllers\Api\V1\OrganizerOpportunityController;
 use App\Http\Controllers\Api\V1\OrganizerPlanningController;
 use App\Http\Controllers\Api\V1\OrganizerPublicController;
+use App\Http\Controllers\Api\V1\OrganizerReviewController;
 use App\Http\Controllers\Api\V1\OrganizerProfileController;
 use App\Http\Controllers\Api\V1\PreferenceController;
+use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\SubscriptionPlanController;
 use Illuminate\Support\Facades\Route;
 
@@ -26,6 +29,7 @@ Route::prefix('v1')->group(function (): void {
 
     Route::get('/events', [EventController::class, 'index']);
     Route::get('/events/{event:ulid}', [EventController::class, 'show']);
+    Route::get('/events/{event:ulid}/reviews', [ReviewController::class, 'index']);
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::get('/locations/search', [LocationController::class, 'search']);
     Route::get('/subscription-plans', [SubscriptionPlanController::class, 'index']);
@@ -40,6 +44,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/me/notification-preferences', [NotificationPreferenceController::class, 'show']);
         Route::put('/me/notification-preferences', [NotificationPreferenceController::class, 'update']);
         Route::post('/events/{event:ulid}/bookings', [BookingController::class, 'store']);
+        Route::post('/events/{event:ulid}/reviews', [ReviewController::class, 'store']);
         Route::get('/me/bookings', [BookingController::class, 'index']);
         Route::get('/me/bookings/{booking:ulid}', [BookingController::class, 'show']);
         Route::post('/me/bookings/{booking:ulid}/cancel', [BookingController::class, 'cancel']);
@@ -51,6 +56,7 @@ Route::prefix('v1')->group(function (): void {
 
         Route::post('/organizers', [OrganizerProfileController::class, 'store']);
         Route::get('/organizer/dashboard', [OrganizerDashboardController::class, 'show']);
+        Route::get('/organizer/reviews', [OrganizerReviewController::class, 'index']);
         Route::get('/organizer/statistics', [OrganizerAnalyticsController::class, 'statistics']);
         Route::get('/organizer/analytics', [OrganizerAnalyticsController::class, 'analytics']);
         Route::get('/organizer/followers', [OrganizerAnalyticsController::class, 'followers']);
@@ -81,5 +87,10 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/admin/organizers/pending', [OrganizerModerationController::class, 'pending']);
         Route::post('/admin/organizers/{organizer:ulid}/approve', [OrganizerModerationController::class, 'approve']);
         Route::post('/admin/organizers/{organizer:ulid}/reject', [OrganizerModerationController::class, 'reject']);
+        Route::post('/admin/reviews/{review:ulid}/approve', [ReviewModerationController::class, 'approve']);
+        Route::post('/admin/reviews/{review:ulid}/hide', [ReviewModerationController::class, 'hide']);
+        Route::delete('/admin/reviews/{review:ulid}', [ReviewModerationController::class, 'destroy']);
     });
+
+    Route::post('/reviews/{review:ulid}/report', [ReviewController::class, 'report'])->middleware('auth:sanctum');
 });

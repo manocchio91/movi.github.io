@@ -13,6 +13,10 @@
 - `campaign_statistics`: views, click, booking e conversione campagna.
 - `organizer_statistics`: KPI aggregati per periodo.
 - `event_statistics`: KPI aggregati per esperienza.
+- `reviews`: valutazioni multi-criterio collegate a evento, booking, utente e organizzatore.
+- `review_images`: immagini predisposte per gallery recensione.
+- `review_reports`: segnalazioni utenti sulle recensioni.
+- `review_statistics`: medie, distribuzione stelle, soddisfazione e raccomandazione per evento o organizzatore.
 - `analytics_events`: eventi analytics atomici.
 - `dashboard_cache`: cache dashboard ricalcolabile da job.
 - `organizer_opportunity_reports`: report deterministici dell'Organizer Opportunity Engine.
@@ -37,9 +41,12 @@
 - Un profilo organizzatore per owner.
 - Una preferenza per coppia utente/categoria.
 - Una prenotazione duplicata con stessa idempotency key non viene ricreata.
+- Una recensione richiede partecipazione reale e una sola recensione per booking/evento.
+- Gli organizzatori non possono recensire esperienze del proprio profilo.
+- Le recensioni approvate alimentano statistiche evento, profilo organizzatore e Business Dashboard.
 - Le notifiche usano `deduplication_key` per evitare duplicati.
 - Un follower riceve notifiche per nuove esperienze dell'organizzatore anche senza match categoria.
 - Le statistiche aggregate sono progettate per evitare query pesanti in dashboard.
 
 ## Tabelle predisposte
-`user_profiles`, `organizer_members`, `user_location_preferences`, `event_schedules`, `booking_participants_summary`, `waitlist_entries`, `check_ins`, `favorites`, `reviews`, `media`, `reports`, `idempotency_keys`.
+`user_profiles`, `organizer_members`, `user_location_preferences`, `event_schedules`, `booking_participants_summary`, `waitlist_entries`, `check_ins`, `favorites`, `media`, `reports`, `idempotency_keys`.

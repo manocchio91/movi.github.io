@@ -39,6 +39,30 @@ paths:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Evento }
+  /events/{event}/reviews:
+    get:
+      summary: Recensioni approvate e statistiche evento
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Lista paginata con statistiche recensioni }
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Crea recensione da prenotazione confermata e partecipata
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "201": { description: Recensione creata }
+        "403": { description: Prenotazione/partecipazione mancante o organizer proprietario }
+        "422": { description: Recensione duplicata o payload non valido }
+  /reviews/{review}/report:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Segnala una recensione
+      parameters:
+        - { name: review, in: path, required: true, schema: { type: string } }
+      responses:
+        "201": { description: Segnalazione aperta }
   /subscription-plans:
     get:
       summary: Piani SaaS disponibili per organizzatori
@@ -163,6 +187,12 @@ paths:
       summary: Dashboard SaaS organizzatore
       responses:
         "200": { description: KPI subscription, esperienze, prenotazioni, follower e views }
+  /organizer/reviews:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Recensioni del profilo organizzatore
+      responses:
+        "200": { description: Statistiche, distribuzione stelle, recensioni recenti, migliori e critiche }
   /organizer/statistics:
     get:
       security: [{ bearerAuth: [] }]
@@ -271,6 +301,30 @@ paths:
         - { name: organizer, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Organizzatore approvato }
+  /admin/reviews/{review}/approve:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Approva recensione
+      parameters:
+        - { name: review, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Recensione approvata }
+  /admin/reviews/{review}/hide:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Nasconde recensione
+      parameters:
+        - { name: review, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Recensione nascosta }
+  /admin/reviews/{review}:
+    delete:
+      security: [{ bearerAuth: [] }]
+      summary: Elimina recensione
+      parameters:
+        - { name: review, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Recensione eliminata }
 components:
   securitySchemes:
     bearerAuth:

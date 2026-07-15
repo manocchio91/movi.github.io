@@ -40,8 +40,46 @@ class OrganizerDashboardMetrics
             'followers_total' => $profile->followers()->count(),
             'new_followers' => $profile->followers()->wherePivot('created_at', '>=', now()->subMonth())->count(),
             'reviews' => DB::table('reviews')->whereIn('event_id', $eventIds)->count(),
-            'average_rating' => DB::table('reviews')->whereIn('event_id', $eventIds)->avg('rating'),
+            'average_rating' => DB::table('reviews')->whereIn('event_id', $eventIds)->where('status', 'approved')->whereNull('hidden_at')->avg('rating'),
+            'review_analytics' => $this->reviewAnalytics($profile),
             'views_total' => DB::table('experience_views')->whereIn('event_id', $eventIds)->count(),
+        ];
+    }
+
+    public function reviewAnalytics(OrganizerProfile $profile): array
+    {
+        $eventIds = $profile->events()->pluck('id');
+        $reviews = DB::table('reviews')
+            ->whereIn('event_id', $eventIds)
+            ->where('status', 'approved')
+            ->whereNull('hidden_at');
+        $reviewsCount = (clone $reviews)->count();
+
+        return [
+            'average_rating' => (clone $reviews)->avg('rating'),
+            'reviews_count' => $reviewsCount,
+            'satisfied_rate' => $reviewsCount > 0 ? round(((clone $reviews)->where('rating', '>=', 4)->count() / $reviewsCount) * 100, 2) : 0,
+            'recommendation_rate' => $reviewsCount > 0 ? round(((clone $reviews)->where('would_recommend', true)->count() / $reviewsCount) * 100, 2) : 0,
+            'trend' => (clone $reviews)
+                ->selectRaw('date(reviewed_at) as day, count(*) as reviews_count, avg(rating) as average_rating')
+                ->groupByRaw('date(reviewed_at)')
+                ->orderBy('day')
+                ->limit(30)
+                ->get()
+                ->all(),
+            'best_categories' => DB::table('reviews')
+                ->join('events', 'events.id', '=', 'reviews.event_id')
+                ->join('event_categories', 'event_categories.event_id', '=', 'events.id')
+                ->join('categories', 'categories.id', '=', 'event_categories.category_id')
+                ->where('events.organizer_profile_id', $profile->id)
+                ->where('reviews.status', 'approved')
+                ->whereNull('reviews.hidden_at')
+                ->groupBy('categories.id', 'categories.name')
+                ->selectRaw('categories.name, count(reviews.id) as reviews_count, avg(reviews.rating) as average_rating')
+                ->orderByDesc('average_rating')
+                ->limit(5)
+                ->get()
+                ->all(),
         ];
     }
 

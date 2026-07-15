@@ -12,6 +12,7 @@ Base path: `/api/v1`
 - `GET /categories`
 - `GET /events`
 - `GET /events/{event}`
+- `GET /events/{event}/reviews`
 - `GET /locations/search?q=camp`
 - `GET /subscription-plans`
 - `GET /organizers/{organizer}`
@@ -24,6 +25,8 @@ Filtri eventi: `category_id`, `province_id`, `municipality_id`, `date`, `free`, 
 - `GET /me/notification-preferences`
 - `PUT /me/notification-preferences`
 - `POST /events/{event}/bookings`
+- `POST /events/{event}/reviews`
+- `POST /reviews/{review}/report`
 - `GET /me/bookings`
 - `GET /me/bookings/{booking}`
 - `POST /me/bookings/{booking}/cancel`
@@ -35,9 +38,12 @@ Filtri eventi: `category_id`, `province_id`, `municipality_id`, `date`, `free`, 
 
 Per `POST /events/{event}/bookings` usare `Idempotency-Key` per evitare prenotazioni duplicate.
 
+Per `POST /events/{event}/reviews` l'utente deve avere una prenotazione confermata e avere partecipato: check-in effettuato, booking completato oppure evento concluso. Ogni prenotazione/evento puo generare una sola recensione e l'organizzatore non puo recensire i propri eventi.
+
 ## Organizzatore
 - `GET /organizer/profile`
 - `GET /organizer/dashboard`
+- `GET /organizer/reviews`
 - `GET /organizer/statistics`
 - `GET /organizer/analytics`
 - `GET /organizer/followers`
@@ -68,5 +74,8 @@ Per `POST /events/{event}/bookings` usare `Idempotency-Key` per evitare prenotaz
 - `GET /admin/organizers/pending`
 - `POST /admin/organizers/{organizer}/approve`
 - `POST /admin/organizers/{organizer}/reject`
+- `POST /admin/reviews/{review}/approve`
+- `POST /admin/reviews/{review}/hide`
+- `DELETE /admin/reviews/{review}`
 
 OpenAPI: `docs/openapi.yaml`.

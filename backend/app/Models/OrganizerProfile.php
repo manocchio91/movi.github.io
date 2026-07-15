@@ -38,6 +38,16 @@ class OrganizerProfile extends Model
         return $this->hasMany(Event::class);
     }
 
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    public function reviewStatistic()
+    {
+        return $this->hasOne(ReviewStatistic::class);
+    }
+
     public function municipality(): BelongsTo
     {
         return $this->belongsTo(Municipality::class);

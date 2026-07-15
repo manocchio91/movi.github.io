@@ -13,6 +13,7 @@ use App\Models\NotificationPreference;
 use App\Models\OrganizerProfile;
 use App\Models\Province;
 use App\Models\Region;
+use App\Models\Review;
 use App\Models\SubscriptionPlan;
 use App\Models\TicketType;
 use App\Models\User;
@@ -160,6 +161,115 @@ class EventPlatformTest extends TestCase
         $this->assertDatabaseHas('events', ['id' => $event->id, 'available_total' => 0, 'status' => 'sold_out']);
     }
 
+    public function test_customer_can_review_after_confirmed_booking_and_event_conclusion(): void
+    {
+        [$customer, , $event] = $this->setupDomain();
+        $event->forceFill(['starts_at' => now()->subDay(), 'ends_at' => now()->subHours(2)])->save();
+
+        Booking::query()->create([
+            'ulid' => (string) Str::ulid(),
+            'user_id' => $customer->id,
+            'event_id' => $event->id,
+            'status' => 'confirmed',
+            'total_people' => 1,
+            'adults_count' => 1,
+            'children_count' => 0,
+            'booking_code' => 'EVT-REV01',
+            'qr_token_hash' => 'hash-review',
+            'booked_at' => now()->subDays(2),
+        ]);
+
+        $this->actingAs($customer, 'sanctum')
+            ->postJson("/api/v1/events/{$event->ulid}/reviews", $this->reviewPayload())
+            ->assertCreated()
+            ->assertJsonPath('data.rating', 5)
+            ->assertJsonPath('data.would_recommend', true);
+
+        $this->assertDatabaseHas('reviews', [
+            'event_id' => $event->id,
+            'user_id' => $customer->id,
+            'rating' => 5,
+            'status' => 'approved',
+        ]);
+    }
+
+    public function test_customer_cannot_review_without_real_participation_or_twice(): void
+    {
+        [$customer, , $event] = $this->setupDomain();
+
+        $this->actingAs($customer, 'sanctum')
+            ->postJson("/api/v1/events/{$event->ulid}/reviews", $this->reviewPayload())
+            ->assertForbidden();
+
+        $event->forceFill(['starts_at' => now()->subDay(), 'ends_at' => now()->subHours(2)])->save();
+        Booking::query()->create([
+            'ulid' => (string) Str::ulid(),
+            'user_id' => $customer->id,
+            'event_id' => $event->id,
+            'status' => 'checked_in',
+            'total_people' => 1,
+            'adults_count' => 1,
+            'children_count' => 0,
+            'booking_code' => 'EVT-REV02',
+            'qr_token_hash' => 'hash-review-2',
+            'booked_at' => now()->subDays(2),
+        ]);
+
+        $this->actingAs($customer, 'sanctum')
+            ->postJson("/api/v1/events/{$event->ulid}/reviews", $this->reviewPayload())
+            ->assertCreated();
+
+        $this->actingAs($customer, 'sanctum')
+            ->postJson("/api/v1/events/{$event->ulid}/reviews", $this->reviewPayload())
+            ->assertUnprocessable();
+    }
+
+    public function test_organizer_cannot_review_own_event_and_review_can_be_reported(): void
+    {
+        [$customer, $organizer, $event] = $this->setupDomain();
+        $event->forceFill(['starts_at' => now()->subDay(), 'ends_at' => now()->subHours(2)])->save();
+
+        Booking::query()->create([
+            'ulid' => (string) Str::ulid(),
+            'user_id' => $organizer->id,
+            'event_id' => $event->id,
+            'status' => 'checked_in',
+            'total_people' => 1,
+            'adults_count' => 1,
+            'children_count' => 0,
+            'booking_code' => 'EVT-ORG01',
+            'qr_token_hash' => 'hash-org-review',
+            'booked_at' => now()->subDays(2),
+        ]);
+
+        $this->actingAs($organizer, 'sanctum')
+            ->postJson("/api/v1/events/{$event->ulid}/reviews", $this->reviewPayload())
+            ->assertForbidden();
+
+        $review = Review::query()->create([
+            'ulid' => (string) Str::ulid(),
+            'event_id' => $event->id,
+            'organizer_profile_id' => $event->organizer_profile_id,
+            'user_id' => $customer->id,
+            'rating' => 2,
+            'experience_quality_rating' => 2,
+            'organization_rating' => 2,
+            'location_rating' => 3,
+            'value_rating' => 2,
+            'schedule_respect_rating' => 3,
+            'staff_rating' => 2,
+            'would_recommend' => false,
+            'comment' => 'Troppo affollato.',
+            'status' => 'approved',
+            'reviewed_at' => now(),
+        ]);
+
+        $this->actingAs($customer, 'sanctum')
+            ->postJson("/api/v1/reviews/{$review->ulid}/report", ['reason' => 'contenuto improprio'])
+            ->assertCreated()
+            ->assertJsonPath('data.reason', 'contenuto improprio');
+    }
+
     public function test_cancelled_booking_releases_places_and_private_booking_is_protected(): void
     {
         [$customer, , $event] = $this->setupDomain(capacity: 3);
@@ -282,5 +392,24 @@ class EventPlatformTest extends TestCase
         $event->categories()->sync([$categories['bambini']->id]);
 
         return [$customer, $organizer, $event, $categories, $municipality];
+    }
+
+    private function reviewPayload(): array
+    {
+        return [
+            'rating' => 5,
+            'experience_quality_rating' => 5,
+            'organization_rating' => 4,
+            'location_rating' => 5,
+            'value_rating' => 4,
+            'schedule_respect_rating' => 5,
+            'staff_rating' => 5,
+            'suitable_for_children' => true,
+            'would_recommend' => true,
+            'comment' => 'Esperienza curata e facile da consigliare.',
+            'images' => [
+                ['path' => 'reviews/demo.jpg', 'disk' => 's3', 'mime_type' => 'image/jpeg', 'size_bytes' => 1024],
+            ],
+        ];
     }
 }
