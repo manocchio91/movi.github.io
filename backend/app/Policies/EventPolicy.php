@@ -10,7 +10,7 @@ class EventPolicy
 {
     public function viewAnyOrganizer(User $user): bool
     {
-        return $user->organizerProfile()->exists();
+        return $user->isOrganizer() && $user->organizerProfile()->where('verification_status', 'verified')->exists();
     }
 
     public function update(User $user, Event $event): bool

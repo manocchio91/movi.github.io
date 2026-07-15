@@ -12,6 +12,8 @@ class CreateEvent
 {
     public function handle(OrganizerProfile $profile, array $data): Event
     {
+        abort_unless($profile->verification_status === 'verified', 403, 'Profilo organizzatore non approvato.');
+
         return DB::transaction(function () use ($profile, $data): Event {
             $categoryIds = $data['category_ids'];
             $ticketTypes = $data['ticket_types'] ?? [];

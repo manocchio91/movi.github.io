@@ -12,9 +12,9 @@ paths:
         "201": { description: Utente creato }
   /auth/login:
     post:
-      summary: Login e token Sanctum
+      summary: Login e token Sanctum con role e redirect_to
       responses:
-        "200": { description: Token creato }
+        "200": { description: Token creato con user.role e redirect_to }
   /categories:
     get:
       summary: Macroaree evento
@@ -101,6 +101,37 @@ paths:
       summary: Aggiorna preferenze macroarea
       responses:
         "200": { description: Preferenze aggiornate }
+  /customer/dashboard:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Dashboard cliente protetta da role:customer
+      responses:
+        "200": { description: Eventi consigliati, booking, preferiti e notifiche }
+        "403": { description: Ruolo non autorizzato }
+  /me/favorites:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Preferiti cliente
+      responses:
+        "200": { description: Lista preferiti }
+        "403": { description: Solo customer }
+  /me/favorites/{event}:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Salva evento tra i preferiti
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "201": { description: Preferito creato }
+        "403": { description: Solo customer }
+    delete:
+      security: [{ bearerAuth: [] }]
+      summary: Rimuovi evento dai preferiti
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Preferito rimosso }
+        "403": { description: Solo customer }
   /me/notification-preferences:
     get:
       security: [{ bearerAuth: [] }]
@@ -184,9 +215,10 @@ paths:
   /organizer/dashboard:
     get:
       security: [{ bearerAuth: [] }]
-      summary: Dashboard SaaS organizzatore
+      summary: Dashboard SaaS organizzatore protetta da role:organizer e organizer.approved
       responses:
         "200": { description: KPI subscription, esperienze, prenotazioni, follower e views }
+        "403": { description: Organizer non approvato o ruolo errato }
   /organizer/reviews:
     get:
       security: [{ bearerAuth: [] }]
@@ -279,6 +311,20 @@ paths:
       summary: Eventi in moderazione
       responses:
         "200": { description: Lista eventi }
+  /admin/dashboard:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Dashboard amministrativa protetta da role:admin
+      responses:
+        "200": { description: KPI piattaforma, pending organizer, eventi e report review }
+        "403": { description: Solo admin }
+  /admin/organizers:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Lista organizzatori per moderazione admin
+      responses:
+        "200": { description: Lista organizzatori }
+        "403": { description: Solo admin }
   /admin/events/{event}/approve:
     post:
       security: [{ bearerAuth: [] }]

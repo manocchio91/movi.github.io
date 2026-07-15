@@ -14,7 +14,7 @@ class User extends Authenticatable
     use HasApiTokens;
     use Notifiable;
 
-    protected $fillable = ['name', 'email', 'password', 'role'];
+    protected $fillable = ['name', 'email', 'password', 'role', 'status'];
 
     protected $hidden = ['password', 'remember_token'];
 
@@ -60,6 +60,11 @@ class User extends Authenticatable
     public function followedOrganizers()
     {
         return $this->belongsToMany(OrganizerProfile::class, 'organizer_followers')->withTimestamps();
+    }
+
+    public function favorites()
+    {
+        return $this->belongsToMany(Event::class, 'favorites')->withTimestamps();
     }
 
     public function isAdmin(): bool

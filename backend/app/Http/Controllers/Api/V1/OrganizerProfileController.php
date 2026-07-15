@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreOrganizerProfileRequest;
 use App\Models\OrganizerProfile;
@@ -22,8 +21,6 @@ class OrganizerProfileController extends Controller
             'owner_user_id' => $user->id,
             'verification_status' => 'pending',
         ]);
-
-        $user->forceFill(['role' => UserRole::Organizer])->save();
 
         return response()->json(['data' => $profile], 201);
     }

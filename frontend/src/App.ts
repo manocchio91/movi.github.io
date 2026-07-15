@@ -1,549 +1,306 @@
-import { computed, defineComponent, h, onMounted, ref } from 'vue';
+import { computed, defineComponent, h, ref } from 'vue';
 
-type EventItem = {
-  ulid: string;
-  title: string;
-  summary: string;
-  starts_at: string;
-  municipality?: { name: string };
-  categories?: Array<{ name: string }>;
-  available_total?: number;
-  capacity_total?: number;
-  is_free?: boolean;
-  family_friendly?: boolean;
-  tone: string;
-  imageLabel: string;
+type Role = 'guest' | 'customer' | 'organizer' | 'admin';
+type AppRoute =
+  | '/login'
+  | '/customer/dashboard'
+  | '/customer/explore'
+  | '/customer/bookings'
+  | '/customer/preferences'
+  | '/organizer/dashboard'
+  | '/organizer/events'
+  | '/organizer/create-event'
+  | '/organizer/reviews'
+  | '/organizer/opportunities'
+  | '/admin/dashboard'
+  | '/admin/organizers'
+  | '/admin/events'
+  | '/admin/reviews'
+  | '/unauthorized';
+
+type DemoUser = {
+  role: Exclude<Role, 'guest'>;
+  name: string;
+  email: string;
+  redirect_to: AppRoute;
+  status?: 'pending' | 'verified';
 };
 
-type Tab = 'events' | 'customer' | 'booking' | 'organizer';
-
-const apiBase = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api/v1';
-
-const macroAreas = [
-  'bambini',
-  'cene ed esperienze gastronomiche',
-  'teatro e spettacoli',
-  'degustazioni',
-  'musica dal vivo',
-  'natura ed escursioni',
-  'cultura',
-  'corsi e laboratori',
-  'eventi gratuiti',
+const demoUsers: DemoUser[] = [
+  { role: 'customer', name: 'Cliente Demo', email: 'customer@example.test', redirect_to: '/customer/dashboard' },
+  { role: 'organizer', name: 'Organizzatore Demo', email: 'organizer@example.test', redirect_to: '/organizer/dashboard', status: 'verified' },
+  { role: 'admin', name: 'Admin Molise', email: 'admin@example.test', redirect_to: '/admin/dashboard' },
 ];
 
-const demoEvents: EventItem[] = [
+const customerMenu = [
+  ['Home', '/customer/dashboard'],
+  ['Esplora eventi', '/customer/explore'],
+  ['Le mie prenotazioni', '/customer/bookings'],
+  ['Preferenze', '/customer/preferences'],
+] as const;
+
+const organizerMenu = [
+  ['Dashboard', '/organizer/dashboard'],
+  ['I miei eventi', '/organizer/events'],
+  ['Crea evento', '/organizer/create-event'],
+  ['Recensioni', '/organizer/reviews'],
+  ['Opportunita', '/organizer/opportunities'],
+] as const;
+
+const adminMenu = [
+  ['Dashboard', '/admin/dashboard'],
+  ['Organizzatori', '/admin/organizers'],
+  ['Eventi da approvare', '/admin/events'],
+  ['Recensioni segnalate', '/admin/reviews'],
+] as const;
+
+const events = [
   {
-    ulid: 'demo-lab-fattoria',
     title: 'Laboratorio creativo in fattoria',
-    summary: 'Attivita manuali, animali e merenda per bambini 4-9 anni.',
-    starts_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 8).toISOString(),
-    municipality: { name: 'Campobasso' },
-    categories: [{ name: 'bambini' }, { name: 'corsi e laboratori' }],
-    available_total: 7,
-    capacity_total: 25,
-    is_free: false,
-    family_friendly: true,
-    tone: 'mint',
-    imageLabel: 'Fattoria',
+    category: 'bambini',
+    town: 'Campobasso',
+    date: '23 lug',
+    price: '32,00 euro',
+    places: '7 posti',
   },
   {
-    ulid: 'demo-cena-delitto',
     title: 'Cena con delitto nel borgo',
-    summary: 'Menu degustazione, attori dal vivo e gioco investigativo.',
-    starts_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 12).toISOString(),
-    municipality: { name: 'Bojano' },
-    categories: [{ name: 'cene ed esperienze gastronomiche' }, { name: 'teatro e spettacoli' }],
-    available_total: 5,
-    capacity_total: 40,
-    is_free: false,
-    family_friendly: false,
-    tone: 'coral',
-    imageLabel: 'Cena',
+    category: 'gastronomia',
+    town: 'Bojano',
+    date: '27 lug',
+    price: '25,00 euro',
+    places: '5 posti',
   },
   {
-    ulid: 'demo-escursione',
     title: 'Escursione guidata sul tratturo',
-    summary: 'Passeggiata lenta con guida e racconto del territorio.',
-    starts_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 15).toISOString(),
-    municipality: { name: 'Isernia' },
-    categories: [{ name: 'natura ed escursioni' }, { name: 'cultura' }],
-    available_total: 14,
-    capacity_total: 30,
-    is_free: true,
-    family_friendly: true,
-    tone: 'sky',
-    imageLabel: 'Outdoor',
+    category: 'natura',
+    town: 'Isernia',
+    date: '30 lug',
+    price: 'gratis',
+    places: '14 posti',
   },
 ];
 
-const ratingBreakdown = [
-  { label: 'Qualita esperienza', value: 5 },
-  { label: 'Organizzazione', value: 4 },
-  { label: 'Location', value: 5 },
-  { label: 'Qualita/prezzo', value: 4 },
-  { label: 'Orari', value: 5 },
-  { label: 'Staff', value: 5 },
+const competitorEvents = [
+  { title: 'Degustazione in centro', category: 'degustazioni', town: 'Campobasso', distance: '2 km', time: '20:00', status: 'published' },
+  { title: 'Teatro per famiglie', category: 'bambini', town: 'Campobasso', distance: '1.4 km', time: '17:30', status: 'sold out' },
+  { title: 'Cena tipica molisana', category: 'gastronomia', town: 'Bojano', distance: '18 km', time: '20:30', status: 'published' },
 ];
 
-const demoReviews = [
-  {
-    author: 'Marta C.',
-    event: 'Laboratorio creativo in fattoria',
-    rating: 5,
-    comment: 'Esperienza curata, bambini coinvolti e staff molto presente.',
-    date: '12 lug',
-    recommend: true,
-  },
-  {
-    author: 'Luca P.',
-    event: 'Cena con delitto nel borgo',
-    rating: 4,
-    comment: 'Formato riuscito, tempi leggermente lunghi tra una portata e l altra.',
-    date: '08 lug',
-    recommend: true,
-  },
-  {
-    author: 'Sara M.',
-    event: 'Escursione guidata sul tratturo',
-    rating: 3,
-    comment: 'Bella guida, ma serviva una comunicazione migliore sul punto di ritrovo.',
-    date: '02 lug',
-    recommend: false,
-  },
+const reviews = [
+  { author: 'Marta C.', event: 'Laboratorio creativo in fattoria', rating: 5, text: 'Staff attento e orari rispettati.' },
+  { author: 'Luca P.', event: 'Cena con delitto nel borgo', rating: 4, text: 'Bella esperienza, tempi da stringere.' },
+  { author: 'Sara M.', event: 'Escursione guidata sul tratturo', rating: 3, text: 'Punto di ritrovo poco chiaro.' },
 ];
 
-const starDistribution = [
-  { stars: 5, count: 28 },
-  { stars: 4, count: 11 },
-  { stars: 3, count: 4 },
-  { stars: 2, count: 1 },
-  { stars: 1, count: 0 },
-];
+const canAccess = (role: Role, route: AppRoute) => {
+  if (route === '/login' || route === '/unauthorized') return true;
+  if (route.startsWith('/customer')) return role === 'customer';
+  if (route.startsWith('/organizer')) return role === 'organizer';
+  if (route.startsWith('/admin')) return role === 'admin';
+
+  return false;
+};
 
 export default defineComponent({
   name: 'App',
   setup() {
-    const events = ref<EventItem[]>(demoEvents);
-    const loading = ref(true);
-    const activeTab = ref<Tab>('events');
-    const query = ref('');
-    const selectedMacro = ref('tutte');
-    const selectedPreferences = ref(['bambini', 'cene ed esperienze gastronomiche', 'teatro e spettacoli']);
-    const internalNotifications = ref(true);
-    const emailNotifications = ref(true);
-    const promotionalNotifications = ref(true);
-    const reviewRating = ref(5);
-    const reviewRecommend = ref(true);
-    const reviewChildren = ref(true);
+    const currentUser = ref<DemoUser | null>(null);
+    const route = ref<AppRoute>('/login');
 
-    onMounted(async () => {
-      try {
-        const response = await fetch(`${apiBase}/events`);
-        if (response.ok) {
-          const payload = await response.json();
-          const apiEvents = payload.data?.data ?? payload.data ?? [];
-          if (apiEvents.length > 0) {
-            events.value = apiEvents.map((event: EventItem, index: number) => ({
-              ...demoEvents[index % demoEvents.length],
-              ...event,
-            }));
-          }
-        }
-      } catch {
-        events.value = demoEvents;
-      } finally {
-        loading.value = false;
-      }
-    });
+    const role = computed<Role>(() => currentUser.value?.role ?? 'guest');
 
-    const filteredEvents = computed(() => events.value.filter((event) => {
-      const text = `${event.title} ${event.summary} ${event.municipality?.name ?? ''} ${event.categories?.map((category) => category.name).join(' ') ?? ''}`.toLowerCase();
-      const matchesQuery = query.value.trim() === '' || text.includes(query.value.toLowerCase());
-      const matchesMacro = selectedMacro.value === 'tutte'
-        || event.categories?.some((category) => category.name === selectedMacro.value);
-
-      return matchesQuery && matchesMacro;
-    }));
-
-    const mainEvent = computed(() => filteredEvents.value[0] ?? demoEvents[0]);
-
-    const progress = (event: EventItem) => {
-      const available = event.available_total ?? 0;
-      const capacity = event.capacity_total ?? 1;
-
-      return Math.max(0, Math.min(100, ((capacity - available) / capacity) * 100));
+    const go = (nextRoute: AppRoute) => {
+      route.value = canAccess(role.value, nextRoute) ? nextRoute : '/unauthorized';
     };
 
-    const eventDate = (value: string) => new Date(value).toLocaleDateString('it-IT', {
-      day: '2-digit',
-      month: 'short',
-    });
-
-    const togglePreference = (macro: string) => {
-      selectedPreferences.value = selectedPreferences.value.includes(macro)
-        ? selectedPreferences.value.filter((item) => item !== macro)
-        : [...selectedPreferences.value, macro];
+    const login = (user: DemoUser) => {
+      currentUser.value = user;
+      route.value = user.redirect_to;
     };
 
-    const renderTab = (label: string, icon: string, tab: Tab) => h('button', {
-      class: ['tab-button', activeTab.value === tab ? 'active' : ''],
-      type: 'button',
-      onClick: () => {
-        activeTab.value = tab;
-      },
-    }, [
-      h('span', { class: 'tab-icon' }, icon),
-      h('span', label),
+    const logout = () => {
+      currentUser.value = null;
+      route.value = '/login';
+    };
+
+    const card = (title: string, value: string, note: string) => h('article', { class: 'role-card' }, [
+      h('span', title),
+      h('strong', value),
+      h('small', note),
     ]);
 
-    const renderEventCard = (event: EventItem, featured = false) => h('article', {
-      class: ['event-card', featured ? 'featured' : '', `tone-${event.tone}`],
-      key: event.ulid,
-    }, [
-      h('div', { class: 'event-art' }, [
-        h('span', { class: 'event-date' }, eventDate(event.starts_at)),
-        h('span', { class: 'image-label' }, event.imageLabel),
-      ]),
-      h('div', { class: 'event-content' }, [
-        h('div', { class: 'event-tags' }, [
-          ...(event.categories ?? []).slice(0, 2).map((category) => h('span', category.name)),
-          h('span', event.is_free ? 'Gratis' : 'Pagamento sul posto'),
-        ]),
-        h('h3', event.title),
-        h('p', event.summary),
-        h('div', { class: 'event-meta' }, [
-          h('span', event.municipality?.name ?? 'Molise'),
-          h('span', event.family_friendly ? 'Famiglie' : 'Adulti'),
-        ]),
-        h('div', { class: 'availability' }, [
-          h('div', [h('strong', `${event.available_total ?? 0}`), h('span', ' posti rimasti')]),
-          h('div', { class: 'progress-track' }, [h('span', { style: { width: `${progress(event)}%` } })]),
-        ]),
-        h('button', { class: 'primary-action', type: 'button', onClick: () => { activeTab.value = 'booking'; } }, 'Prenota ora'),
-      ]),
-    ]);
-
-    const renderScoreDots = (value: number, onSelect?: (score: number) => void) => h('div', { class: 'score-dots' }, [1, 2, 3, 4, 5].map((score) => h('button', {
-      class: score <= value ? 'active' : '',
-      type: 'button',
-      onClick: () => { onSelect?.(score); },
-    }, `${score}`)));
-
-    const renderReviewSummary = (compact = false) => h('div', { class: ['review-summary', compact ? 'compact' : ''] }, [
-      h('div', { class: 'rating-widget' }, [
-        h('strong', '4.7'),
-        h('span', 'media generale'),
-        h('small', '44 recensioni'),
-      ]),
-      h('div', { class: 'review-kpis' }, [
-        h('div', [h('strong', '91%'), h('span', 'soddisfatti')]),
-        h('div', [h('strong', '88%'), h('span', 'consigliano')]),
-      ]),
-    ]);
-
-    const renderStarChart = () => h('div', { class: 'star-chart' }, starDistribution.map((row) => h('div', { class: 'star-row', key: row.stars }, [
-      h('span', `${row.stars}`),
-      h('div', { class: 'star-track' }, [h('i', { style: { width: `${(row.count / 28) * 100}%` } })]),
-      h('strong', `${row.count}`),
-    ])));
-
-    const renderReviewList = () => h('div', { class: 'review-feed' }, demoReviews.map((review) => h('article', { class: 'review-card', key: `${review.author}-${review.event}` }, [
-      h('div', { class: 'review-head' }, [
-        h('div', [h('strong', review.author), h('span', review.event)]),
-        h('b', `${review.rating}/5`),
-      ]),
-      h('p', review.comment),
-      h('div', { class: 'review-foot' }, [
-        h('span', review.date),
-        h('button', { type: 'button' }, 'Segnala'),
-      ]),
-    ])));
-
-    const renderEvents = () => h('section', { class: 'screen-content' }, [
-      h('div', { class: 'mobile-hero' }, [
-        h('p', 'Esperienze locali'),
-        h('h1', 'Scopri esperienze, non solo eventi'),
-        h('div', { class: 'search-box' }, [
-          h('span', 'Cerca'),
-          h('input', {
-            value: query.value,
-            type: 'search',
-            placeholder: 'laboratorio, cena, escursione',
-            onInput: (event: Event) => {
-              query.value = (event.target as HTMLInputElement).value;
-            },
-          }),
-        ]),
-      ]),
-      h('div', { class: 'quick-stats' }, [
-        h('div', [h('strong', `${events.value.length}`), h('span', 'esperienze')]),
-        h('div', [h('strong', '3'), h('span', 'prenotazioni')]),
-        h('div', [h('strong', '6'), h('span', 'notifiche')]),
-      ]),
-      h('div', { class: 'category-row' }, ['tutte', ...macroAreas].map((macro) => h('button', {
-        class: ['chip', selectedMacro.value === macro ? 'active' : ''],
-        type: 'button',
-        onClick: () => { selectedMacro.value = macro; },
-      }, macro))),
-      h('div', { class: 'section-title' }, [
-        h('h2', 'Esperienze pubblicate'),
-        h('span', loading.value ? 'carico...' : `${filteredEvents.value.length} risultati`),
-      ]),
-      renderEventCard(mainEvent.value, true),
-      h('div', { class: 'mini-list' }, filteredEvents.value.slice(1).map((event) => h('button', {
-        class: 'mini-event',
-        type: 'button',
-        key: event.ulid,
-        onClick: () => { activeTab.value = 'booking'; },
-      }, [
-        h('span', { class: [`mini-art`, `tone-${event.tone}`] }, eventDate(event.starts_at)),
-        h('span', { class: 'mini-copy' }, [
-          h('strong', event.title),
-          h('small', `${event.municipality?.name ?? 'Molise'} - ${event.available_total ?? 0} posti`),
-        ]),
-      ]))),
-    ]);
-
-    const renderCustomer = () => h('section', { class: 'screen-content' }, [
-      h('div', { class: 'section-title' }, [
-        h('h2', 'Profilo cliente'),
-        h('span', 'customer@example.test'),
-      ]),
-      h('div', { class: 'info-panel follow-panel' }, [
-        h('h3', 'Organizzatori seguiti'),
-        h('p', 'Quando un locale seguito pubblica una nuova esperienza ricevi una notifica anche se la categoria non e tra le tue preferite.'),
-        h('div', { class: 'split-row' }, [h('span', 'Fattoria Didattica Demo'), h('strong', 'segui')]),
-        h('div', { class: 'split-row' }, [h('span', 'Enoteca Centro'), h('strong', 'segui')]),
-      ]),
-      h('div', { class: 'info-panel' }, [
-        h('h3', 'Macroaree preferite'),
-        h('p', 'Queste preferenze sono salvate via API in /me/preferences e usate per notificare nuovi eventi pertinenti.'),
-        h('div', { class: 'preference-grid' }, macroAreas.map((macro) => h('button', {
-          class: ['preference-pill', selectedPreferences.value.includes(macro) ? 'selected' : ''],
+    const renderLogin = () => h('section', { class: 'auth-screen' }, [
+      h('div', { class: 'auth-panel' }, [
+        h('span', { class: 'eyebrow' }, 'Accesso ruolo'),
+        h('h1', 'Eventi Locali'),
+        h('p', 'Dopo il login il backend restituisce role e redirect_to. La UI carica automaticamente il layout consentito.'),
+        h('div', { class: 'login-grid' }, demoUsers.map((user) => h('button', {
           type: 'button',
-          onClick: () => { togglePreference(macro); },
-        }, macro))),
-        h('button', { class: 'primary-action wide', type: 'button' }, 'Salva preferenze'),
-      ]),
-      h('div', { class: 'info-panel' }, [
-        h('h3', 'Preferenze notifiche'),
-        h('label', { class: 'switch-row' }, [
-          h('span', 'Notifiche interne'),
-          h('input', {
-            checked: internalNotifications.value,
-            type: 'checkbox',
-            onChange: (event: Event) => { internalNotifications.value = (event.target as HTMLInputElement).checked; },
-          }),
-        ]),
-        h('label', { class: 'switch-row' }, [
-          h('span', 'Email'),
-          h('input', {
-            checked: emailNotifications.value,
-            type: 'checkbox',
-            onChange: (event: Event) => { emailNotifications.value = (event.target as HTMLInputElement).checked; },
-          }),
-        ]),
-        h('label', { class: 'switch-row' }, [
-          h('span', 'Promozionali per categorie scelte'),
-          h('input', {
-            checked: promotionalNotifications.value,
-            type: 'checkbox',
-            onChange: (event: Event) => { promotionalNotifications.value = (event.target as HTMLInputElement).checked; },
-          }),
-        ]),
-        h('div', { class: 'frequency-row' }, [
-          h('span', 'Immediata'),
-          h('span', 'Giornaliera'),
-          h('span', 'Settimanale'),
-        ]),
-      ]),
-      h('div', { class: 'notification-list' }, [
-        h('article', [h('strong', 'Nuovo evento per bambini'), h('span', 'Laboratorio creativo in fattoria - 7 posti disponibili')]),
-        h('article', [h('strong', 'Prenotazione confermata'), h('span', 'Codice EVT-DEMO01, pagamento sul posto')]),
-      ]),
-      h('div', { class: 'section-title' }, [
-        h('h2', 'Recensioni pubblicate'),
-        h('span', 'recenti'),
-      ]),
-      renderReviewSummary(true),
-      renderReviewList(),
-    ]);
-
-    const renderBooking = () => h('section', { class: 'screen-content' }, [
-      h('div', { class: 'ticket-card' }, [
-        h('div', { class: 'ticket-top' }, [
-          h('span', 'Form prenotazione'),
-          h('strong', mainEvent.value.available_total === 0 ? 'sold_out' : 'published'),
-        ]),
-        h('h2', mainEvent.value.title),
-        h('p', `${eventDate(mainEvent.value.starts_at)} - ${mainEvent.value.municipality?.name ?? 'Molise'}`),
-        h('div', { class: 'booking-form' }, [
-          h('label', ['Adulti', h('input', { value: '2', readonly: true })]),
-          h('label', ['Bambini', h('input', { value: '1', readonly: true })]),
-          h('label', ['Biglietto adulto', h('input', { value: '12,00 euro', readonly: true })]),
-          h('label', ['Biglietto bambino', h('input', { value: '8,00 euro', readonly: true })]),
-        ]),
-        h('div', { class: 'price-box' }, [
-          h('span', 'Totale previsto'),
-          h('strong', '32,00 euro'),
-          h('small', 'Pagamento sul posto'),
-        ]),
-        h('button', { class: 'primary-action wide', type: 'button' }, 'Conferma prenotazione'),
-      ]),
-      h('div', { class: 'info-panel' }, [
-        h('h3', 'Le mie prenotazioni'),
-        h('div', { class: 'split-row' }, [h('span', 'EVT-DEMO01'), h('strong', 'confirmed')]),
-        h('div', { class: 'split-row' }, [h('span', 'Posti'), h('strong', '3')]),
-        h('div', { class: 'split-row' }, [h('span', 'QR ingresso'), h('strong', 'pronto')]),
-      ]),
-      h('div', { class: 'review-form-panel' }, [
-        h('div', { class: 'section-title compact' }, [
-          h('h2', 'Lascia recensione'),
-          h('span', 'check-in ok'),
-        ]),
-        h('div', { class: 'overall-rating' }, [
-          h('span', 'Valutazione generale'),
-          renderScoreDots(reviewRating.value, (score) => { reviewRating.value = score; }),
-        ]),
-        h('div', { class: 'rating-breakdown' }, ratingBreakdown.map((item) => h('div', { class: 'rating-line', key: item.label }, [
-          h('span', item.label),
-          renderScoreDots(item.value),
+          onClick: () => login(user),
+        }, [
+          h('strong', user.role),
+          h('span', user.email),
+          h('small', user.redirect_to),
         ]))),
-        h('div', { class: 'toggle-grid' }, [
-          h('button', {
-            class: reviewChildren.value ? 'active' : '',
-            type: 'button',
-            onClick: () => { reviewChildren.value = !reviewChildren.value; },
-          }, 'Adatto ai bambini'),
-          h('button', {
-            class: reviewRecommend.value ? 'active' : '',
-            type: 'button',
-            onClick: () => { reviewRecommend.value = !reviewRecommend.value; },
-          }, 'Lo consiglierei'),
-        ]),
-        h('label', { class: 'comment-box' }, [
-          h('span', 'Commento'),
-          h('textarea', { value: 'Esperienza molto curata, staff gentile e orari rispettati.', readonly: true }),
-        ]),
-        h('div', { class: 'image-upload-placeholder' }, [
-          h('strong', 'Immagini'),
-          h('span', 'Upload predisposto'),
-        ]),
-        h('button', { class: 'primary-action wide', type: 'button' }, 'Invia recensione'),
       ]),
     ]);
 
-    const renderOrganizer = () => h('section', { class: 'screen-content' }, [
-      h('div', { class: 'section-title' }, [
-        h('h2', 'Dashboard SaaS locale'),
-        h('span', 'organizer@example.test'),
+    const renderHeader = (title: string, menu: readonly (readonly [string, AppRoute])[]) => h('header', { class: 'app-header' }, [
+      h('div', [
+        h('span', currentUser.value?.email ?? ''),
+        h('strong', title),
       ]),
-      h('div', { class: 'plan-card' }, [
-        h('span', 'Piano attivo'),
-        h('h3', 'Starter'),
-        h('p', 'Esperienze illimitate, gestione prenotazioni e statistiche base. Pagamenti online predisposti per Stripe.'),
-        h('div', { class: 'plan-row' }, [
-          h('strong', '19 euro/mese'),
-          h('button', { type: 'button' }, 'Cambia piano'),
-        ]),
-      ]),
-      h('div', { class: 'info-panel organizer-panel' }, [
-        h('span', { class: 'status-pill' }, 'draft -> published'),
-        h('h3', 'Crea esperienza collegata al DB'),
-        h('div', { class: 'booking-form' }, [
-          h('label', ['Titolo', h('input', { value: 'Cena messicana con musica live', readonly: true })]),
-          h('label', ['Macroarea', h('input', { value: 'cene ed esperienze gastronomiche', readonly: true })]),
-          h('label', ['Capienza massima', h('input', { value: '40', readonly: true })]),
-          h('label', ['Prezzo persona', h('input', { value: '25,00 euro', readonly: true })]),
-        ]),
-        h('button', { class: 'primary-action wide', type: 'button' }, 'Pubblica esperienza'),
-      ]),
-      h('div', { class: 'metric-grid' }, [
-        h('div', [h('strong', '4'), h('span', 'esperienze attive')]),
-        h('div', [h('strong', '72'), h('span', 'prenotazioni')]),
-        h('div', [h('strong', '318'), h('span', 'visualizzazioni')]),
-        h('div', [h('strong', '46'), h('span', 'follower')]),
-        h('div', [h('strong', '42%'), h('span', 'ritorno clienti')]),
-        h('div', [h('strong', '2'), h('span', 'sold out')]),
-      ]),
-      renderReviewSummary(),
-      h('div', { class: 'chart-panel' }, [
-        h('div', { class: 'section-title compact' }, [h('h2', 'Distribuzione stelle'), h('span', 'review')]),
-        renderStarChart(),
-      ]),
-      h('div', { class: 'info-panel bi-panel' }, [
-        h('h3', 'Organizer Opportunity Engine'),
-        h('p', 'Analisi deterministica dello slot selezionato prima della pubblicazione.'),
-        h('div', { class: 'suggestion-list' }, [
-          h('span', 'Nessuna esperienza gastronomica nello stesso orario.'),
-          h('span', 'Nello stesso comune e presente un laboratorio bambini alle 17:00.'),
-          h('span', 'Valuta fascia 20:30 per ridurre sovrapposizioni.'),
-        ]),
-      ]),
-      h('div', { class: 'chart-panel' }, [
-        h('div', { class: 'section-title compact' }, [h('h2', 'Prenotazioni mensili'), h('span', 'BI')]),
-        h('div', { class: 'bar-chart' }, [42, 58, 37, 74, 91, 66].map((value) => h('span', { style: { height: `${value}%` } }))),
-      ]),
-      h('div', { class: 'chart-panel' }, [
-        h('div', { class: 'section-title compact' }, [h('h2', 'Evoluzione recensioni'), h('span', '30 giorni')]),
-        h('div', { class: 'line-chart-lite' }, [32, 38, 35, 44, 51, 47, 58].map((value) => h('span', { style: { height: `${value}%` } }))),
-      ]),
-      h('div', { class: 'info-panel' }, [
-        h('h3', 'Categorie migliori per recensioni'),
-        h('div', { class: 'split-row' }, [h('span', 'Cene a tema'), h('strong', '4.8/5')]),
-        h('div', { class: 'split-row' }, [h('span', 'Degustazioni'), h('strong', '4.6/5')]),
-        h('div', { class: 'split-row' }, [h('span', 'Laboratori'), h('strong', '4.5/5')]),
-      ]),
-      h('div', { class: 'section-title' }, [
-        h('h2', 'Recensioni organizer'),
-        h('span', 'migliori e critiche'),
-      ]),
-      renderReviewList(),
-      h('div', { class: 'planning-grid' }, [
-        h('div', { class: 'planning-card calendar-card' }, [h('strong', 'Calendario'), h('span', '3 esperienze oggi'), h('small', 'colori per categoria')]),
-        h('div', { class: 'planning-card map-card' }, [h('strong', 'Mappa'), h('span', '5 marker vicini'), h('small', 'distanza e fascia oraria')]),
-      ]),
-      h('div', { class: 'campaign-card' }, [
-        h('span', 'Campagna attiva'),
-        h('h3', 'Cena Messicana'),
-        h('div', { class: 'campaign-metrics' }, [
-          h('div', [h('strong', '640'), h('small', 'views')]),
-          h('div', [h('strong', '112'), h('small', 'click')]),
-          h('div', [h('strong', '41'), h('small', 'booking')]),
-          h('div', [h('strong', '36%'), h('small', 'conversione')]),
-        ]),
-      ]),
-      h('div', { class: 'review-list' }, [
-        h('article', { class: 'review-item' }, [h('div', [h('strong', 'Laboratorio creativo'), h('span', '22 posti disponibili')]), h('small', 'published')]),
-        h('article', { class: 'review-item' }, [h('div', [h('strong', 'Cena messicana'), h('span', '40 posti, 0 prenotati')]), h('small', 'draft')]),
+      h('button', { type: 'button', onClick: logout }, 'Logout'),
+      h('nav', menu.map(([label, target]) => h('button', {
+        class: route.value === target ? 'active' : '',
+        type: 'button',
+        onClick: () => go(target),
+      }, label))),
+    ]);
+
+    const CustomerLayout = () => h('main', { class: 'role-shell customer-layout' }, [
+      renderHeader('Dashboard cliente', customerMenu),
+      h('section', { class: 'role-content' }, route.value === '/customer/explore'
+        ? [
+            h('div', { class: 'section-title' }, [h('h2', 'Esplora eventi'), h('span', 'filtri: categoria, comune, data, prezzo')]),
+            h('div', { class: 'filter-strip' }, ['Categoria', 'Comune', 'Provincia', 'Data', 'Prezzo'].map((item) => h('button', { type: 'button' }, item))),
+            h('div', { class: 'event-grid' }, events.map((event) => h('article', { class: 'experience-card' }, [
+              h('span', event.category),
+              h('h3', event.title),
+              h('p', `${event.town} - ${event.date}`),
+              h('div', [h('strong', event.price), h('small', event.places)]),
+              h('button', { type: 'button' }, 'Prenota'),
+            ]))),
+          ]
+        : route.value === '/customer/bookings'
+          ? [
+              h('div', { class: 'section-title' }, [h('h2', 'Le mie prenotazioni'), h('span', 'storico e recensioni')]),
+              h('article', { class: 'wide-panel' }, [
+                h('strong', 'EVT-DEMO01'),
+                h('p', 'Laboratorio creativo in fattoria - 2 adulti, 1 bambino - confirmed'),
+                h('button', { type: 'button' }, 'Lascia recensione'),
+              ]),
+            ]
+          : route.value === '/customer/preferences'
+            ? [
+                h('div', { class: 'section-title' }, [h('h2', 'Preferenze'), h('span', 'notifiche e macroaree')]),
+                h('div', { class: 'preference-grid' }, ['bambini', 'gastronomia', 'teatro', 'natura', 'gratuiti'].map((item) => h('button', { type: 'button' }, item))),
+                h('article', { class: 'wide-panel' }, [h('strong', 'Canali notifica'), h('p', 'Interne attive, email attiva, promozionali consentite.')]),
+              ]
+            : [
+                h('div', { class: 'metric-grid' }, [
+                  card('Prenotazioni', '3', 'confermate'),
+                  card('Preferiti', '8', 'salvati'),
+                  card('Notifiche', '6', 'non lette'),
+                ]),
+                h('div', { class: 'section-title' }, [h('h2', 'Consigliati per te'), h('span', 'solo funzioni cliente')]),
+                h('div', { class: 'event-grid' }, events.map((event) => h('article', { class: 'experience-card' }, [
+                  h('span', event.category),
+                  h('h3', event.title),
+                  h('p', `${event.town} - ${event.date}`),
+                  h('button', { type: 'button' }, 'Dettaglio evento'),
+                ]))),
+              ]),
+    ]);
+
+    const OrganizerLayout = () => h('main', { class: 'role-shell organizer-layout' }, [
+      renderHeader('Dashboard organizzatore', organizerMenu),
+      h('section', { class: 'role-content' }, route.value === '/organizer/create-event'
+        ? [
+            h('div', { class: 'section-title' }, [h('h2', 'Crea evento'), h('span', 'con analisi concorrenza')]),
+            h('article', { class: 'wide-panel form-preview' }, [
+              h('strong', 'Nuova esperienza'),
+              h('div', { class: 'form-grid' }, ['Titolo', 'Categoria', 'Comune', 'Data', 'Ora inizio', 'Prezzo adulto', 'Prezzo bambino', 'Capienza'].map((field) => h('label', [field, h('input', { readonly: true, value: field === 'Comune' ? 'Campobasso' : '' })]))),
+            ]),
+            h('div', { class: 'section-title' }, [h('h2', 'Altri eventi nella data'), h('span', 'dati pubblici o aggregati')]),
+            h('div', { class: 'event-grid' }, competitorEvents.map((event) => h('article', { class: 'experience-card competitor' }, [
+              h('span', event.status),
+              h('h3', event.title),
+              h('p', `${event.category} - ${event.town} - ${event.distance}`),
+              h('small', `Orario ${event.time}`),
+            ]))),
+          ]
+        : route.value === '/organizer/reviews'
+          ? [
+              h('div', { class: 'metric-grid' }, [
+                card('Media', '4.7', '44 recensioni'),
+                card('Consiglierebbero', '88%', 'utenti soddisfatti'),
+                card('Critiche', '5', 'da gestire'),
+              ]),
+              h('div', { class: 'review-feed' }, reviews.map((review) => h('article', { class: 'review-card' }, [
+                h('strong', `${review.rating}/5 - ${review.event}`),
+                h('p', review.text),
+                h('small', review.author),
+              ]))),
+            ]
+          : route.value === '/organizer/opportunities'
+            ? [
+                h('div', { class: 'section-title' }, [h('h2', 'Opportunity Engine'), h('span', 'deterministico')]),
+                h('article', { class: 'wide-panel opportunity' }, [
+                  h('strong', 'La data scelta presenta bassa concorrenza nella categoria selezionata.'),
+                  h('p', 'Nella stessa fascia oraria e presente un altra cena a tema a 2 km. Valuta di posticipare l evento di un ora.'),
+                ]),
+                h('div', { class: 'event-grid' }, competitorEvents.map((event) => h('article', { class: 'experience-card' }, [h('h3', event.title), h('p', `${event.category} - ${event.distance}`)]))),
+              ]
+            : [
+                h('div', { class: 'metric-grid' }, [
+                  card('Eventi attivi', '4', '2 futuri, 1 sold out'),
+                  card('Prenotazioni', '72', 'posti occupati'),
+                  card('Follower', '46', '+8 questo mese'),
+                  card('Rating', '4.7', '44 recensioni'),
+                  card('Riempimento', '74%', 'medio'),
+                  card('Ritorno', '42%', 'clienti abituali'),
+                ]),
+                h('div', { class: 'section-title' }, [h('h2', 'Grafici business'), h('span', 'booking, follower, campagne')]),
+                h('div', { class: 'bar-chart' }, [40, 62, 48, 78, 91, 66].map((value) => h('span', { style: { height: `${value}%` } }))),
+              ]),
+    ]);
+
+    const AdminLayout = () => h('main', { class: 'role-shell admin-layout' }, [
+      renderHeader('Dashboard amministratore', adminMenu),
+      h('section', { class: 'role-content' }, route.value === '/admin/organizers'
+        ? [
+            h('div', { class: 'section-title' }, [h('h2', 'Moderazione organizzatori'), h('span', 'pending, approved, rejected')]),
+            h('article', { class: 'wide-panel' }, [h('strong', 'Fattoria Didattica Demo'), h('p', 'verified - Campobasso'), h('button', { type: 'button' }, 'Sospendi')]),
+          ]
+        : route.value === '/admin/events'
+          ? [
+              h('div', { class: 'section-title' }, [h('h2', 'Eventi da approvare'), h('span', 'policy admin')]),
+              h('article', { class: 'wide-panel' }, [h('strong', 'Cena messicana'), h('p', 'pending_review'), h('button', { type: 'button' }, 'Approva')]),
+            ]
+          : route.value === '/admin/reviews'
+            ? [
+                h('div', { class: 'section-title' }, [h('h2', 'Recensioni segnalate'), h('span', 'moderazione')]),
+                h('article', { class: 'wide-panel' }, [h('strong', 'Segnalazione aperta'), h('p', 'contenuto improprio'), h('button', { type: 'button' }, 'Nascondi')]),
+              ]
+            : [
+                h('div', { class: 'metric-grid' }, [
+                  card('Utenti', '128', 'customer, organizer, admin'),
+                  card('Organizer pending', '3', 'da verificare'),
+                  card('Eventi pending', '7', 'da approvare'),
+                  card('Report review', '4', 'aperti'),
+                ]),
+                h('article', { class: 'wide-panel' }, [h('strong', 'Audit log'), h('p', 'Ultime azioni amministrative e controlli piattaforma.')]),
+              ]),
+    ]);
+
+    const Unauthorized = () => h('main', { class: 'auth-screen' }, [
+      h('div', { class: 'auth-panel unauthorized' }, [
+        h('span', { class: 'eyebrow' }, '403'),
+        h('h1', 'Accesso non autorizzato'),
+        h('p', 'Questa pagina non appartiene al ruolo autenticato. Il backend restituisce lo stesso controllo con middleware role e policy.'),
+        h('button', { type: 'button', onClick: () => currentUser.value ? go(currentUser.value.redirect_to) : go('/login') }, 'Torna alla dashboard corretta'),
       ]),
     ]);
 
-    const currentScreen = () => {
-      if (activeTab.value === 'customer') return renderCustomer();
-      if (activeTab.value === 'booking') return renderBooking();
-      if (activeTab.value === 'organizer') return renderOrganizer();
+    return () => {
+      if (route.value === '/unauthorized') return Unauthorized();
+      if (role.value === 'customer') return CustomerLayout();
+      if (role.value === 'organizer') return OrganizerLayout();
+      if (role.value === 'admin') return AdminLayout();
 
-      return renderEvents();
+      return renderLogin();
     };
-
-    return () => h('main', { class: 'phone-stage' }, [
-      h('div', { class: 'phone-shell' }, [
-        h('header', { class: 'mobile-header' }, [
-          h('div', [
-            h('span', 'Eventi Locali'),
-            h('strong', 'Piattaforma eventi'),
-          ]),
-          h('button', { class: 'avatar-button', type: 'button' }, 'E'),
-        ]),
-        currentScreen(),
-        h('nav', { class: 'bottom-tabs' }, [
-          renderTab('Eventi', 'E', 'events'),
-          renderTab('Cliente', 'C', 'customer'),
-          renderTab('Prenota', 'P', 'booking'),
-          renderTab('Locale', 'L', 'organizer'),
-        ]),
-      ]),
-    ]);
   },
 });

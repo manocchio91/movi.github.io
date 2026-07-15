@@ -1,7 +1,7 @@
 # Schema database
 
 ## Tabelle principali
-- `users`: identita, ruolo `customer|organizer|admin`, autenticazione.
+- `users`: identita, ruolo `customer|organizer|admin`, stato `active|pending|suspended`, autenticazione.
 - `organizer_profiles`: profilo locale con comune, indirizzo, contatti e verifica.
 - `subscription_plans`: piani SaaS Free Trial, Starter, Professional, Enterprise.
 - `subscription_features`: feature e limiti associati ai piani.
@@ -37,12 +37,15 @@
 ## Vincoli chiave
 - `events.status` limitato agli stati del dominio.
 - `events.capacity_total >= events.available_total`.
+- `users.role` limitato a `customer|organizer|admin`.
+- `users.status` limitato a `active|pending|suspended`.
 - ULID univoci per entita esposte pubblicamente.
 - Un profilo organizzatore per owner.
 - Una preferenza per coppia utente/categoria.
 - Una prenotazione duplicata con stessa idempotency key non viene ricreata.
 - Una recensione richiede partecipazione reale e una sola recensione per booking/evento.
 - Gli organizzatori non possono recensire esperienze del proprio profilo.
+- Solo organizzatori con `organizer_profiles.verification_status = verified` possono accedere alle route operative e pubblicare eventi.
 - Le recensioni approvate alimentano statistiche evento, profilo organizzatore e Business Dashboard.
 - Le notifiche usano `deduplication_key` per evitare duplicati.
 - Un follower riceve notifiche per nuove esperienze dell'organizzatore anche senza match categoria.

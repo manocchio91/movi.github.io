@@ -8,6 +8,11 @@ Base path: `/api/v1`
 - `POST /auth/logout`
 - `GET /me`
 
+`POST /auth/login` restituisce `user.role` e `redirect_to`:
+- `customer` -> `/customer/dashboard`
+- `organizer` -> `/organizer/dashboard`
+- `admin` -> `/admin/dashboard`
+
 ## Pubblico
 - `GET /categories`
 - `GET /events`
@@ -20,8 +25,12 @@ Base path: `/api/v1`
 Filtri eventi: `category_id`, `province_id`, `municipality_id`, `date`, `free`, `available`.
 
 ## Cliente
+- `GET /customer/dashboard`
 - `GET /me/preferences`
 - `PUT /me/preferences`
+- `GET /me/favorites`
+- `POST /me/favorites/{event}`
+- `DELETE /me/favorites/{event}`
 - `GET /me/notification-preferences`
 - `PUT /me/notification-preferences`
 - `POST /events/{event}/bookings`
@@ -39,6 +48,8 @@ Filtri eventi: `category_id`, `province_id`, `municipality_id`, `date`, `free`, 
 Per `POST /events/{event}/bookings` usare `Idempotency-Key` per evitare prenotazioni duplicate.
 
 Per `POST /events/{event}/reviews` l'utente deve avere una prenotazione confermata e avere partecipato: check-in effettuato, booking completato oppure evento concluso. Ogni prenotazione/evento puo generare una sola recensione e l'organizzatore non puo recensire i propri eventi.
+
+Tutte le route cliente sono protette da `auth:sanctum` + `role:customer`.
 
 ## Organizzatore
 - `GET /organizer/profile`
@@ -66,7 +77,11 @@ Per `POST /events/{event}/reviews` l'utente deve avere una prenotazione conferma
 - `POST /organizer/events/{event}/cancel`
 - `GET /organizer/events/{event}/bookings`
 
+`GET/POST/PUT /organizer/profile` richiede `role:organizer`; le altre route organizzatore richiedono anche `organizer.approved`. Un organizzatore pending puo vedere/aggiornare lo stato del profilo, ma non puo creare, pubblicare o gestire eventi.
+
 ## Admin
+- `GET /admin/dashboard`
+- `GET /admin/organizers`
 - `GET /admin/events/pending`
 - `POST /admin/events/{event}/approve`
 - `POST /admin/events/{event}/reject`
@@ -77,5 +92,13 @@ Per `POST /events/{event}/reviews` l'utente deve avere una prenotazione conferma
 - `POST /admin/reviews/{review}/approve`
 - `POST /admin/reviews/{review}/hide`
 - `DELETE /admin/reviews/{review}`
+
+Tutte le route admin sono protette da `auth:sanctum` + `role:admin`.
+
+## Middleware e policy
+- `role:customer|organizer|admin`: verifica il ruolo reale dal backend e lo stato utente.
+- `organizer.approved`: consente l'accesso operativo solo a profili organizzatore verificati.
+- `EventPolicy`: limita lettura/modifica delle esperienze al proprietario o all'admin moderatore.
+- `OrganizerProfilePolicy`: limita moderazione organizer agli admin e gestione profilo al proprietario.
 
 OpenAPI: `docs/openapi.yaml`.

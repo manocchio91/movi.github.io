@@ -11,13 +11,14 @@ class OrganizerProfile extends Model
     protected $fillable = [
         'ulid', 'owner_user_id', 'name', 'type', 'description', 'email', 'phone',
         'website_url', 'municipality_id', 'address', 'logo_path', 'cover_path',
-        'social_links', 'gallery', 'verification_status', 'verified_at',
+        'social_links', 'gallery', 'verification_status', 'verified_at', 'suspended_at',
     ];
 
     protected function casts(): array
     {
         return [
             'verified_at' => 'datetime',
+            'suspended_at' => 'datetime',
             'social_links' => 'array',
             'gallery' => 'array',
         ];

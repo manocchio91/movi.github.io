@@ -8,6 +8,15 @@ use Illuminate\Http\JsonResponse;
 
 class OrganizerModerationController extends Controller
 {
+    public function index(): JsonResponse
+    {
+        $this->authorize('moderate', OrganizerProfile::class);
+
+        return response()->json([
+            'data' => OrganizerProfile::query()->with(['owner', 'municipality'])->latest()->get(),
+        ]);
+    }
+
     public function pending(): JsonResponse
     {
         abort_unless(request()->user()?->isAdmin(), 403);

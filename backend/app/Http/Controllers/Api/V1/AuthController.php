@@ -26,6 +26,7 @@ class AuthController extends Controller
         return response()->json([
             'user' => $user,
             'token' => $user->createToken('pwa')->plainTextToken,
+            'redirect_to' => $this->redirectPath($user),
         ], 201);
     }
 
@@ -41,6 +42,7 @@ class AuthController extends Controller
         return response()->json([
             'user' => $user,
             'token' => $user->createToken('pwa')->plainTextToken,
+            'redirect_to' => $this->redirectPath($user),
         ]);
     }
 
@@ -53,6 +55,17 @@ class AuthController extends Controller
 
     public function me(): JsonResponse
     {
-        return response()->json(['user' => request()->user()]);
+        $user = request()->user();
+
+        return response()->json(['user' => $user, 'redirect_to' => $this->redirectPath($user)]);
+    }
+
+    private function redirectPath(User $user): string
+    {
+        return match ($user->role) {
+            UserRole::Organizer => '/organizer/dashboard',
+            UserRole::Admin => '/admin/dashboard',
+            default => '/customer/dashboard',
+        };
     }
 }

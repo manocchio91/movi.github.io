@@ -15,6 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(prepend: [
             \App\Http\Middleware\RequestId::class,
         ]);
+        $middleware->alias([
+            'role' => \App\Http\Middleware\EnsureUserRole::class,
+            'organizer.approved' => \App\Http\Middleware\EnsureOrganizerApproved::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

@@ -106,6 +106,195 @@ class EventPlatformTest extends TestCase
             ->assertJsonPath('data.0.slug', 'starter');
     }
 
+    public function test_login_returns_role_and_dashboard_redirect(): void
+    {
+        $customer = User::factory()->create(['role' => UserRole::Customer]);
+        $organizer = User::factory()->create(['role' => UserRole::Organizer]);
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+
+        $this->postJson('/api/v1/auth/login', ['email' => $customer->email, 'password' => 'password'])
+            ->assertOk()
+            ->assertJsonPath('user.role', 'customer')
+            ->assertJsonPath('redirect_to', '/customer/dashboard');
+
+        $this->postJson('/api/v1/auth/login', ['email' => $organizer->email, 'password' => 'password'])
+            ->assertOk()
+            ->assertJsonPath('user.role', 'organizer')
+            ->assertJsonPath('redirect_to', '/organizer/dashboard');
+
+        $this->postJson('/api/v1/auth/login', ['email' => $admin->email, 'password' => 'password'])
+            ->assertOk()
+            ->assertJsonPath('user.role', 'admin')
+            ->assertJsonPath('redirect_to', '/admin/dashboard');
+    }
+
+    public function test_role_middleware_blocks_cross_role_api_access(): void
+    {
+        [$customer, $organizer] = $this->setupDomain();
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+
+        $this->actingAs($customer, 'sanctum')
+            ->getJson('/api/v1/organizer/dashboard')
+            ->assertForbidden();
+
+        $this->actingAs($organizer, 'sanctum')
+            ->getJson('/api/v1/admin/dashboard')
+            ->assertForbidden();
+
+        $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/v1/customer/dashboard')
+            ->assertForbidden();
+    }
+
+    public function test_customer_cannot_create_events_and_organizer_sees_only_own_events(): void
+    {
+        [$customer, $organizer, $event, $categories, $municipality] = $this->setupDomain();
+        $otherOrganizer = User::factory()->create(['role' => UserRole::Organizer]);
+        $otherProfile = OrganizerProfile::query()->create([
+            'ulid' => (string) Str::ulid(),
+            'owner_user_id' => $otherOrganizer->id,
+            'name' => 'Altro Locale',
+            'type' => 'associazione',
+            'email' => 'altro@example.test',
+            'municipality_id' => $municipality->id,
+            'verification_status' => 'verified',
+            'verified_at' => now(),
+        ]);
+        $otherEvent = Event::query()->create([
+            'ulid' => (string) Str::ulid(),
+            'organizer_profile_id' => $otherProfile->id,
+            'municipality_id' => $municipality->id,
+            'title' => 'Evento altro organizer',
+            'slug' => 'evento-altro-'.Str::random(6),
+            'summary' => 'Evento privato di altro organizer',
+            'description' => 'Non deve essere visibile nella dashboard del primo organizer.',
+            'status' => EventStatus::Published,
+            'starts_at' => now()->addWeeks(3),
+            'capacity_total' => 10,
+            'available_total' => 10,
+            'is_free' => true,
+            'family_friendly' => false,
+            'indoor_outdoor' => 'indoor',
+        ]);
+
+        $payload = [
+            'title' => 'Evento cliente',
+            'summary' => 'Tentativo cliente',
+            'description' => 'Un cliente non puo creare eventi.',
+            'municipality_id' => $municipality->id,
+            'category_ids' => [$categories['bambini']->id],
+            'starts_at' => now()->addMonth()->toIso8601String(),
+            'capacity_total' => 12,
+            'is_free' => true,
+            'family_friendly' => true,
+            'indoor_outdoor' => 'mixed',
+        ];
+
+        $this->actingAs($customer, 'sanctum')
+            ->postJson('/api/v1/organizer/events', $payload)
+            ->assertForbidden();
+
+        $this->actingAs($organizer, 'sanctum')
+            ->getJson('/api/v1/organizer/events')
+            ->assertOk()
+            ->assertJsonFragment(['ulid' => $event->ulid])
+            ->assertJsonMissing(['ulid' => $otherEvent->ulid]);
+    }
+
+    public function test_unapproved_organizer_cannot_use_approved_area_or_publish(): void
+    {
+        [, $organizer, $event] = $this->setupDomain();
+        $organizer->organizerProfile->forceFill(['verification_status' => 'pending', 'verified_at' => null])->save();
+
+        $this->actingAs($organizer, 'sanctum')
+            ->getJson('/api/v1/organizer/profile')
+            ->assertOk();
+
+        $this->actingAs($organizer, 'sanctum')
+            ->getJson('/api/v1/organizer/dashboard')
+            ->assertForbidden();
+
+        $event->forceFill(['status' => EventStatus::Draft])->save();
+
+        $this->actingAs($organizer, 'sanctum')
+            ->postJson("/api/v1/organizer/events/{$event->ulid}/publish")
+            ->assertForbidden();
+    }
+
+    public function test_organizer_sees_only_reviews_for_own_events(): void
+    {
+        [$customer, $organizer, $event, , $municipality] = $this->setupDomain();
+        $otherCustomer = User::factory()->create(['role' => UserRole::Customer]);
+        $otherOrganizer = User::factory()->create(['role' => UserRole::Organizer]);
+        $otherProfile = OrganizerProfile::query()->create([
+            'ulid' => (string) Str::ulid(),
+            'owner_user_id' => $otherOrganizer->id,
+            'name' => 'Locale Esterno',
+            'type' => 'ristorante',
+            'email' => 'esterno@example.test',
+            'municipality_id' => $municipality->id,
+            'verification_status' => 'verified',
+            'verified_at' => now(),
+        ]);
+        $otherEvent = Event::query()->create([
+            'ulid' => (string) Str::ulid(),
+            'organizer_profile_id' => $otherProfile->id,
+            'municipality_id' => $municipality->id,
+            'title' => 'Cena esterna',
+            'slug' => 'cena-esterna-'.Str::random(6),
+            'summary' => 'Evento di altro organizer',
+            'description' => 'Recensione non accessibile al primo organizer.',
+            'status' => EventStatus::Published,
+            'starts_at' => now()->subWeek(),
+            'capacity_total' => 10,
+            'available_total' => 8,
+            'is_free' => false,
+            'family_friendly' => false,
+            'indoor_outdoor' => 'indoor',
+        ]);
+
+        Review::query()->create([
+            'ulid' => (string) Str::ulid(),
+            'event_id' => $event->id,
+            'organizer_profile_id' => $event->organizer_profile_id,
+            'user_id' => $customer->id,
+            'rating' => 5,
+            'experience_quality_rating' => 5,
+            'organization_rating' => 5,
+            'location_rating' => 5,
+            'value_rating' => 5,
+            'schedule_respect_rating' => 5,
+            'staff_rating' => 5,
+            'would_recommend' => true,
+            'comment' => 'Recensione propria',
+            'status' => 'approved',
+            'reviewed_at' => now(),
+        ]);
+        Review::query()->create([
+            'ulid' => (string) Str::ulid(),
+            'event_id' => $otherEvent->id,
+            'organizer_profile_id' => $otherProfile->id,
+            'user_id' => $otherCustomer->id,
+            'rating' => 1,
+            'experience_quality_rating' => 1,
+            'organization_rating' => 1,
+            'location_rating' => 1,
+            'value_rating' => 1,
+            'schedule_respect_rating' => 1,
+            'staff_rating' => 1,
+            'would_recommend' => false,
+            'comment' => 'Recensione altra',
+            'status' => 'approved',
+            'reviewed_at' => now(),
+        ]);
+
+        $this->actingAs($organizer, 'sanctum')
+            ->getJson('/api/v1/organizer/reviews')
+            ->assertOk()
+            ->assertJsonFragment(['comment' => 'Recensione propria'])
+            ->assertJsonMissing(['comment' => 'Recensione altra']);
+    }
+
     public function test_organizer_opportunity_engine_reports_competing_events(): void
     {
         [, $organizer, $event, $categories, $municipality] = $this->setupDomain();
