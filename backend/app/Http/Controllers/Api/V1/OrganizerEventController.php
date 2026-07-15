@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Events\CancelEvent;
 use App\Actions\Events\CreateEvent;
 use App\Actions\Events\PublishEvent;
-use App\Actions\Events\SubmitEventForReview;
-use App\Enums\EventStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreEventRequest;
 use App\Models\Event;
@@ -71,13 +70,6 @@ class OrganizerEventController extends Controller
         return response()->json(['data' => $event->load('categories')]);
     }
 
-    public function submit(Event $event, SubmitEventForReview $submitEvent): JsonResponse
-    {
-        $this->authorize('submit', $event);
-
-        return response()->json(['data' => $submitEvent->handle($event)]);
-    }
-
     public function publish(Event $event, PublishEvent $publishEvent): JsonResponse
     {
         $this->authorize('viewOrganizer', $event);
@@ -96,10 +88,12 @@ class OrganizerEventController extends Controller
     public function cancel(Event $event): JsonResponse
     {
         $this->authorize('viewOrganizer', $event);
-        abort_if($event->status === EventStatus::Completed, 422, 'Evento già completato.');
-        $event->forceFill(['status' => EventStatus::Cancelled])->save();
+        $data = request()->validate([
+            'reason_code' => ['required', 'string', 'max:80'],
+            'reason' => ['required', 'string', 'max:1000'],
+        ]);
 
-        return response()->json(['data' => $event->refresh()]);
+        return response()->json(['data' => app(CancelEvent::class)->handle($event, request()->user(), $data)]);
     }
 
     public function bookings(Event $event): JsonResponse

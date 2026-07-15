@@ -1,7 +1,9 @@
 <?php
 
-use App\Http\Controllers\Api\V1\Admin\EventModerationController;
 use App\Http\Controllers\Api\V1\Admin\AdminDashboardController;
+use App\Http\Controllers\Api\V1\Admin\AdminOrganizerInsightController;
+use App\Http\Controllers\Api\V1\Admin\AdminRankingController;
+use App\Http\Controllers\Api\V1\Admin\EventModerationController;
 use App\Http\Controllers\Api\V1\Admin\OrganizerModerationController;
 use App\Http\Controllers\Api\V1\Admin\ReviewModerationController;
 use App\Http\Controllers\Api\V1\AuthController;
@@ -101,7 +103,6 @@ Route::prefix('v1')->group(function (): void {
                 Route::get('/organizer/events/{event:ulid}/reviews', [OrganizerEventController::class, 'reviews']);
                 Route::put('/organizer/events/{event:ulid}', [OrganizerEventController::class, 'update']);
                 Route::patch('/organizer/events/{event:ulid}', [OrganizerEventController::class, 'update']);
-                Route::post('/organizer/events/{event:ulid}/submit', [OrganizerEventController::class, 'submit']);
                 Route::post('/organizer/events/{event:ulid}/publish', [OrganizerEventController::class, 'publish']);
                 Route::post('/organizer/events/{event:ulid}/close-bookings', [OrganizerEventController::class, 'closeBookings']);
                 Route::post('/organizer/events/{event:ulid}/cancel', [OrganizerEventController::class, 'cancel']);
@@ -114,11 +115,19 @@ Route::prefix('v1')->group(function (): void {
         Route::middleware('role:admin')->group(function (): void {
             Route::get('/admin/dashboard', [AdminDashboardController::class, 'show']);
             Route::get('/admin/organizers', [OrganizerModerationController::class, 'index']);
-            Route::get('/admin/events/pending', [EventModerationController::class, 'pending']);
-            Route::post('/admin/events/{event:ulid}/approve', [EventModerationController::class, 'approve']);
-            Route::post('/admin/events/{event:ulid}/reject', [EventModerationController::class, 'reject']);
-            Route::post('/admin/events/{event:ulid}/suspend', [EventModerationController::class, 'suspend']);
             Route::get('/admin/organizers/pending', [OrganizerModerationController::class, 'pending']);
+            Route::get('/admin/events', [EventModerationController::class, 'index']);
+            Route::get('/admin/events/{event:ulid}', [EventModerationController::class, 'show']);
+            Route::post('/admin/events/{event:ulid}/suspend', [EventModerationController::class, 'suspend']);
+            Route::post('/admin/events/{event:ulid}/archive', [EventModerationController::class, 'archive']);
+            Route::get('/admin/organizers/{organizer:ulid}', [AdminOrganizerInsightController::class, 'show']);
+            Route::get('/admin/organizers/{organizer:ulid}/events', [AdminOrganizerInsightController::class, 'events']);
+            Route::get('/admin/organizers/{organizer:ulid}/reviews', [AdminOrganizerInsightController::class, 'reviews']);
+            Route::get('/admin/organizers/{organizer:ulid}/bookings', [AdminOrganizerInsightController::class, 'bookings']);
+            Route::get('/admin/organizers/{organizer:ulid}/cancellations', [AdminOrganizerInsightController::class, 'cancellations']);
+            Route::get('/admin/rankings/events', [AdminRankingController::class, 'events']);
+            Route::get('/admin/rankings/organizers', [AdminRankingController::class, 'organizers']);
+            Route::get('/admin/rankings/events/{event:ulid}/breakdown', [AdminRankingController::class, 'eventBreakdown']);
             Route::post('/admin/organizers/{organizer:ulid}/approve', [OrganizerModerationController::class, 'approve']);
             Route::post('/admin/organizers/{organizer:ulid}/reject', [OrganizerModerationController::class, 'reject']);
             Route::post('/admin/reviews/{review:ulid}/approve', [ReviewModerationController::class, 'approve']);

@@ -22,6 +22,9 @@
 - `organizer_opportunity_reports`: report deterministici dell'Organizer Opportunity Engine.
 - `ai_event_suggestions`: suggerimenti AI/fallback generati server-side con input aggregato e tracciamento provider.
 - `event_success_scores`: punteggio comparabile tra eventi basato su percentuali e qualita.
+- `event_cancellations`: annullamenti organizzatore/admin con motivo, attore, prenotazioni e persone impattate.
+- `event_rankings`: classifiche admin evento con creativita, partecipazione, recensioni e punteggio finale.
+- `organizer_rankings`: classifiche admin organizzatore con eventi creati, completati, annullati, rating e riempimento.
 - `event_series`: collega piu edizioni dello stesso format/evento.
 - `customer_event_format_interests`: preferenze cliente per ricevere notifiche su format simili.
 - `seasonal_event_templates`: template stagionali usati come fallback senza AI.
@@ -31,7 +34,7 @@
 - `user_event_preferences`: relazione molti-a-molti tra clienti e macroaree preferite.
 - `notification_preferences`: canali, consenso promozionale e frequenza.
 - `venues`: luoghi collegabili al locale.
-- `events`: evento con stato, capienza, disponibilita, territorio e moderazione.
+- `events`: evento con stato, capienza, disponibilita, territorio, annullamento e post-moderazione.
 - `event_categories`: relazione molti-a-molti tra eventi e macroaree.
 - `ticket_types`: prezzo unico/adulto/bambino, quantita massima, prenotato e stato.
 - `bookings`: prenotazioni confermate con ULID, codice, idempotency key e totale prezzo.
@@ -51,7 +54,9 @@
 - Una prenotazione duplicata con stessa idempotency key non viene ricreata.
 - Una recensione richiede partecipazione reale e una sola recensione per booking/evento.
 - Gli organizzatori non possono recensire esperienze del proprio profilo.
-- Solo organizzatori con `organizer_profiles.verification_status = verified` possono accedere alle route operative e pubblicare eventi.
+- Solo organizzatori con `organizer_profiles.verification_status = verified` possono accedere alle route operative e pubblicare eventi direttamente.
+- Il ciclo evento operativo e `draft -> published`; gli stati legacy di revisione restano compatibili a database ma non sono piu esposti da rotte/UI.
+- Un evento futuro puo essere annullato dall'organizzatore proprietario o sospeso/archiviato dall'admin in post-moderazione.
 - Le recensioni approvate alimentano statistiche evento, profilo organizzatore e Business Dashboard.
 - Gli eventi possono salvare descrizione completa, programma, incluso/non incluso, note allergie, requisiti e policy cancellazione.
 - Gli eventi nel feed ispirazione rispettano `show_in_inspiration_feed`.

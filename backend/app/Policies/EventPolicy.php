@@ -16,7 +16,7 @@ class EventPolicy
     public function update(User $user, Event $event): bool
     {
         return $event->organizerProfile?->owner_user_id === $user->id
-            && in_array($event->status, [EventStatus::Draft, EventStatus::Rejected, EventStatus::PendingReview, EventStatus::Published], true)
+            && in_array($event->status, [EventStatus::Draft, EventStatus::Published], true)
             && $event->starts_at->isFuture();
     }
 

@@ -11,7 +11,7 @@ class PublishEvent
     public function handle(Event $event): Event
     {
         abort_unless($event->organizerProfile?->verification_status === 'verified', 403, 'Profilo organizzatore non approvato.');
-        abort_unless(in_array($event->status, [EventStatus::Draft, EventStatus::PendingReview], true), 422, 'Evento non pubblicabile.');
+        abort_unless($event->status === EventStatus::Draft, 422, 'Evento non pubblicabile.');
 
         $event->forceFill([
             'status' => EventStatus::Published,

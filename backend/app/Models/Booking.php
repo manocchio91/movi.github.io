@@ -10,7 +10,8 @@ class Booking extends Model
         'ulid', 'user_id', 'event_id', 'status', 'total_people', 'adults_count',
         'children_count', 'total_price_cents', 'children_age_ranges', 'dietary_needs',
         'accessibility_needs', 'notes', 'booking_code', 'qr_token_hash', 'booked_at',
-        'cancelled_at', 'idempotency_key', 'event_terms_accepted',
+        'cancelled_at', 'cancellation_reason', 'cancelled_by_user_id',
+        'idempotency_key', 'event_terms_accepted',
     ];
 
     protected function casts(): array

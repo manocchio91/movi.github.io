@@ -21,8 +21,10 @@ class AdminDashboardController extends Controller
                 'customers' => User::query()->where('role', UserRole::Customer->value)->count(),
                 'organizers' => User::query()->where('role', UserRole::Organizer->value)->count(),
                 'pending_organizers' => OrganizerProfile::query()->where('verification_status', 'pending')->count(),
-                'pending_events' => Event::query()->where('status', EventStatus::PendingReview->value)->count(),
                 'published_events' => Event::query()->where('status', EventStatus::Published->value)->count(),
+                'suspended_events' => Event::query()->where('status', EventStatus::Suspended->value)->count(),
+                'archived_events' => Event::query()->where('status', EventStatus::Archived->value)->count(),
+                'cancelled_events' => Event::query()->where('status', EventStatus::Cancelled->value)->count(),
                 'open_review_reports' => ReviewReport::query()->where('status', 'open')->count(),
             ],
         ]);

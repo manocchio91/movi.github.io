@@ -12,4 +12,5 @@ enum EventStatus: string
     case Completed = 'completed';
     case Rejected = 'rejected';
     case Suspended = 'suspended';
+    case Archived = 'archived';
 }

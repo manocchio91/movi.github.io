@@ -393,6 +393,14 @@ paths:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Evento pubblicato }
+  /organizer/events/{event}/cancel:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Annulla un proprio evento futuro con reason_code e reason
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Evento annullato, prenotazioni chiuse e notifiche accodate }
   /organizer/events/{event}/bookings:
     get:
       security: [{ bearerAuth: [] }]
@@ -431,19 +439,43 @@ paths:
       summary: Recensioni raggruppate per evento
       responses:
         "200": { description: Lista eventi con media, conteggio, distribuzione e ultima recensione }
-  /admin/events/pending:
-    get:
-      security: [{ bearerAuth: [] }]
-      summary: Eventi in moderazione
-      responses:
-        "200": { description: Lista eventi }
   /admin/dashboard:
     get:
       security: [{ bearerAuth: [] }]
       summary: Dashboard amministrativa protetta da role:admin
       responses:
-        "200": { description: KPI piattaforma, pending organizer, eventi e report review }
+        "200": { description: KPI piattaforma, organizer, eventi, sospensioni e report review }
         "403": { description: Solo admin }
+  /admin/events:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Lista completa eventi con filtri admin
+      responses:
+        "200": { description: Lista paginata eventi e statistiche stato }
+  /admin/events/{event}:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Dettaglio evento admin
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Evento con prenotazioni, recensioni, ranking e annullamento }
+  /admin/events/{event}/suspend:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Sospende o annulla in post-moderazione un evento
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Evento sospeso o annullato con notifiche se necessario }
+  /admin/events/{event}/archive:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Archivia evento
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Evento archiviato }
   /admin/organizers:
     get:
       security: [{ bearerAuth: [] }]
@@ -451,14 +483,6 @@ paths:
       responses:
         "200": { description: Lista organizzatori }
         "403": { description: Solo admin }
-  /admin/events/{event}/approve:
-    post:
-      security: [{ bearerAuth: [] }]
-      summary: Approva evento
-      parameters:
-        - { name: event, in: path, required: true, schema: { type: string } }
-      responses:
-        "200": { description: Evento approvato }
   /admin/organizers/pending:
     get:
       security: [{ bearerAuth: [] }]
@@ -473,6 +497,66 @@ paths:
         - { name: organizer, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Organizzatore approvato }
+  /admin/organizers/{organizer}:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Dettaglio organizzatore admin
+      parameters:
+        - { name: organizer, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Overview organizzatore }
+  /admin/organizers/{organizer}/events:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Eventi organizzatore per admin
+      parameters:
+        - { name: organizer, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Eventi con conteggi }
+  /admin/organizers/{organizer}/reviews:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Recensioni organizzatore per admin
+      parameters:
+        - { name: organizer, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Recensioni aggregate }
+  /admin/organizers/{organizer}/bookings:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Prenotazioni organizzatore aggregate per evento
+      parameters:
+        - { name: organizer, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Booking stats }
+  /admin/organizers/{organizer}/cancellations:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Annullamenti organizzatore
+      parameters:
+        - { name: organizer, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Eventi e prenotazioni annullate }
+  /admin/rankings/events:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Classifica eventi
+      responses:
+        "200": { description: Creativity, participation, review e final score }
+  /admin/rankings/organizers:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Classifica organizzatori
+      responses:
+        "200": { description: Eventi creati e indicatori qualitativi }
+  /admin/rankings/events/{event}/breakdown:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Breakdown formula classifica evento
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Formula e punteggi }
   /admin/reviews/{review}/approve:
     post:
       security: [{ bearerAuth: [] }]

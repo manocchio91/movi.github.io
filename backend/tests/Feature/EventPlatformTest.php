@@ -16,6 +16,7 @@ use App\Models\OrganizerProfile;
 use App\Models\Province;
 use App\Models\Region;
 use App\Models\Review;
+use App\Models\ReviewStatistic;
 use App\Models\SubscriptionPlan;
 use App\Models\TicketType;
 use App\Models\User;
@@ -819,7 +820,7 @@ class EventPlatformTest extends TestCase
                 'ticket_types' => [['name' => 'Persona', 'audience' => 'generic', 'price_cents' => 2500, 'max_quantity' => 20]],
             ])
             ->assertCreated()
-            ->assertJsonPath('data.status', 'draft');
+            ->assertJsonPath('data.status', 'published');
 
         $this->actingAs($otherOrganizer, 'sanctum')
             ->putJson("/api/v1/organizer/events/{$event->ulid}", [
@@ -840,9 +841,103 @@ class EventPlatformTest extends TestCase
     public function test_unpublished_event_does_not_appear_publicly(): void
     {
         [, , $event] = $this->setupDomain();
-        $event->forceFill(['status' => EventStatus::PendingReview])->save();
+        $event->forceFill(['status' => EventStatus::Draft])->save();
 
         $this->getJson('/api/v1/events')->assertOk()->assertJsonMissing(['ulid' => $event->ulid]);
+    }
+
+    public function test_admin_event_approval_routes_are_removed(): void
+    {
+        [, , $event] = $this->setupDomain();
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+
+        $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/v1/admin/events/pending')
+            ->assertNotFound();
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/admin/events/{$event->ulid}/approve")
+            ->assertNotFound();
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/admin/events/{$event->ulid}/reject")
+            ->assertNotFound();
+    }
+
+    public function test_organizer_cancels_future_event_and_notifies_booked_customers(): void
+    {
+        [$customer, $organizer, $event] = $this->setupDomain(12);
+        $ticket = TicketType::query()->create([
+            'event_id' => $event->id,
+            'name' => 'Ingresso',
+            'audience' => 'generic',
+            'price_cents' => 1200,
+            'is_active' => true,
+        ]);
+        $booking = Booking::query()->create([
+            'ulid' => (string) Str::ulid(),
+            'user_id' => $customer->id,
+            'event_id' => $event->id,
+            'status' => 'confirmed',
+            'total_people' => 2,
+            'adults_count' => 2,
+            'children_count' => 0,
+            'booking_code' => 'CANCEL-01',
+            'qr_token_hash' => 'cancel-hash-01',
+            'booked_at' => now(),
+            'event_terms_accepted' => true,
+        ]);
+        $booking->items()->create(['ticket_type_id' => $ticket->id, 'quantity' => 2]);
+
+        $this->actingAs($organizer, 'sanctum')
+            ->postJson("/api/v1/organizer/events/{$event->ulid}/cancel", [
+                'reason_code' => 'WEATHER',
+                'reason' => 'Maltempo previsto.',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'cancelled');
+
+        $this->assertDatabaseHas('bookings', ['id' => $booking->id, 'status' => 'cancelled_by_organizer']);
+        $this->assertDatabaseHas('event_cancellations', ['event_id' => $event->id, 'bookings_affected' => 1, 'people_affected' => 2]);
+        $this->assertDatabaseHas('notifications', ['user_id' => $customer->id, 'event_id' => $event->id, 'kind' => 'event_cancelled']);
+        $this->assertDatabaseHas('audit_logs', ['subject_id' => $event->id, 'action' => 'organizer.event.cancelled']);
+    }
+
+    public function test_admin_events_and_rankings_are_available_without_event_approval(): void
+    {
+        [, , $event] = $this->setupDomain(20);
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+
+        ReviewStatistic::query()->create([
+            'event_id' => $event->id,
+            'organizer_profile_id' => $event->organizer_profile_id,
+            'reviews_count' => 4,
+            'average_rating' => 4.5,
+            'average_quality' => 4.5,
+            'average_organization' => 4.5,
+            'average_location' => 4.5,
+            'average_value' => 4.5,
+            'average_schedule_respect' => 4.5,
+            'average_staff' => 4.5,
+            'recommendation_rate' => 90,
+            'satisfied_rate' => 90,
+            'calculated_at' => now(),
+        ]);
+
+        $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/v1/admin/events')
+            ->assertOk()
+            ->assertJsonPath('stats.published', 1);
+
+        $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/v1/admin/rankings/events')
+            ->assertOk()
+            ->assertJsonPath('data.0.event_id', $event->id);
+
+        $this->actingAs($admin, 'sanctum')
+            ->getJson("/api/v1/admin/organizers/{$event->organizerProfile->ulid}")
+            ->assertOk()
+            ->assertJsonPath('overview.events_total', 1);
     }
 
     private function setupDomain(int $capacity = 10): array

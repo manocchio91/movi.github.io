@@ -25,4 +25,9 @@ class Notification extends Model
     {
         return 'ulid';
     }
+
+    public function deliveries()
+    {
+        return $this->hasMany(NotificationDelivery::class);
+    }
 }

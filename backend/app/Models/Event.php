@@ -20,6 +20,8 @@ class Event extends Model
         'not_included', 'important_information', 'requirements',
         'recommended_age_range', 'equipment_notes', 'allergy_notes',
         'cancellation_policy', 'organizer_contact', 'show_in_inspiration_feed',
+        'cancelled_at', 'cancelled_by_user_id', 'cancellation_reason',
+        'cancellation_notes', 'admin_creativity_rating',
     ];
 
     protected function casts(): array
@@ -35,6 +37,7 @@ class Event extends Model
             'is_free' => 'boolean',
             'family_friendly' => 'boolean',
             'show_in_inspiration_feed' => 'boolean',
+            'cancelled_at' => 'datetime',
         ];
     }
 
@@ -86,6 +89,16 @@ class Event extends Model
     public function successScore(): HasOne
     {
         return $this->hasOne(EventSuccessScore::class);
+    }
+
+    public function cancellation(): HasOne
+    {
+        return $this->hasOne(EventCancellation::class);
+    }
+
+    public function ranking(): HasOne
+    {
+        return $this->hasOne(EventRanking::class);
     }
 
     public function venue()

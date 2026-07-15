@@ -16,6 +16,7 @@ type AppRoute =
   | '/admin/dashboard'
   | '/admin/organizers'
   | '/admin/events'
+  | '/admin/rankings'
   | '/admin/reviews'
   | '/unauthorized';
 
@@ -53,9 +54,16 @@ const organizerMenu = [
 
 const adminMenu = [
   ['Dashboard', '/admin/dashboard'],
+  ['Eventi', '/admin/events'],
   ['Organizzatori', '/admin/organizers'],
-  ['Eventi da approvare', '/admin/events'],
+  ['Classifiche', '/admin/rankings'],
+  ['Utenti', '/admin/dashboard'],
+  ['Categorie', '/admin/dashboard'],
+  ['Territori', '/admin/dashboard'],
   ['Recensioni segnalate', '/admin/reviews'],
+  ['Abbonamenti', '/admin/dashboard'],
+  ['Audit log', '/admin/dashboard'],
+  ['Impostazioni', '/admin/dashboard'],
 ] as const;
 
 const canAccess = (role: Role, route: AppRoute) => {
@@ -84,6 +92,12 @@ export default defineComponent({
     const customerDashboard = ref<any>(null);
     const allCustomerEvents = ref<any[]>([]);
     const successfulEvents = ref<any[]>([]);
+    const adminDashboard = ref<any>(null);
+    const adminEvents = ref<any[]>([]);
+    const adminEventStats = ref<any>(null);
+    const adminOrganizers = ref<any[]>([]);
+    const adminEventRankings = ref<any[]>([]);
+    const adminOrganizerRankings = ref<any[]>([]);
 
     const role = computed<Role>(() => currentUser.value?.role ?? 'guest');
 
@@ -154,10 +168,37 @@ export default defineComponent({
       }
     };
 
+    const loadAdminData = async () => {
+      if (role.value !== 'admin' || !token.value) return;
+
+      loading.value = true;
+      apiError.value = '';
+      try {
+        const [dashboard, events, organizers, eventRankings, organizerRankings] = await Promise.all([
+          api('/admin/dashboard'),
+          api('/admin/events'),
+          api('/admin/organizers'),
+          api('/admin/rankings/events'),
+          api('/admin/rankings/organizers'),
+        ]);
+        adminDashboard.value = dashboard?.data ?? null;
+        adminEvents.value = events?.data?.data ?? events?.data ?? [];
+        adminEventStats.value = events?.stats ?? null;
+        adminOrganizers.value = organizers?.data ?? [];
+        adminEventRankings.value = eventRankings?.data ?? [];
+        adminOrganizerRankings.value = organizerRankings?.data ?? [];
+      } catch (error) {
+        apiError.value = error instanceof Error ? error.message : 'API admin non disponibile';
+      } finally {
+        loading.value = false;
+      }
+    };
+
     const go = async (nextRoute: AppRoute) => {
       route.value = canAccess(role.value, nextRoute) ? nextRoute : '/unauthorized';
       if (route.value.startsWith('/organizer')) await loadOrganizerData();
       if (route.value.startsWith('/customer')) await loadCustomerData();
+      if (route.value.startsWith('/admin')) await loadAdminData();
     };
 
     const login = async (user: DemoUser) => {
@@ -176,6 +217,7 @@ export default defineComponent({
         route.value = payload.redirect_to;
         await loadOrganizerData();
         await loadCustomerData();
+        await loadAdminData();
       } catch (error) {
         currentUser.value = user;
         route.value = user.redirect_to;
@@ -198,6 +240,12 @@ export default defineComponent({
       customerDashboard.value = null;
       allCustomerEvents.value = [];
       successfulEvents.value = [];
+      adminDashboard.value = null;
+      adminEvents.value = [];
+      adminEventStats.value = null;
+      adminOrganizers.value = [];
+      adminEventRankings.value = [];
+      adminOrganizerRankings.value = [];
     };
 
     const useSuggestion = async (suggestionUlid: string, index: number) => {
@@ -211,6 +259,17 @@ export default defineComponent({
     const inspireFromEvent = async (eventUlid: string) => {
       await api(`/organizer/top-events/${eventUlid}/inspire`, { method: 'POST' });
       await go('/organizer/events');
+    };
+
+    const cancelOrganizerEvent = async (eventUlid: string) => {
+      await api(`/organizer/events/${eventUlid}/cancel`, {
+        method: 'POST',
+        body: JSON.stringify({
+          reason_code: 'ORGANIZER_REQUEST',
+          reason: 'Annullamento richiesto dall organizzatore dalla dashboard.',
+        }),
+      });
+      await loadOrganizerData();
     };
 
     const notifySimilar = async (eventUlid: string) => {
@@ -368,7 +427,12 @@ export default defineComponent({
               h('small', `No-show: ${item.summary.no_show}`),
               h('small', `Rating: ${item.summary.average_rating}`),
             ]),
-        h('div', { class: 'action-row' }, ['Dettaglio', 'Modifica', 'Prenotazioni', 'Partecipanti', 'Recensioni', 'Statistiche'].map((label) => h('button', { type: 'button' }, label))),
+        h('div', { class: 'action-row' }, [
+          ...['Dettaglio', 'Modifica', 'Prenotazioni', 'Partecipanti', 'Recensioni', 'Statistiche'].map((label) => h('button', { type: 'button' }, label)),
+          item.event.status !== 'cancelled' && new Date(item.event.starts_at).getTime() > Date.now()
+            ? h('button', { type: 'button', class: 'danger-button', onClick: () => { void cancelOrganizerEvent(item.event.ulid); } }, 'Annulla evento')
+            : null,
+        ]),
       ]))),
     ];
 
@@ -444,15 +508,72 @@ export default defineComponent({
       ]),
     ]);
 
+    const renderAdminDashboard = () => [
+      h('div', { class: 'metric-grid' }, [
+        card('Utenti', `${adminDashboard.value?.users ?? 'API'}`, 'dashboard admin'),
+        card('Organizzatori', `${adminOrganizers.value.length}`, 'tutti i profili'),
+        card('Eventi pubblicati', `${adminEventStats.value?.published ?? 0}`, 'pubblicazione diretta'),
+        card('Eventi sospesi', `${adminEventStats.value?.suspended ?? 0}`, 'post-moderazione'),
+        card('Eventi archiviati', `${adminEventStats.value?.archived ?? 0}`, 'storico admin'),
+        card('Report review', `${adminDashboard.value?.open_review_reports ?? 'API'}`, 'segnalazioni'),
+      ]),
+    ];
+
+    const renderAdminEvents = () => [
+      h('div', { class: 'section-title' }, [h('h2', 'Eventi'), h('span', 'lista completa con sospensione e archivio')]),
+      adminEvents.value.length === 0 ? emptyState('Nessun evento disponibile dall API admin.') : h('div', { class: 'event-grid' }, adminEvents.value.map((event: any) => h('article', { class: 'experience-card event-management-card' }, [
+        h('span', { class: `status-badge status-${String(event.status).replaceAll('_', '-')}` }, event.status),
+        h('h3', event.title),
+        h('p', `${event.organizer_profile?.name ?? 'organizzatore'} - ${event.municipality?.name ?? 'territorio'}`),
+        h('div', { class: 'event-stats' }, [
+          h('small', `${event.bookings_count ?? 0} prenotazioni`),
+          h('small', `${event.reviews_count ?? 0} recensioni`),
+          h('small', `${event.capacity_total ?? 0} posti`),
+        ]),
+        h('div', { class: 'action-row' }, [
+          h('button', { type: 'button', onClick: async () => { await api(`/admin/events/${event.ulid}/suspend`, { method: 'POST', body: JSON.stringify({ reason_code: 'ADMIN_REVIEW', reason: 'Sospensione da console admin.' }) }); await loadAdminData(); } }, 'Sospendi'),
+          h('button', { type: 'button', onClick: async () => { await api(`/admin/events/${event.ulid}/archive`, { method: 'POST' }); await loadAdminData(); } }, 'Archivia'),
+        ]),
+      ]))),
+    ];
+
+    const renderAdminOrganizers = () => [
+      h('div', { class: 'section-title' }, [h('h2', 'Organizzatori'), h('span', 'anagrafica, stato e indicatori')]),
+      adminOrganizers.value.length === 0 ? emptyState('Nessun organizzatore disponibile dall API admin.') : h('div', { class: 'event-grid' }, adminOrganizers.value.map((organizer: any) => h('article', { class: 'experience-card' }, [
+        h('span', organizer.verification_status),
+        h('h3', organizer.name),
+        h('p', `${organizer.type ?? 'locale'} - ${organizer.municipality?.name ?? 'territorio'}`),
+        h('small', organizer.email),
+      ]))),
+    ];
+
+    const renderAdminRankings = () => [
+      h('div', { class: 'section-title' }, [h('h2', 'Classifiche'), h('span', 'creativita, partecipazione, recensioni')]),
+      h('div', { class: 'event-grid' }, adminEventRankings.value.slice(0, 6).map((ranking: any, index: number) => h('article', { class: 'experience-card success-card' }, [
+        h('span', `#${index + 1} evento`),
+        h('h3', ranking.event?.title ?? 'Evento'),
+        h('p', `Score ${ranking.final_score} - creativita ${ranking.creativity_score} - partecipazione ${ranking.participation_score}`),
+        h('small', `Recensioni ${ranking.review_score}`),
+      ]))),
+      h('div', { class: 'event-grid' }, adminOrganizerRankings.value.slice(0, 6).map((ranking: any, index: number) => h('article', { class: 'experience-card' }, [
+        h('span', `#${index + 1} organizzatore`),
+        h('h3', ranking.organizer_profile?.name ?? 'Organizzatore'),
+        h('p', `${ranking.events_created} eventi creati - rating ${ranking.average_rating}`),
+        h('small', `${ranking.total_participants} partecipanti - riempimento ${ranking.average_fill_rate}%`),
+      ]))),
+    ];
+
     const AdminLayout = () => h('main', { class: 'role-shell admin-layout' }, [
       renderHeader('Dashboard amministratore', adminMenu),
       h('section', { class: 'role-content' }, [
-        h('div', { class: 'metric-grid' }, [
-          card('Utenti', 'API', 'dashboard admin'),
-          card('Organizer pending', 'API', 'moderazione'),
-          card('Eventi pending', 'API', 'approvazioni'),
-          card('Report review', 'API', 'segnalazioni'),
-        ]),
+        apiError.value ? h('p', { class: 'api-error' }, apiError.value) : null,
+        ...(route.value === '/admin/events'
+          ? renderAdminEvents()
+          : route.value === '/admin/organizers'
+            ? renderAdminOrganizers()
+            : route.value === '/admin/rankings'
+              ? renderAdminRankings()
+              : renderAdminDashboard()),
       ]),
     ]);
 

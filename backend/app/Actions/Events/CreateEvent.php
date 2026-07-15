@@ -2,6 +2,7 @@
 
 namespace App\Actions\Events;
 
+use App\Actions\Notifications\NotifyInterestedCustomers;
 use App\Enums\EventStatus;
 use App\Models\Event;
 use App\Models\OrganizerProfile;
@@ -14,7 +15,7 @@ class CreateEvent
     {
         abort_unless($profile->verification_status === 'verified', 403, 'Profilo organizzatore non approvato.');
 
-        return DB::transaction(function () use ($profile, $data): Event {
+        $event = DB::transaction(function () use ($profile, $data): Event {
             $categoryIds = $data['category_ids'];
             $ticketTypes = $data['ticket_types'] ?? [];
             unset($data['category_ids']);
@@ -24,7 +25,8 @@ class CreateEvent
                 ...$data,
                 'ulid' => (string) Str::ulid(),
                 'slug' => Str::slug($data['title']).'-'.Str::lower(Str::random(6)),
-                'status' => EventStatus::Draft,
+                'status' => EventStatus::Published,
+                'published_at' => now(),
                 'available_total' => $data['capacity_total'],
             ]);
 
@@ -33,6 +35,10 @@ class CreateEvent
 
             return $event;
         });
+
+        app(NotifyInterestedCustomers::class)->handle($event->refresh());
+
+        return $event->refresh();
     }
 
     public function update(Event $event, array $data): Event

@@ -49,6 +49,11 @@ class OrganizerProfile extends Model
         return $this->hasOne(ReviewStatistic::class);
     }
 
+    public function ranking()
+    {
+        return $this->hasOne(OrganizerRanking::class);
+    }
+
     public function municipality(): BelongsTo
     {
         return $this->belongsTo(Municipality::class);

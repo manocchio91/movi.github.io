@@ -102,7 +102,6 @@ Eventi simili:
 - `GET /organizer/events/{event}/reviews`
 - `PUT /organizer/events/{event}`
 - `PATCH /organizer/events/{event}`
-- `POST /organizer/events/{event}/submit`
 - `POST /organizer/events/{event}/publish`
 - `POST /organizer/events/{event}/close-bookings`
 - `POST /organizer/events/{event}/cancel`
@@ -110,7 +109,9 @@ Eventi simili:
 - `GET /organizer/reviews/events`
 - `GET /organizer/reviews/events/{event}`
 
-`GET/POST/PUT /organizer/profile` richiede `role:organizer`; le altre route organizzatore richiedono anche `organizer.approved`. Un organizzatore pending puo vedere/aggiornare lo stato del profilo, ma non puo creare, pubblicare o gestire eventi.
+`GET/POST/PUT /organizer/profile` richiede `role:organizer`; le altre route organizzatore richiedono anche `organizer.approved`. Un organizzatore pending puo vedere/aggiornare lo stato del profilo, ma non puo creare, pubblicare o gestire eventi. Il flusso evento e `draft -> published`: un organizzatore verificato pubblica direttamente, senza approvazione preventiva admin.
+
+`POST /organizer/events/{event}/cancel` richiede `reason_code` e `reason`. L'annullamento e transazionale: aggiorna evento, prenotazioni attive, notifiche cliente, audit log e `event_cancellations`.
 
 Calendario creazione evento:
 - `empty`/verde: nessun evento pubblico nello stesso territorio e giorno.
@@ -132,18 +133,30 @@ Job asincroni:
 ## Admin
 - `GET /admin/dashboard`
 - `GET /admin/organizers`
-- `GET /admin/events/pending`
-- `POST /admin/events/{event}/approve`
-- `POST /admin/events/{event}/reject`
+- `GET /admin/events`
+- `GET /admin/events/{event}`
 - `POST /admin/events/{event}/suspend`
+- `POST /admin/events/{event}/archive`
 - `GET /admin/organizers/pending`
+- `GET /admin/organizers/{organizer}`
+- `GET /admin/organizers/{organizer}/events`
+- `GET /admin/organizers/{organizer}/reviews`
+- `GET /admin/organizers/{organizer}/bookings`
+- `GET /admin/organizers/{organizer}/cancellations`
 - `POST /admin/organizers/{organizer}/approve`
 - `POST /admin/organizers/{organizer}/reject`
+- `GET /admin/rankings/events`
+- `GET /admin/rankings/organizers`
+- `GET /admin/rankings/events/{event}/breakdown`
 - `POST /admin/reviews/{review}/approve`
 - `POST /admin/reviews/{review}/hide`
 - `DELETE /admin/reviews/{review}`
 
-Tutte le route admin sono protette da `auth:sanctum` + `role:admin`.
+Tutte le route admin sono protette da `auth:sanctum` + `role:admin`. L'admin non approva preventivamente gli eventi: interviene in post-moderazione con sospensione, archivio, segnalazioni, audit e sospensione organizer.
+
+Classifiche admin:
+- eventi: `final_score = creativity_score*0.30 + participation_score*0.35 + review_score*0.35`;
+- organizzatori: ordinamento primario per eventi creati, con rating, riempimento e partecipanti come indicatori qualitativi.
 
 ## Middleware e policy
 - `role:customer|organizer|admin`: verifica il ruolo reale dal backend e lo stato utente.

@@ -20,7 +20,7 @@ class OrganizerOpportunityEngine
 
         $events = Event::query()
             ->with(['categories', 'organizerProfile', 'municipality', 'bookings'])
-            ->whereIn('status', [EventStatus::Published->value, EventStatus::SoldOut->value, EventStatus::PendingReview->value])
+            ->whereIn('status', [EventStatus::Published->value, EventStatus::SoldOut->value])
             ->whereDate('starts_at', $startsAt->toDateString())
             ->when($municipalityId, fn ($query) => $query->where('municipality_id', $municipalityId))
             ->orderBy('starts_at')
