@@ -970,6 +970,93 @@ button {
     min-height: auto;
   }
 
+  .customer-layout {
+    background: #f7faf9;
+  }
+
+  .customer-layout .app-header {
+    background: #ffffff;
+    border-bottom: 1px solid #dde8e5;
+    color: #172126;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .customer-layout .app-header span {
+    color: #6b7c83;
+  }
+
+  .customer-layout .app-header strong {
+    font-size: 1.25rem;
+  }
+
+  .customer-layout .app-header > button {
+    background: #172126;
+    border: 0;
+    color: white;
+    position: absolute;
+    right: 16px;
+    top: 16px;
+  }
+
+  .customer-layout .app-header nav {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .customer-layout .app-header nav button {
+    background: #f0f5f4;
+    border: 0;
+    color: #52646b;
+    flex: 0 0 auto;
+    min-height: 38px;
+    padding: 9px 12px;
+    white-space: nowrap;
+  }
+
+  .customer-layout .app-header nav button.active {
+    background: #0f766e;
+    color: white;
+  }
+
+  .customer-layout .metric-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .customer-layout .role-card {
+    border-radius: 8px;
+    padding: 14px 10px;
+  }
+
+  .customer-layout .role-card strong {
+    font-size: 1.45rem;
+  }
+
+  .customer-layout .event-grid {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+  }
+
+  .customer-layout .experience-card {
+    border-radius: 8px;
+    flex: 0 0 82%;
+    min-height: 230px;
+    scroll-snap-align: start;
+  }
+
+  .customer-layout .section-title {
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .customer-layout .section-title h2 {
+    font-size: 1.22rem;
+  }
+
   .app-header nav {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

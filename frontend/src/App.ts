@@ -83,12 +83,79 @@ const canAccess = (role: Role, route: AppRoute) => {
   return false;
 };
 
+const customerMobileDashboardDemo = {
+  bookings_count: 2,
+  favorites_count: 5,
+  notifications_unread: 3,
+  recommended_events: [
+    {
+      ulid: 'demo-pasta',
+      title: 'Laboratorio di pasta fresca',
+      category: 'Cucina',
+      municipality: 'Campobasso',
+      starts_at: new Date(Date.now() + 86400000 * 3).toISOString(),
+      available_total: 8,
+      is_free: false,
+    },
+    {
+      ulid: 'demo-bimbi',
+      title: 'Caccia al tesoro nel borgo',
+      category: 'Famiglie',
+      municipality: 'Sepino',
+      starts_at: new Date(Date.now() + 86400000 * 6).toISOString(),
+      available_total: 14,
+      is_free: true,
+    },
+    {
+      ulid: 'demo-vino',
+      title: 'Degustazione tramonto',
+      category: 'Degustazioni',
+      municipality: 'Termoli',
+      starts_at: new Date(Date.now() + 86400000 * 9).toISOString(),
+      available_total: 5,
+      is_free: false,
+    },
+  ],
+};
+
+const successfulEventsDemo = [
+  {
+    ulid: 'success-1',
+    title: 'Cena contadina sotto le stelle',
+    category: 'Cena esperienziale',
+    municipality: 'Agnone',
+    province: 'IS',
+    average_rating: 4.8,
+    fill_rate: 96,
+    recommendation_rate: 94,
+    review_count: 38,
+    has_next_edition: true,
+    next_edition: {
+      title: 'Cena contadina - nuova edizione',
+      starts_at: new Date(Date.now() + 86400000 * 12).toISOString(),
+      available_total: 11,
+    },
+  },
+  {
+    ulid: 'success-2',
+    title: 'Passeggiata e picnic nel bosco',
+    category: 'Natura',
+    municipality: 'Capracotta',
+    province: 'IS',
+    average_rating: 4.7,
+    fill_rate: 91,
+    recommendation_rate: 89,
+    review_count: 24,
+  },
+];
+
 export default defineComponent({
   name: 'App',
   setup() {
-    const currentUser = ref<DemoUser | null>(null);
+    const customerMobilePreview = window.location.pathname.includes('cliente-mobile') || window.location.search.includes('cliente=mobile');
+    const currentUser = ref<DemoUser | null>(customerMobilePreview ? demoUsers[0] : null);
     const token = ref<string | null>(null);
-    const route = ref<AppRoute>('/login');
+    const route = ref<AppRoute>(customerMobilePreview ? '/customer/dashboard' : '/login');
     const loading = ref(false);
     const apiError = ref('');
     const organizerDashboard = ref<any>(null);
@@ -107,6 +174,12 @@ export default defineComponent({
     const adminOrganizers = ref<any[]>([]);
     const adminEventRankings = ref<any[]>([]);
     const adminOrganizerRankings = ref<any[]>([]);
+
+    if (customerMobilePreview) {
+      customerDashboard.value = customerMobileDashboardDemo;
+      allCustomerEvents.value = customerMobileDashboardDemo.recommended_events;
+      successfulEvents.value = successfulEventsDemo;
+    }
 
     const role = computed<Role>(() => currentUser.value?.role ?? 'guest');
 
