@@ -66,4 +66,9 @@ class Event extends Model
     {
         return $this->belongsTo(Venue::class);
     }
+
+    public function views()
+    {
+        return $this->hasMany(ExperienceView::class);
+    }
 }

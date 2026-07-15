@@ -644,6 +644,49 @@ h3 {
   background: linear-gradient(145deg, #ffffff 0%, #eef7f4 100%);
 }
 
+.follow-panel {
+  background: linear-gradient(145deg, #ffffff 0%, #fff7df 100%);
+}
+
+.plan-card {
+  background: linear-gradient(145deg, #172126 0%, #0f766e 100%);
+  border-radius: 26px;
+  box-shadow: 0 16px 34px rgba(15, 118, 110, 0.2);
+  color: white;
+  margin-bottom: 14px;
+  padding: 20px;
+}
+
+.plan-card span,
+.plan-card p {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.plan-card h3 {
+  font-size: 1.7rem;
+  margin: 6px 0 8px;
+}
+
+.plan-row {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+
+.plan-row strong {
+  font-size: 1.2rem;
+}
+
+.plan-row button {
+  background: white;
+  border: 0;
+  border-radius: 999px;
+  color: #0f766e;
+  font-weight: 950;
+  padding: 10px 12px;
+}
+
 .stepper {
   display: grid;
   gap: 8px;

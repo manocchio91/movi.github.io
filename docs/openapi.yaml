@@ -39,6 +39,33 @@ paths:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Evento }
+  /subscription-plans:
+    get:
+      summary: Piani SaaS disponibili per organizzatori
+      responses:
+        "200": { description: Lista piani con feature }
+  /organizers/{organizer}:
+    get:
+      summary: Profilo pubblico organizzatore con esperienze future e concluse
+      parameters:
+        - { name: organizer, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Profilo pubblico }
+  /organizers/{organizer}/follow:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Segui organizzatore
+      parameters:
+        - { name: organizer, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Organizzatore seguito }
+    delete:
+      security: [{ bearerAuth: [] }]
+      summary: Smetti di seguire organizzatore
+      parameters:
+        - { name: organizer, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Follow rimosso }
   /me/preferences:
     get:
       security: [{ bearerAuth: [] }]
@@ -130,6 +157,12 @@ paths:
       summary: Aggiorna profilo locale
       responses:
         "200": { description: Profilo aggiornato }
+  /organizer/dashboard:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Dashboard SaaS organizzatore
+      responses:
+        "200": { description: KPI subscription, esperienze, prenotazioni, follower e views }
   /organizer/events:
     get:
       security: [{ bearerAuth: [] }]

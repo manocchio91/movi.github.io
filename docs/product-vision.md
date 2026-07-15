@@ -1,13 +1,19 @@
 # Visione prodotto
 
-La piattaforma aiuta famiglie, cittadini e visitatori a scoprire eventi locali a numero chiuso e aiuta organizzatori verificati a pubblicarli e gestirli. Il punto di partenza è Campobasso e provincia, con modello dati già estendibile a Molise, altre regioni e province italiane.
+La piattaforma diventa un SaaS per piccoli organizzatori locali che creano, promuovono e gestiscono esperienze a numero chiuso. Il partecipante usa gratuitamente l'app per scoprire, seguire organizzatori, prenotare e ricevere notifiche pertinenti. L'organizzatore paga un abbonamento mensile per pubblicare e gestire le proprie esperienze.
 
-Il prodotto non è una bacheca di locandine: il flusso completo previsto è scoperta, disponibilità, prenotazione, conferma, promemoria, partecipazione, check-in e recensione. La prima vertical slice copre solo la parte di pubblicazione e moderazione degli eventi.
+Il prodotto non è una bacheca o un calendario: il flusso completo previsto è scoperta, disponibilità, prenotazione, conferma, promemoria, partecipazione, check-in, recensione e relazione continuativa con gli organizzatori seguiti.
 
 ## Target iniziali
-- Partecipanti: esplorano eventi, registrano preferenze e in seguito prenotano posti.
-- Organizzatori: ristoranti, fattorie didattiche, associazioni, Pro Loco, musei, guide e altri soggetti verificati.
+- Partecipanti: esplorano esperienze, registrano preferenze, seguono organizzatori e prenotano posti.
+- Organizzatori: ristoranti, fattorie didattiche, associazioni, Pro Loco, musei, guide e altri soggetti verificati con piano SaaS.
 - Amministratori: verificano organizzatori, moderano eventi, gestiscono contenuti e territori.
+
+## Piani SaaS
+- Free Trial: prova configurabile, massimo 2 esperienze attive.
+- Starter: esperienze illimitate, prenotazioni e statistiche base.
+- Professional: notifiche follower, lista attesa, comunicazioni e statistiche avanzate.
+- Enterprise: Comuni, reti di locali e grandi organizzazioni.
 
 ## Percorso critico MVP
 1. Dati territoriali e categorie affidabili.

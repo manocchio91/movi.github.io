@@ -13,6 +13,8 @@ Base path: `/api/v1`
 - `GET /events`
 - `GET /events/{event}`
 - `GET /locations/search?q=camp`
+- `GET /subscription-plans`
+- `GET /organizers/{organizer}`
 
 Filtri eventi: `category_id`, `province_id`, `municipality_id`, `date`, `free`, `available`.
 
@@ -28,11 +30,14 @@ Filtri eventi: `category_id`, `province_id`, `municipality_id`, `date`, `free`, 
 - `GET /me/notifications`
 - `POST /me/notifications/{notification}/read`
 - `POST /me/notifications/read-all`
+- `POST /organizers/{organizer}/follow`
+- `DELETE /organizers/{organizer}/follow`
 
 Per `POST /events/{event}/bookings` usare `Idempotency-Key` per evitare prenotazioni duplicate.
 
 ## Organizzatore
 - `GET /organizer/profile`
+- `GET /organizer/dashboard`
 - `POST /organizer/profile`
 - `PUT /organizer/profile`
 - `GET /organizer/events`

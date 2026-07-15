@@ -10,8 +10,10 @@ use App\Models\Event;
 use App\Models\Municipality;
 use App\Models\NotificationPreference;
 use App\Models\OrganizerProfile;
+use App\Models\OrganizerSubscription;
 use App\Models\Province;
 use App\Models\Region;
+use App\Models\SubscriptionPlan;
 use App\Models\TicketType;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -87,6 +89,64 @@ class DatabaseSeeder extends Seeder
             'frequency' => 'immediate',
         ]);
 
+        $plans = collect([
+            [
+                'name' => 'Free Trial',
+                'slug' => 'free-trial',
+                'description' => 'Prova configurabile con massimo 2 esperienze attive.',
+                'monthly_price_cents' => 0,
+                'trial_days' => 30,
+                'active_event_limit' => 2,
+                'features' => ['2 esperienze attive', 'prenotazioni base', 'profilo pubblico'],
+            ],
+            [
+                'name' => 'Starter',
+                'slug' => 'starter',
+                'description' => 'Esperienze illimitate, prenotazioni e statistiche base.',
+                'monthly_price_cents' => 1900,
+                'trial_days' => null,
+                'active_event_limit' => null,
+                'features' => ['esperienze illimitate', 'gestione prenotazioni', 'statistiche base'],
+            ],
+            [
+                'name' => 'Professional',
+                'slug' => 'professional',
+                'description' => 'Notifiche follower, lista attesa, comunicazioni e visibilita maggiore.',
+                'monthly_price_cents' => 4900,
+                'trial_days' => null,
+                'active_event_limit' => null,
+                'features' => ['notifiche follower', 'lista attesa', 'comunicazioni partecipanti', 'statistiche avanzate'],
+            ],
+            [
+                'name' => 'Enterprise',
+                'slug' => 'enterprise',
+                'description' => 'Predisposto per Comuni, reti di locali e organizzazioni complesse.',
+                'monthly_price_cents' => 0,
+                'trial_days' => null,
+                'active_event_limit' => null,
+                'features' => ['multi sede', 'supporto dedicato', 'fatturazione personalizzata'],
+            ],
+        ])->map(function (array $plan) {
+            $features = $plan['features'];
+            unset($plan['features']);
+
+            $subscriptionPlan = SubscriptionPlan::query()->create([
+                ...$plan,
+                'ulid' => (string) Str::ulid(),
+                'is_public' => true,
+                'is_active' => true,
+            ]);
+
+            foreach ($features as $feature) {
+                $subscriptionPlan->features()->create([
+                    'feature_key' => Str::slug($feature),
+                    'name' => $feature,
+                ]);
+            }
+
+            return $subscriptionPlan;
+        });
+
         $profile = OrganizerProfile::query()->create([
             'ulid' => (string) Str::ulid(),
             'owner_user_id' => $organizerUser->id,
@@ -97,9 +157,23 @@ class DatabaseSeeder extends Seeder
             'address' => 'Contrada Demo 12',
             'email' => 'organizer@example.test',
             'phone' => '+390000000000',
+            'website_url' => 'https://fattoria-demo.example',
+            'social_links' => ['instagram' => 'https://instagram.com/fattoriademo'],
+            'gallery' => ['fattoria-demo-1.jpg', 'fattoria-demo-2.jpg'],
             'verification_status' => 'verified',
             'verified_at' => now(),
         ]);
+
+        OrganizerSubscription::query()->create([
+            'ulid' => (string) Str::ulid(),
+            'organizer_profile_id' => $profile->id,
+            'subscription_plan_id' => $plans->firstWhere('slug', 'starter')->id,
+            'status' => 'active',
+            'current_period_starts_at' => now()->startOfMonth(),
+            'current_period_ends_at' => now()->endOfMonth(),
+        ]);
+
+        $customer->followedOrganizers()->syncWithoutDetaching([$profile->id]);
 
         $event = Event::query()->create([
             'ulid' => (string) Str::ulid(),

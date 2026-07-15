@@ -1,0 +1,27 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class SubscriptionPlan extends Model
+{
+    protected $fillable = [
+        'ulid', 'name', 'slug', 'description', 'monthly_price_cents',
+        'trial_days', 'active_event_limit', 'is_public', 'is_active',
+        'external_price_id',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_public' => 'boolean',
+            'is_active' => 'boolean',
+        ];
+    }
+
+    public function features()
+    {
+        return $this->hasMany(SubscriptionFeature::class);
+    }
+}

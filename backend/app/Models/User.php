@@ -52,6 +52,11 @@ class User extends Authenticatable
         return $this->hasMany(Notification::class);
     }
 
+    public function followedOrganizers()
+    {
+        return $this->belongsToMany(OrganizerProfile::class, 'organizer_followers')->withTimestamps();
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === UserRole::Admin;

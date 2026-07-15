@@ -13,6 +13,7 @@ use App\Models\NotificationPreference;
 use App\Models\OrganizerProfile;
 use App\Models\Province;
 use App\Models\Region;
+use App\Models\SubscriptionPlan;
 use App\Models\TicketType;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -60,6 +61,48 @@ class EventPlatformTest extends TestCase
         $this->assertDatabaseMissing('notifications', ['user_id' => $dinnerOnly->id, 'event_id' => $event->id]);
         $this->assertDatabaseMissing('notifications', ['user_id' => $noPromo->id, 'event_id' => $event->id]);
         $this->assertSame($organizer->id, $event->organizerProfile->owner_user_id);
+    }
+
+    public function test_followers_receive_notification_even_without_matching_category(): void
+    {
+        [$customer, , $event, $categories] = $this->setupDomain();
+        $customer->preferredCategories()->sync([$categories['cene']->id]);
+        $customer->followedOrganizers()->syncWithoutDetaching([$event->organizer_profile_id]);
+
+        NotificationPreference::query()->create([
+            'user_id' => $customer->id,
+            'internal_enabled' => true,
+            'email_enabled' => false,
+            'promotional_enabled' => true,
+            'frequency' => 'immediate',
+        ]);
+
+        $event->categories()->sync([$categories['bambini']->id]);
+
+        app(NotifyInterestedCustomers::class)->handle($event);
+
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $customer->id,
+            'event_id' => $event->id,
+            'channel' => 'internal',
+        ]);
+    }
+
+    public function test_subscription_plans_are_exposed_from_database(): void
+    {
+        SubscriptionPlan::query()->create([
+            'ulid' => (string) Str::ulid(),
+            'name' => 'Starter',
+            'slug' => 'starter',
+            'description' => 'Esperienze illimitate',
+            'monthly_price_cents' => 1900,
+            'is_public' => true,
+            'is_active' => true,
+        ]);
+
+        $this->getJson('/api/v1/subscription-plans')
+            ->assertOk()
+            ->assertJsonPath('data.0.slug', 'starter');
     }
 
     public function test_customer_books_event_and_duplicate_idempotency_does_not_create_second_booking(): void

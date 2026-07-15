@@ -9,9 +9,12 @@ use App\Http\Controllers\Api\V1\EventController;
 use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\NotificationPreferenceController;
+use App\Http\Controllers\Api\V1\OrganizerDashboardController;
 use App\Http\Controllers\Api\V1\OrganizerEventController;
+use App\Http\Controllers\Api\V1\OrganizerPublicController;
 use App\Http\Controllers\Api\V1\OrganizerProfileController;
 use App\Http\Controllers\Api\V1\PreferenceController;
+use App\Http\Controllers\Api\V1\SubscriptionPlanController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -22,6 +25,8 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/events/{event:ulid}', [EventController::class, 'show']);
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::get('/locations/search', [LocationController::class, 'search']);
+    Route::get('/subscription-plans', [SubscriptionPlanController::class, 'index']);
+    Route::get('/organizers/{organizer:ulid}', [OrganizerPublicController::class, 'show']);
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
@@ -38,8 +43,11 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/me/notifications', [NotificationController::class, 'index']);
         Route::post('/me/notifications/{notification:ulid}/read', [NotificationController::class, 'read']);
         Route::post('/me/notifications/read-all', [NotificationController::class, 'readAll']);
+        Route::post('/organizers/{organizer:ulid}/follow', [OrganizerPublicController::class, 'follow']);
+        Route::delete('/organizers/{organizer:ulid}/follow', [OrganizerPublicController::class, 'unfollow']);
 
         Route::post('/organizers', [OrganizerProfileController::class, 'store']);
+        Route::get('/organizer/dashboard', [OrganizerDashboardController::class, 'show']);
         Route::get('/organizer/profile', [OrganizerProfileController::class, 'show']);
         Route::post('/organizer/profile', [OrganizerProfileController::class, 'store']);
         Route::put('/organizer/profile', [OrganizerProfileController::class, 'update']);

@@ -17,7 +17,11 @@ class NotifyInterestedCustomers
         $sent = 0;
 
         User::query()
-            ->whereHas('preferredCategories', fn ($query) => $query->whereIn('categories.id', $categoryIds))
+            ->where(function ($query) use ($categoryIds, $event): void {
+                $query
+                    ->whereHas('preferredCategories', fn ($categories) => $categories->whereIn('categories.id', $categoryIds))
+                    ->orWhereHas('followedOrganizers', fn ($organizers) => $organizers->where('organizer_profiles.id', $event->organizer_profile_id));
+            })
             ->whereHas('notificationPreference', fn ($query) => $query
                 ->where('promotional_enabled', true)
                 ->where(function ($channels): void {

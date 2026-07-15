@@ -3,6 +3,12 @@
 ## Tabelle principali
 - `users`: identita, ruolo `customer|organizer|admin`, autenticazione.
 - `organizer_profiles`: profilo locale con comune, indirizzo, contatti e verifica.
+- `subscription_plans`: piani SaaS Free Trial, Starter, Professional, Enterprise.
+- `subscription_features`: feature e limiti associati ai piani.
+- `organizer_subscriptions`: abbonamento attivo/trial/cancellato del locale.
+- `invoices`: fatture predisposte per provider esterno.
+- `organizer_followers`: utenti che seguono un organizzatore.
+- `experience_views`: visualizzazioni esperienza per analytics e raccomandazioni future.
 - `regions`, `provinces`, `municipalities`: territorio italiano estendibile.
 - `categories`: macroaree gestite da database.
 - `user_event_preferences`: relazione molti-a-molti tra clienti e macroaree preferite.
@@ -25,6 +31,7 @@
 - Una preferenza per coppia utente/categoria.
 - Una prenotazione duplicata con stessa idempotency key non viene ricreata.
 - Le notifiche usano `deduplication_key` per evitare duplicati.
+- Un follower riceve notifiche per nuove esperienze dell'organizzatore anche senza match categoria.
 
 ## Tabelle predisposte
 `user_profiles`, `organizer_members`, `user_location_preferences`, `event_schedules`, `booking_participants_summary`, `waitlist_entries`, `check_ins`, `favorites`, `reviews`, `media`, `reports`, `idempotency_keys`.

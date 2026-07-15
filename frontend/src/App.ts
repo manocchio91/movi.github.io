@@ -178,8 +178,8 @@ export default defineComponent({
 
     const renderEvents = () => h('section', { class: 'screen-content' }, [
       h('div', { class: 'mobile-hero' }, [
-        h('p', 'Area cliente'),
-        h('h1', 'Scopri e prenota eventi locali'),
+        h('p', 'Esperienze locali'),
+        h('h1', 'Scopri esperienze, non solo eventi'),
         h('div', { class: 'search-box' }, [
           h('span', 'Cerca'),
           h('input', {
@@ -193,7 +193,7 @@ export default defineComponent({
         ]),
       ]),
       h('div', { class: 'quick-stats' }, [
-        h('div', [h('strong', `${events.value.length}`), h('span', 'eventi DB/API')]),
+        h('div', [h('strong', `${events.value.length}`), h('span', 'esperienze')]),
         h('div', [h('strong', '3'), h('span', 'prenotazioni')]),
         h('div', [h('strong', '6'), h('span', 'notifiche')]),
       ]),
@@ -203,7 +203,7 @@ export default defineComponent({
         onClick: () => { selectedMacro.value = macro; },
       }, macro))),
       h('div', { class: 'section-title' }, [
-        h('h2', 'Eventi pubblicati'),
+        h('h2', 'Esperienze pubblicate'),
         h('span', loading.value ? 'carico...' : `${filteredEvents.value.length} risultati`),
       ]),
       renderEventCard(mainEvent.value, true),
@@ -225,6 +225,12 @@ export default defineComponent({
       h('div', { class: 'section-title' }, [
         h('h2', 'Profilo cliente'),
         h('span', 'customer@example.test'),
+      ]),
+      h('div', { class: 'info-panel follow-panel' }, [
+        h('h3', 'Organizzatori seguiti'),
+        h('p', 'Quando un locale seguito pubblica una nuova esperienza ricevi una notifica anche se la categoria non e tra le tue preferite.'),
+        h('div', { class: 'split-row' }, [h('span', 'Fattoria Didattica Demo'), h('strong', 'segui')]),
+        h('div', { class: 'split-row' }, [h('span', 'Enoteca Centro'), h('strong', 'segui')]),
       ]),
       h('div', { class: 'info-panel' }, [
         h('h3', 'Macroaree preferite'),
@@ -305,23 +311,34 @@ export default defineComponent({
 
     const renderOrganizer = () => h('section', { class: 'screen-content' }, [
       h('div', { class: 'section-title' }, [
-        h('h2', 'Area locale'),
+        h('h2', 'Dashboard SaaS locale'),
         h('span', 'organizer@example.test'),
+      ]),
+      h('div', { class: 'plan-card' }, [
+        h('span', 'Piano attivo'),
+        h('h3', 'Starter'),
+        h('p', 'Esperienze illimitate, gestione prenotazioni e statistiche base. Pagamenti online predisposti per Stripe.'),
+        h('div', { class: 'plan-row' }, [
+          h('strong', '19 euro/mese'),
+          h('button', { type: 'button' }, 'Cambia piano'),
+        ]),
       ]),
       h('div', { class: 'info-panel organizer-panel' }, [
         h('span', { class: 'status-pill' }, 'draft -> published'),
-        h('h3', 'Crea evento collegato al DB'),
+        h('h3', 'Crea esperienza collegata al DB'),
         h('div', { class: 'booking-form' }, [
           h('label', ['Titolo', h('input', { value: 'Cena messicana con musica live', readonly: true })]),
           h('label', ['Macroarea', h('input', { value: 'cene ed esperienze gastronomiche', readonly: true })]),
           h('label', ['Capienza massima', h('input', { value: '40', readonly: true })]),
           h('label', ['Prezzo persona', h('input', { value: '25,00 euro', readonly: true })]),
         ]),
-        h('button', { class: 'primary-action wide', type: 'button' }, 'Pubblica evento'),
+        h('button', { class: 'primary-action wide', type: 'button' }, 'Pubblica esperienza'),
       ]),
       h('div', { class: 'metric-grid' }, [
-        h('div', [h('strong', '4'), h('span', 'eventi attivi')]),
+        h('div', [h('strong', '4'), h('span', 'esperienze attive')]),
         h('div', [h('strong', '72'), h('span', 'prenotazioni')]),
+        h('div', [h('strong', '318'), h('span', 'visualizzazioni')]),
+        h('div', [h('strong', '46'), h('span', 'follower')]),
       ]),
       h('div', { class: 'review-list' }, [
         h('article', { class: 'review-item' }, [h('div', [h('strong', 'Laboratorio creativo'), h('span', '22 posti disponibili')]), h('small', 'published')]),
