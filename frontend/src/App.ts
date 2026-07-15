@@ -11,8 +11,11 @@ type EventItem = {
   capacity_total?: number;
   is_free?: boolean;
   family_friendly?: boolean;
-  indoor_outdoor?: string;
+  tone: string;
+  imageLabel: string;
 };
+
+type Tab = 'discover' | 'booking' | 'organizer' | 'admin';
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api/v1';
 
@@ -20,33 +23,35 @@ const demoEvents: EventItem[] = [
   {
     ulid: 'demo-lab-fattoria',
     title: 'Laboratorio creativo in fattoria',
-    summary: 'Pomeriggio per bambini 4-9 anni con attivita manuali, animali e merenda.',
+    summary: 'Attivita manuali, animali e merenda per bambini 4-9 anni.',
     starts_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 8).toISOString(),
     municipality: { name: 'Campobasso' },
-    categories: [{ name: 'Laboratori creativi' }, { name: 'Fattorie e natura' }],
+    categories: [{ name: 'Bambini' }, { name: 'Natura' }],
     available_total: 7,
     capacity_total: 25,
     is_free: false,
     family_friendly: true,
-    indoor_outdoor: 'mixed',
+    tone: 'mint',
+    imageLabel: 'Fattoria',
   },
   {
     ulid: 'demo-cena-delitto',
     title: 'Cena con delitto nel borgo',
-    summary: 'Menu degustazione, attori dal vivo e gioco investigativo a squadre.',
+    summary: 'Menu degustazione, attori dal vivo e gioco investigativo.',
     starts_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 12).toISOString(),
     municipality: { name: 'Bojano' },
-    categories: [{ name: 'Cene a tema' }, { name: 'Teatro e spettacoli' }],
+    categories: [{ name: 'Cena' }, { name: 'Spettacolo' }],
     available_total: 5,
     capacity_total: 40,
     is_free: false,
     family_friendly: false,
-    indoor_outdoor: 'indoor',
+    tone: 'coral',
+    imageLabel: 'Teatro',
   },
   {
     ulid: 'demo-escursione',
     title: 'Escursione guidata sul tratturo',
-    summary: 'Passeggiata lenta con guida, racconto del territorio e pranzo al sacco.',
+    summary: 'Passeggiata lenta con guida e racconto del territorio.',
     starts_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 15).toISOString(),
     municipality: { name: 'Isernia' },
     categories: [{ name: 'Escursioni' }, { name: 'Cultura' }],
@@ -54,7 +59,8 @@ const demoEvents: EventItem[] = [
     capacity_total: 30,
     is_free: true,
     family_friendly: true,
-    indoor_outdoor: 'outdoor',
+    tone: 'sky',
+    imageLabel: 'Outdoor',
   },
 ];
 
@@ -63,9 +69,9 @@ export default defineComponent({
   setup() {
     const events = ref<EventItem[]>(demoEvents);
     const loading = ref(true);
-    const activeView = ref<'discover' | 'organizer' | 'admin'>('discover');
+    const activeTab = ref<Tab>('discover');
     const query = ref('');
-    const selectedCity = ref('Tutti i comuni');
+    const selectedCategory = ref('Tutti');
 
     onMounted(async () => {
       try {
@@ -73,7 +79,12 @@ export default defineComponent({
         if (response.ok) {
           const payload = await response.json();
           const apiEvents = payload.data?.data ?? payload.data ?? [];
-          events.value = apiEvents.length > 0 ? apiEvents : demoEvents;
+          if (apiEvents.length > 0) {
+            events.value = apiEvents.map((event: EventItem, index: number) => ({
+              ...demoEvents[index % demoEvents.length],
+              ...event,
+            }));
+          }
         }
       } catch {
         events.value = demoEvents;
@@ -82,157 +93,222 @@ export default defineComponent({
       }
     });
 
+    const categories = ['Tutti', 'Bambini', 'Cena', 'Natura', 'Cultura'];
+
     const filteredEvents = computed(() => events.value.filter((event) => {
       const text = `${event.title} ${event.summary} ${event.municipality?.name ?? ''} ${event.categories?.map((category) => category.name).join(' ') ?? ''}`.toLowerCase();
       const matchesQuery = query.value.trim() === '' || text.includes(query.value.toLowerCase());
-      const matchesCity = selectedCity.value === 'Tutti i comuni' || event.municipality?.name === selectedCity.value;
+      const matchesCategory = selectedCategory.value === 'Tutti'
+        || event.categories?.some((category) => category.name === selectedCategory.value);
 
-      return matchesQuery && matchesCity;
+      return matchesQuery && matchesCategory;
     }));
 
-    const renderNavButton = (label: string, view: typeof activeView.value) => h('button', {
-      class: ['nav-button', activeView.value === view ? 'active' : ''],
+    const progress = (event: EventItem) => {
+      const available = event.available_total ?? 0;
+      const capacity = event.capacity_total ?? 1;
+
+      return Math.max(0, Math.min(100, ((capacity - available) / capacity) * 100));
+    };
+
+    const eventDate = (value: string) => new Date(value).toLocaleDateString('it-IT', {
+      day: '2-digit',
+      month: 'short',
+    });
+
+    const renderTab = (label: string, icon: string, tab: Tab) => h('button', {
+      class: ['tab-button', activeTab.value === tab ? 'active' : ''],
       type: 'button',
       onClick: () => {
-        activeView.value = view;
+        activeTab.value = tab;
       },
-    }, label);
+    }, [
+      h('span', { class: 'tab-icon' }, icon),
+      h('span', label),
+    ]);
 
-    const renderEventCard = (event: EventItem) => h('article', { class: 'event-card', key: event.ulid }, [
-      h('div', { class: 'card-media' }, [
-        h('span', { class: 'date-badge' }, new Date(event.starts_at).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })),
+    const renderCategory = (category: string) => h('button', {
+      class: ['chip', selectedCategory.value === category ? 'active' : ''],
+      type: 'button',
+      onClick: () => {
+        selectedCategory.value = category;
+      },
+    }, category);
+
+    const renderEventCard = (event: EventItem, featured = false) => h('article', {
+      class: ['event-card', featured ? 'featured' : '', `tone-${event.tone}`],
+      key: event.ulid,
+    }, [
+      h('div', { class: 'event-art' }, [
+        h('span', { class: 'event-date' }, eventDate(event.starts_at)),
+        h('span', { class: 'image-label' }, event.imageLabel),
       ]),
-      h('div', { class: 'card-body' }, [
-        h('div', { class: 'tag-row' }, [
-          ...(event.categories ?? []).slice(0, 2).map((category) => h('span', { class: 'tag' }, category.name)),
-          event.is_free ? h('span', { class: 'tag free' }, 'Gratis') : h('span', { class: 'tag paid' }, 'Pagamento sul posto'),
+      h('div', { class: 'event-content' }, [
+        h('div', { class: 'event-tags' }, [
+          ...(event.categories ?? []).slice(0, 2).map((category) => h('span', category.name)),
+          h('span', event.is_free ? 'Gratis' : 'Sul posto'),
         ]),
         h('h3', event.title),
         h('p', event.summary),
-        h('div', { class: 'card-meta' }, [
+        h('div', { class: 'event-meta' }, [
           h('span', event.municipality?.name ?? 'Molise'),
-          h('span', `${event.available_total ?? 0}/${event.capacity_total ?? 0} posti disponibili`),
           h('span', event.family_friendly ? 'Famiglie' : 'Adulti'),
         ]),
-        h('div', { class: 'card-actions' }, [
-          h('button', { class: 'button primary', type: 'button' }, 'Vedi dettagli'),
-          h('button', { class: 'button secondary', type: 'button' }, 'Salva'),
-        ]),
-      ]),
-    ]);
-
-    const renderDiscover = () => h('section', { class: 'workspace' }, [
-      h('div', { class: 'hero' }, [
-        h('div', [
-          h('p', { class: 'eyebrow' }, 'Campobasso e Molise'),
-          h('h1', 'Eventi locali, posti veri, prenotazioni semplici'),
-          h('p', { class: 'hero-copy' }, 'Scopri laboratori, cene a tema, escursioni e attivita per famiglie. La disponibilita e il percorso di prenotazione sono al centro del prodotto.'),
-          h('div', { class: 'hero-actions' }, [
-            h('button', { class: 'button primary', type: 'button' }, 'Esplora eventi'),
-            h('button', { class: 'button secondary', type: 'button', onClick: () => { activeView.value = 'organizer'; } }, 'Pubblica un evento'),
+        h('div', { class: 'availability' }, [
+          h('div', [
+            h('strong', `${event.available_total ?? 0}`),
+            h('span', ' posti rimasti'),
+          ]),
+          h('div', { class: 'progress-track' }, [
+            h('span', { style: { width: `${progress(event)}%` } }),
           ]),
         ]),
-        h('div', { class: 'booking-preview' }, [
-          h('p', { class: 'panel-title' }, 'Flusso prenotazione'),
-          h('ol', [
-            h('li', 'Scoperta evento'),
-            h('li', 'Disponibilita posti'),
-            h('li', 'Prenotazione'),
-            h('li', 'QR ingresso'),
+        h('button', { class: 'primary-action', type: 'button' }, 'Prenota'),
+      ]),
+    ]);
+
+    const renderDiscover = () => h('section', { class: 'screen-content' }, [
+      h('div', { class: 'mobile-hero' }, [
+        h('p', 'Campobasso e provincia'),
+        h('h1', 'Trova la prossima esperienza da vivere'),
+        h('div', { class: 'search-box' }, [
+          h('span', 'Cerca'),
+          h('input', {
+            value: query.value,
+            type: 'search',
+            placeholder: 'laboratorio, cena, escursione',
+            onInput: (event: Event) => {
+              query.value = (event.target as HTMLInputElement).value;
+            },
+          }),
+        ]),
+      ]),
+      h('div', { class: 'quick-stats' }, [
+        h('div', [h('strong', '18'), h('span', 'eventi')]),
+        h('div', [h('strong', '5'), h('span', 'comuni')]),
+        h('div', [h('strong', '42'), h('span', 'posti liberi')]),
+      ]),
+      h('div', { class: 'category-row' }, categories.map(renderCategory)),
+      h('div', { class: 'section-title' }, [
+        h('h2', 'In evidenza'),
+        h('span', loading.value ? '...' : `${filteredEvents.value.length} risultati`),
+      ]),
+      filteredEvents.value[0] ? renderEventCard(filteredEvents.value[0], true) : h('p', { class: 'empty-state' }, 'Nessun evento trovato.'),
+      h('div', { class: 'section-title compact' }, [
+        h('h2', 'Questa settimana'),
+        h('button', { type: 'button' }, 'Vedi tutti'),
+      ]),
+      h('div', { class: 'mini-list' }, filteredEvents.value.slice(1).map((event) => h('button', {
+        class: 'mini-event',
+        type: 'button',
+        key: event.ulid,
+      }, [
+        h('span', { class: [`mini-art`, `tone-${event.tone}`] }, eventDate(event.starts_at)),
+        h('span', { class: 'mini-copy' }, [
+          h('strong', event.title),
+          h('small', `${event.municipality?.name ?? 'Molise'} - ${event.available_total ?? 0} posti`),
+        ]),
+      ]))),
+    ]);
+
+    const renderBooking = () => h('section', { class: 'screen-content' }, [
+      h('div', { class: 'ticket-card' }, [
+        h('div', { class: 'ticket-top' }, [
+          h('span', 'Prenotazione confermata'),
+          h('strong', 'LAB-4821'),
+        ]),
+        h('h2', 'Laboratorio creativo in fattoria'),
+        h('p', 'Sabato 24 luglio, ore 17:00 - Campobasso'),
+        h('div', { class: 'qr-box' }, [
+          h('div', { class: 'qr-grid' }, Array.from({ length: 25 }).map((_, index) => h('span', {
+            class: index % 3 === 0 || index % 7 === 0 ? 'dark' : '',
+          }))),
+        ]),
+        h('button', { class: 'primary-action wide', type: 'button' }, 'Mostra QR all ingresso'),
+      ]),
+      h('div', { class: 'info-panel' }, [
+        h('h3', 'Partecipanti'),
+        h('div', { class: 'split-row' }, [h('span', 'Adulti'), h('strong', '2')]),
+        h('div', { class: 'split-row' }, [h('span', 'Bambini 4-7 anni'), h('strong', '1')]),
+        h('div', { class: 'split-row' }, [h('span', 'Promemoria'), h('strong', 'Email')]),
+      ]),
+    ]);
+
+    const renderOrganizer = () => h('section', { class: 'screen-content' }, [
+      h('div', { class: 'section-title' }, [
+        h('h2', 'Area organizzatore'),
+        h('span', 'Demo'),
+      ]),
+      h('div', { class: 'info-panel organizer-panel' }, [
+        h('span', { class: 'status-pill' }, 'Bozza'),
+        h('h3', 'Cena messicana con musica live'),
+        h('p', 'Completa scheda evento, posti, biglietti e invia alla moderazione.'),
+        h('div', { class: 'stepper' }, [
+          h('span', { class: 'done' }),
+          h('span', { class: 'done' }),
+          h('span'),
+          h('span'),
+        ]),
+        h('button', { class: 'primary-action wide', type: 'button' }, 'Continua creazione'),
+      ]),
+      h('div', { class: 'metric-grid' }, [
+        h('div', [h('strong', '25'), h('span', 'prenotati')]),
+        h('div', [h('strong', '7'), h('span', 'in lista')]),
+      ]),
+    ]);
+
+    const renderAdmin = () => h('section', { class: 'screen-content' }, [
+      h('div', { class: 'section-title' }, [
+        h('h2', 'Moderazione'),
+        h('span', 'Admin'),
+      ]),
+      h('div', { class: 'review-list' }, [
+        ['Cena messicana con musica', 'Ristorante Demo', 'Da approvare'],
+        ['Degustazione in cantina', 'Enoteca Centro', 'Verifica profilo'],
+        ['Mercatino serale', 'Pro Loco', 'Segnalazione'],
+      ].map(([title, owner, status]) => h('article', { class: 'review-item' }, [
+        h('div', [h('strong', title), h('span', owner)]),
+        h('small', status),
+      ]))),
+      h('div', { class: 'metric-grid' }, [
+        h('div', [h('strong', '3'), h('span', 'eventi pending')]),
+        h('div', [h('strong', '128'), h('span', 'audit log')]),
+      ]),
+    ]);
+
+    const currentScreen = () => {
+      if (activeTab.value === 'booking') {
+        return renderBooking();
+      }
+
+      if (activeTab.value === 'organizer') {
+        return renderOrganizer();
+      }
+
+      if (activeTab.value === 'admin') {
+        return renderAdmin();
+      }
+
+      return renderDiscover();
+    };
+
+    return () => h('main', { class: 'phone-stage' }, [
+      h('div', { class: 'phone-shell' }, [
+        h('header', { class: 'mobile-header' }, [
+          h('div', [
+            h('span', 'Eventi Locali'),
+            h('strong', 'Ciao Alessio'),
           ]),
+          h('button', { class: 'avatar-button', type: 'button' }, 'A'),
+        ]),
+        currentScreen(),
+        h('nav', { class: 'bottom-tabs' }, [
+          renderTab('Scopri', 'S', 'discover'),
+          renderTab('QR', 'Q', 'booking'),
+          renderTab('Org', 'O', 'organizer'),
+          renderTab('Admin', 'A', 'admin'),
         ]),
       ]),
-      h('div', { class: 'filters' }, [
-        h('input', {
-          value: query.value,
-          type: 'search',
-          placeholder: 'Cerca evento, comune o categoria',
-          onInput: (event: Event) => {
-            query.value = (event.target as HTMLInputElement).value;
-          },
-        }),
-        h('select', {
-          value: selectedCity.value,
-          onChange: (event: Event) => {
-            selectedCity.value = (event.target as HTMLSelectElement).value;
-          },
-        }, ['Tutti i comuni', 'Campobasso', 'Bojano', 'Isernia'].map((city) => h('option', { value: city }, city))),
-        h('button', { class: 'button primary', type: 'button' }, 'Filtra'),
-      ]),
-      h('div', { class: 'section-heading' }, [
-        h('h2', 'Eventi in evidenza'),
-        h('p', loading.value ? 'Caricamento dati...' : `${filteredEvents.value.length} eventi disponibili`),
-      ]),
-      h('div', { class: 'event-grid' }, filteredEvents.value.map(renderEventCard)),
-    ]);
-
-    const renderOrganizer = () => h('section', { class: 'dashboard-grid' }, [
-      h('div', { class: 'panel wide' }, [
-        h('p', { class: 'eyebrow' }, 'Organizzatore'),
-        h('h2', 'Crea e manda in approvazione un evento'),
-        h('div', { class: 'form-grid' }, [
-          h('label', ['Titolo evento', h('input', { value: 'Cena messicana con musica dal vivo', readonly: true })]),
-          h('label', ['Comune', h('input', { value: 'Campobasso', readonly: true })]),
-          h('label', ['Capienza', h('input', { value: '40 posti', readonly: true })]),
-          h('label', ['Categoria', h('input', { value: 'Cene a tema', readonly: true })]),
-        ]),
-        h('div', { class: 'workflow' }, [
-          h('span', 'Bozza'),
-          h('span', 'In moderazione'),
-          h('span', 'Pubblicato'),
-        ]),
-      ]),
-      h('div', { class: 'panel' }, [
-        h('p', { class: 'panel-title' }, 'Statistiche essenziali'),
-        h('strong', '72%'),
-        h('span', 'posti medi prenotati sugli eventi pubblicati'),
-      ]),
-      h('div', { class: 'panel' }, [
-        h('p', { class: 'panel-title' }, 'Lista partecipanti'),
-        h('strong', '25'),
-        h('span', 'partecipanti attesi al prossimo evento'),
-      ]),
-    ]);
-
-    const renderAdmin = () => h('section', { class: 'dashboard-grid' }, [
-      h('div', { class: 'panel wide' }, [
-        h('p', { class: 'eyebrow' }, 'Admin'),
-        h('h2', 'Moderazione eventi'),
-        h('table', [
-          h('thead', h('tr', [h('th', 'Evento'), h('th', 'Organizzatore'), h('th', 'Stato'), h('th', 'Azione')])),
-          h('tbody', [
-            h('tr', [h('td', 'Cena messicana con musica'), h('td', 'Ristorante Demo'), h('td', 'pending_review'), h('td', h('button', { class: 'button primary', type: 'button' }, 'Approva'))]),
-            h('tr', [h('td', 'Laboratorio creativo'), h('td', 'Fattoria Demo'), h('td', 'published'), h('td', h('button', { class: 'button secondary', type: 'button' }, 'Dettagli'))]),
-          ]),
-        ]),
-      ]),
-      h('div', { class: 'panel' }, [
-        h('p', { class: 'panel-title' }, 'Organizzatori da verificare'),
-        h('strong', '3'),
-        h('span', 'profili in attesa'),
-      ]),
-      h('div', { class: 'panel' }, [
-        h('p', { class: 'panel-title' }, 'Audit log'),
-        h('strong', '128'),
-        h('span', 'operazioni tracciate'),
-      ]),
-    ]);
-
-    return () => h('main', { class: 'app-shell' }, [
-      h('header', { class: 'app-header' }, [
-        h('div', [
-          h('p', { class: 'brand-kicker' }, 'Eventi Locali'),
-          h('strong', 'Molise Experience Platform'),
-        ]),
-        h('nav', [
-          renderNavButton('Scopri', 'discover'),
-          renderNavButton('Organizzatore', 'organizer'),
-          renderNavButton('Admin', 'admin'),
-        ]),
-      ]),
-      activeView.value === 'discover' ? renderDiscover() : null,
-      activeView.value === 'organizer' ? renderOrganizer() : null,
-      activeView.value === 'admin' ? renderAdmin() : null,
     ]);
   },
 });
