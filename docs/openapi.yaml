@@ -446,6 +446,13 @@ paths:
       responses:
         "200": { description: KPI piattaforma, organizer, eventi, sospensioni e report review }
         "403": { description: Solo admin }
+  /admin/overview:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Console amministratore completa orientata ai dati
+      responses:
+        "200": { description: KPI, grafici, ultime attivita, eventi, organizzatori, clienti, recensioni, categorie, territorio, abbonamenti e audit log }
+        "403": { description: Solo admin }
   /admin/events:
     get:
       security: [{ bearerAuth: [] }]

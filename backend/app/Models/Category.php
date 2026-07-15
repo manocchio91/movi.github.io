@@ -12,4 +12,9 @@ class Category extends Model
     {
         return ['is_active' => 'boolean'];
     }
+
+    public function events()
+    {
+        return $this->belongsToMany(Event::class, 'event_categories');
+    }
 }

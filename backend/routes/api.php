@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\AdminDashboardController;
 use App\Http\Controllers\Api\V1\Admin\AdminOrganizerInsightController;
+use App\Http\Controllers\Api\V1\Admin\AdminPlatformOverviewController;
 use App\Http\Controllers\Api\V1\Admin\AdminRankingController;
 use App\Http\Controllers\Api\V1\Admin\EventModerationController;
 use App\Http\Controllers\Api\V1\Admin\OrganizerModerationController;
@@ -114,6 +115,7 @@ Route::prefix('v1')->group(function (): void {
 
         Route::middleware('role:admin')->group(function (): void {
             Route::get('/admin/dashboard', [AdminDashboardController::class, 'show']);
+            Route::get('/admin/overview', [AdminPlatformOverviewController::class, 'show']);
             Route::get('/admin/organizers', [OrganizerModerationController::class, 'index']);
             Route::get('/admin/organizers/pending', [OrganizerModerationController::class, 'pending']);
             Route::get('/admin/events', [EventModerationController::class, 'index']);

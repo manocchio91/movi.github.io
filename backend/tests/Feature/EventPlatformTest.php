@@ -940,6 +940,44 @@ class EventPlatformTest extends TestCase
             ->assertJsonPath('overview.events_total', 1);
     }
 
+    public function test_admin_overview_feeds_the_control_center_dashboard(): void
+    {
+        [, , $event] = $this->setupDomain();
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+
+        $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/v1/admin/overview')
+            ->assertOk()
+            ->assertJsonStructure([
+                'data' => [
+                    'kpis' => [
+                        'organizers_registered',
+                        'customers_registered',
+                        'events_published',
+                        'events_scheduled',
+                        'bookings_total',
+                        'participants_total',
+                    ],
+                    'charts' => [
+                        'events_by_month',
+                        'bookings_by_month',
+                        'organizer_growth',
+                        'customer_growth',
+                        'events_by_category',
+                    ],
+                    'events',
+                    'organizers',
+                    'customers',
+                    'reviews',
+                    'categories',
+                    'territory',
+                    'subscriptions',
+                    'audit_logs',
+                ],
+            ])
+            ->assertJsonPath('data.events.0.ulid', $event->ulid);
+    }
+
     private function setupDomain(int $capacity = 10): array
     {
         $customer = User::factory()->create(['role' => UserRole::Customer]);

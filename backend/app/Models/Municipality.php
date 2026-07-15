@@ -13,4 +13,9 @@ class Municipality extends Model
     {
         return $this->belongsTo(Province::class);
     }
+
+    public function events()
+    {
+        return $this->hasMany(Event::class);
+    }
 }

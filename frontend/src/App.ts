@@ -16,8 +16,15 @@ type AppRoute =
   | '/admin/dashboard'
   | '/admin/organizers'
   | '/admin/events'
+  | '/admin/customers'
   | '/admin/rankings'
   | '/admin/reviews'
+  | '/admin/categories'
+  | '/admin/territory'
+  | '/admin/subscriptions'
+  | '/admin/statistics'
+  | '/admin/audit'
+  | '/admin/settings'
   | '/unauthorized';
 
 type DemoUser = {
@@ -56,14 +63,15 @@ const adminMenu = [
   ['Dashboard', '/admin/dashboard'],
   ['Eventi', '/admin/events'],
   ['Organizzatori', '/admin/organizers'],
+  ['Clienti', '/admin/customers'],
   ['Classifiche', '/admin/rankings'],
-  ['Utenti', '/admin/dashboard'],
-  ['Categorie', '/admin/dashboard'],
-  ['Territori', '/admin/dashboard'],
-  ['Recensioni segnalate', '/admin/reviews'],
-  ['Abbonamenti', '/admin/dashboard'],
-  ['Audit log', '/admin/dashboard'],
-  ['Impostazioni', '/admin/dashboard'],
+  ['Recensioni', '/admin/reviews'],
+  ['Categorie', '/admin/categories'],
+  ['Territorio', '/admin/territory'],
+  ['Abbonamenti', '/admin/subscriptions'],
+  ['Statistiche', '/admin/statistics'],
+  ['Audit Log', '/admin/audit'],
+  ['Impostazioni', '/admin/settings'],
 ] as const;
 
 const canAccess = (role: Role, route: AppRoute) => {
@@ -93,6 +101,7 @@ export default defineComponent({
     const allCustomerEvents = ref<any[]>([]);
     const successfulEvents = ref<any[]>([]);
     const adminDashboard = ref<any>(null);
+    const adminOverview = ref<any>(null);
     const adminEvents = ref<any[]>([]);
     const adminEventStats = ref<any>(null);
     const adminOrganizers = ref<any[]>([]);
@@ -174,17 +183,21 @@ export default defineComponent({
       loading.value = true;
       apiError.value = '';
       try {
-        const [dashboard, events, organizers, eventRankings, organizerRankings] = await Promise.all([
+        const [dashboard, overview, events, organizers, eventRankings, organizerRankings] = await Promise.all([
           api('/admin/dashboard'),
+          api('/admin/overview'),
           api('/admin/events'),
           api('/admin/organizers'),
           api('/admin/rankings/events'),
           api('/admin/rankings/organizers'),
         ]);
         adminDashboard.value = dashboard?.data ?? null;
-        adminEvents.value = events?.data?.data ?? events?.data ?? [];
-        adminEventStats.value = events?.stats ?? null;
-        adminOrganizers.value = organizers?.data ?? [];
+        adminOverview.value = overview?.data ?? null;
+        const eventPayload = events;
+        const organizerPayload = organizers;
+        adminEvents.value = adminOverview.value?.events ?? eventPayload?.data?.data ?? eventPayload?.data ?? [];
+        adminEventStats.value = eventPayload?.stats ?? null;
+        adminOrganizers.value = adminOverview.value?.organizers ?? organizerPayload?.data ?? [];
         adminEventRankings.value = eventRankings?.data ?? [];
         adminOrganizerRankings.value = organizerRankings?.data ?? [];
       } catch (error) {
@@ -241,6 +254,7 @@ export default defineComponent({
       allCustomerEvents.value = [];
       successfulEvents.value = [];
       adminDashboard.value = null;
+      adminOverview.value = null;
       adminEvents.value = [];
       adminEventStats.value = null;
       adminOrganizers.value = [];
@@ -508,72 +522,313 @@ export default defineComponent({
       ]),
     ]);
 
+    const adminIcon = (label: string) => ({
+      Dashboard: 'DB',
+      Eventi: 'EV',
+      Organizzatori: 'OR',
+      Clienti: 'CL',
+      Classifiche: 'RK',
+      Recensioni: 'RE',
+      Categorie: 'CA',
+      Territorio: 'TE',
+      Abbonamenti: 'AB',
+      Statistiche: 'ST',
+      'Audit Log': 'AL',
+      Impostazioni: 'IM',
+    }[label] ?? label.slice(0, 2).toUpperCase());
+
+    const number = (value: any) => new Intl.NumberFormat('it-IT').format(Number(value ?? 0));
+    const overview = () => adminOverview.value ?? {};
+    const kpis = () => overview().kpis ?? {};
+    const chart = (key: string) => overview().charts?.[key] ?? [];
+    const maxValue = (items: any[]) => Math.max(1, ...items.map((item) => Number(item.value ?? 0)));
+
+    const adminKpi = (label: string, value: any, note: string, tone = 'neutral') => h('article', { class: ['admin-kpi', tone] }, [
+      h('span', label),
+      h('strong', number(value)),
+      h('small', note),
+    ]);
+
+    const renderMiniBars = (title: string, items: any[]) => h('article', { class: 'admin-panel chart-panel' }, [
+      h('div', { class: 'panel-heading' }, [h('h3', title), h('span', 'ultimi 6 mesi')]),
+      h('div', { class: 'admin-bars' }, items.length === 0
+        ? [h('span', { class: 'empty-bar' })]
+        : items.map((item) => h('div', { class: 'bar-column' }, [
+            h('span', { style: { height: `${Math.max(8, (Number(item.value ?? 0) / maxValue(items)) * 100)}%` } }),
+            h('small', String(item.label).slice(5)),
+          ]))),
+    ]);
+
+    const renderHorizontalBars = (title: string, items: any[]) => h('article', { class: 'admin-panel horizontal-chart' }, [
+      h('div', { class: 'panel-heading' }, [h('h3', title), h('span', 'distribuzione')]),
+      ...(items.length === 0 ? [h('p', 'Nessun dato disponibile')] : items.map((item) => h('div', { class: 'progress-row' }, [
+        h('span', item.label),
+        h('div', [h('i', { style: { width: `${Math.max(4, (Number(item.value ?? 0) / maxValue(items)) * 100)}%` } })]),
+        h('strong', number(item.value)),
+      ]))),
+    ]);
+
+    const adminTable = (headers: string[], rows: any[], renderRow: (row: any, index: number) => any[]) => h('article', { class: 'admin-panel table-panel' }, [
+      rows.length === 0 ? emptyState('Nessun dato disponibile.') : h('div', { class: 'admin-table-wrap' }, [
+        h('table', { class: 'admin-table' }, [
+          h('thead', [h('tr', headers.map((header) => h('th', header)))]),
+          h('tbody', rows.map((row, index) => h('tr', renderRow(row, index)))),
+        ]),
+      ]),
+    ]);
+
+    const statusPill = (status: string) => h('span', { class: `admin-pill status-${String(status).replaceAll('_', '-')}` }, status);
+
     const renderAdminDashboard = () => [
-      h('div', { class: 'metric-grid' }, [
-        card('Utenti', `${adminDashboard.value?.users ?? 'API'}`, 'dashboard admin'),
-        card('Organizzatori', `${adminOrganizers.value.length}`, 'tutti i profili'),
-        card('Eventi pubblicati', `${adminEventStats.value?.published ?? 0}`, 'pubblicazione diretta'),
-        card('Eventi sospesi', `${adminEventStats.value?.suspended ?? 0}`, 'post-moderazione'),
-        card('Eventi archiviati', `${adminEventStats.value?.archived ?? 0}`, 'storico admin'),
-        card('Report review', `${adminDashboard.value?.open_review_reports ?? 'API'}`, 'segnalazioni'),
+      h('section', { class: 'admin-hero' }, [
+        h('div', [
+          h('span', 'Centro di controllo'),
+          h('h1', 'Piattaforma eventi locali'),
+          h('p', `${number(kpis().events_created_today)} eventi creati oggi, ${number(kpis().bookings_today)} prenotazioni arrivate oggi.`),
+        ]),
+        h('div', { class: 'hero-signal' }, [
+          h('strong', number(kpis().events_scheduled)),
+          h('span', 'eventi in programma'),
+        ]),
+      ]),
+      h('section', { class: 'admin-kpi-grid' }, [
+        adminKpi('Organizzatori registrati', kpis().organizers_registered ?? adminOrganizers.value.length, 'offerta attiva', 'mint'),
+        adminKpi('Clienti registrati', kpis().customers_registered ?? adminDashboard.value?.customers, 'domanda potenziale', 'blue'),
+        adminKpi('Eventi pubblicati', kpis().events_published ?? adminEventStats.value?.published, 'visibili ai clienti', 'gold'),
+        adminKpi('Eventi in programma', kpis().events_scheduled, 'prossime date', 'mint'),
+        adminKpi('Eventi conclusi', kpis().events_completed, 'storico esperienze', 'blue'),
+        adminKpi('Eventi annullati', kpis().events_cancelled, 'da monitorare', 'alert'),
+        adminKpi('Prenotazioni totali', kpis().bookings_total, 'volume piattaforma', 'gold'),
+        adminKpi('Partecipanti totali', kpis().participants_total, 'persone servite', 'mint'),
+      ]),
+      h('section', { class: 'admin-chart-grid' }, [
+        renderMiniBars('Eventi pubblicati per mese', chart('events_by_month')),
+        renderMiniBars('Prenotazioni mensili', chart('bookings_by_month')),
+        renderMiniBars('Crescita organizzatori', chart('organizer_growth')),
+        renderMiniBars('Crescita clienti', chart('customer_growth')),
+        renderHorizontalBars('Eventi per categoria', chart('events_by_category')),
+      ]),
+      h('section', { class: 'admin-two-col' }, [
+        h('div', [
+          h('div', { class: 'panel-heading outside' }, [h('h2', 'Ultimi eventi inseriti'), h('span', 'stato operativo')]),
+          renderEventsTable((overview().latest_events ?? adminEvents.value).slice(0, 8)),
+        ]),
+        h('div', [
+          h('div', { class: 'panel-heading outside' }, [h('h2', 'Ultime registrazioni'), h('span', 'nuova domanda e offerta')]),
+          renderRegistrations(),
+          h('div', { class: 'panel-heading outside compact' }, [h('h2', 'Ultime recensioni'), h('span', 'qualita percepita')]),
+          renderReviewsList((overview().latest_reviews ?? []).slice(0, 5)),
+        ]),
       ]),
     ];
 
+    const renderEventsTable = (rows = adminEvents.value) => adminTable(
+      ['Titolo', 'Organizzatore', 'Categoria', 'Comune', 'Data', 'Stato', 'Prenotati', 'Partecipanti', 'Media'],
+      rows,
+      (event) => [
+        h('td', h('strong', event.title)),
+        h('td', event.organizer ?? event.organizer_profile?.name ?? '-'),
+        h('td', event.category ?? event.categories?.[0]?.name ?? '-'),
+        h('td', event.municipality ?? event.municipality?.name ?? '-'),
+        h('td', event.date ?? (event.starts_at ? new Date(event.starts_at).toLocaleDateString('it-IT') : '-')),
+        h('td', statusPill(event.status)),
+        h('td', number(event.booked ?? event.bookings_count)),
+        h('td', number(event.participants ?? event.participants_count)),
+        h('td', `${event.average_rating ?? 0}/5`),
+      ],
+    );
+
     const renderAdminEvents = () => [
-      h('div', { class: 'section-title' }, [h('h2', 'Eventi'), h('span', 'lista completa con sospensione e archivio')]),
-      adminEvents.value.length === 0 ? emptyState('Nessun evento disponibile dall API admin.') : h('div', { class: 'event-grid' }, adminEvents.value.map((event: any) => h('article', { class: 'experience-card event-management-card' }, [
-        h('span', { class: `status-badge status-${String(event.status).replaceAll('_', '-')}` }, event.status),
-        h('h3', event.title),
-        h('p', `${event.organizer_profile?.name ?? 'organizzatore'} - ${event.municipality?.name ?? 'territorio'}`),
-        h('div', { class: 'event-stats' }, [
-          h('small', `${event.bookings_count ?? 0} prenotazioni`),
-          h('small', `${event.reviews_count ?? 0} recensioni`),
-          h('small', `${event.capacity_total ?? 0} posti`),
-        ]),
-        h('div', { class: 'action-row' }, [
-          h('button', { type: 'button', onClick: async () => { await api(`/admin/events/${event.ulid}/suspend`, { method: 'POST', body: JSON.stringify({ reason_code: 'ADMIN_REVIEW', reason: 'Sospensione da console admin.' }) }); await loadAdminData(); } }, 'Sospendi'),
-          h('button', { type: 'button', onClick: async () => { await api(`/admin/events/${event.ulid}/archive`, { method: 'POST' }); await loadAdminData(); } }, 'Archivia'),
-        ]),
-      ]))),
+      h('div', { class: 'page-heading' }, [h('h1', 'Eventi'), h('p', 'Tutti gli eventi della piattaforma, con prenotazioni, partecipazione reale e qualita.')]),
+      h('section', { class: 'admin-kpi-grid compact' }, [
+        adminKpi('Pubblicati', adminEventStats.value?.published ?? kpis().events_published, 'online'),
+        adminKpi('In programma', kpis().events_scheduled, 'future date'),
+        adminKpi('Conclusi', kpis().events_completed, 'storico'),
+        adminKpi('Annullati', kpis().events_cancelled, 'attenzione'),
+      ]),
+      renderEventsTable(),
+      h('section', { class: 'admin-detail-grid' }, [
+        h('article', { class: 'admin-panel' }, [h('h3', 'Informazioni evento'), h('p', 'Descrizione, programma, luogo, data, prezzo e immagini sono disponibili dal dettaglio evento admin.')]),
+        h('article', { class: 'admin-panel' }, [h('h3', 'Prenotazioni'), h('p', 'Prenotati, partecipanti effettivi, no-show e cancellazioni cliente sono tracciati nella tabella.')]),
+        h('article', { class: 'admin-panel' }, [h('h3', 'Recensioni'), h('p', 'Media, stelle e recensioni alimentano statistiche e classifiche.')]),
+      ]),
     ];
 
     const renderAdminOrganizers = () => [
-      h('div', { class: 'section-title' }, [h('h2', 'Organizzatori'), h('span', 'anagrafica, stato e indicatori')]),
-      adminOrganizers.value.length === 0 ? emptyState('Nessun organizzatore disponibile dall API admin.') : h('div', { class: 'event-grid' }, adminOrganizers.value.map((organizer: any) => h('article', { class: 'experience-card' }, [
-        h('span', organizer.verification_status),
-        h('h3', organizer.name),
-        h('p', `${organizer.type ?? 'locale'} - ${organizer.municipality?.name ?? 'territorio'}`),
-        h('small', organizer.email),
-      ]))),
+      h('div', { class: 'page-heading' }, [h('h1', 'Organizzatori'), h('p', 'Prestazioni dei locali: eventi creati, prenotazioni, follower e rating.')]),
+      adminTable(
+        ['Logo', 'Nome attivita', 'Comune', 'Provincia', 'Creati', 'Futuri', 'Conclusi', 'Annullati', 'Prenotazioni', 'Media'],
+        adminOrganizers.value,
+        (organizer) => [
+          h('td', h('span', { class: 'logo-dot' }, String(organizer.name ?? 'O').slice(0, 1))),
+          h('td', h('strong', organizer.name)),
+          h('td', organizer.municipality ?? '-'),
+          h('td', organizer.province ?? '-'),
+          h('td', number(organizer.events_created ?? organizer.events_count)),
+          h('td', number(organizer.future_events)),
+          h('td', number(organizer.completed_events)),
+          h('td', number(organizer.cancelled_events)),
+          h('td', number(organizer.bookings_received)),
+          h('td', `${organizer.average_rating ?? 0}/5`),
+        ],
+      ),
+      h('section', { class: 'admin-chart-grid' }, [
+        renderHorizontalBars('Organizzatori per eventi creati', adminOrganizers.value.slice(0, 8).map((item) => ({ label: item.name, value: item.events_created ?? item.events_count ?? 0 }))),
+        renderHorizontalBars('Follower per organizzatore', adminOrganizers.value.slice(0, 8).map((item) => ({ label: item.name, value: item.followers ?? 0 }))),
+      ]),
+    ];
+
+    const renderCustomers = () => [
+      h('div', { class: 'page-heading' }, [h('h1', 'Clienti'), h('p', 'Anagrafica cliente con partecipazione, recensioni, preferiti e organizer seguiti.')]),
+      adminTable(
+        ['Nome', 'Email', 'Comune', 'Partecipati', 'Recensioni', 'Annullati', 'Preferiti', 'Seguiti', 'Registrazione'],
+        overview().customers ?? [],
+        (customer) => [
+          h('td', h('strong', customer.name)),
+          h('td', customer.email),
+          h('td', customer.municipality ?? '-'),
+          h('td', number(customer.events_attended)),
+          h('td', number(customer.reviews_left)),
+          h('td', number(customer.cancelled_events)),
+          h('td', number(customer.favorites)),
+          h('td', number(customer.followed_organizers)),
+          h('td', customer.registered_at ?? '-'),
+        ],
+      ),
     ];
 
     const renderAdminRankings = () => [
-      h('div', { class: 'section-title' }, [h('h2', 'Classifiche'), h('span', 'creativita, partecipazione, recensioni')]),
-      h('div', { class: 'event-grid' }, adminEventRankings.value.slice(0, 6).map((ranking: any, index: number) => h('article', { class: 'experience-card success-card' }, [
-        h('span', `#${index + 1} evento`),
-        h('h3', ranking.event?.title ?? 'Evento'),
-        h('p', `Score ${ranking.final_score} - creativita ${ranking.creativity_score} - partecipazione ${ranking.participation_score}`),
-        h('small', `Recensioni ${ranking.review_score}`),
-      ]))),
-      h('div', { class: 'event-grid' }, adminOrganizerRankings.value.slice(0, 6).map((ranking: any, index: number) => h('article', { class: 'experience-card' }, [
-        h('span', `#${index + 1} organizzatore`),
-        h('h3', ranking.organizer_profile?.name ?? 'Organizzatore'),
-        h('p', `${ranking.events_created} eventi creati - rating ${ranking.average_rating}`),
-        h('small', `${ranking.total_participants} partecipanti - riempimento ${ranking.average_fill_rate}%`),
-      ]))),
+      h('div', { class: 'page-heading' }, [h('h1', 'Classifiche'), h('p', 'Eventi migliori e organizzatori ordinati per qualita, partecipazione e crescita.')]),
+      h('section', { class: 'admin-two-col' }, [
+        h('div', [
+          h('div', { class: 'panel-heading outside' }, [h('h2', 'Eventi migliori'), h('span', 'creativita, recensioni, riempimento')]),
+          adminTable(['#', 'Titolo', 'Organizzatore', 'Punteggio'], adminEventRankings.value.slice(0, 10), (ranking, index) => [
+            h('td', h('strong', `#${index + 1}`)),
+            h('td', ranking.event?.title ?? '-'),
+            h('td', ranking.event?.organizer_profile?.name ?? '-'),
+            h('td', h('strong', `${ranking.final_score}`)),
+          ]),
+        ]),
+        h('div', [
+          h('div', { class: 'panel-heading outside' }, [h('h2', 'Organizzatori'), h('span', 'eventi, partecipanti, rating, follower')]),
+          adminTable(['#', 'Organizzatore', 'Eventi', 'Partecipanti', 'Media', 'Follower'], adminOrganizerRankings.value.slice(0, 10), (ranking, index) => [
+            h('td', h('strong', `#${index + 1}`)),
+            h('td', ranking.organizer_profile?.name ?? '-'),
+            h('td', number(ranking.events_created)),
+            h('td', number(ranking.total_participants)),
+            h('td', `${ranking.average_rating}/5`),
+            h('td', number(ranking.follower_count)),
+          ]),
+        ]),
+      ]),
     ];
 
-    const AdminLayout = () => h('main', { class: 'role-shell admin-layout' }, [
-      renderHeader('Dashboard amministratore', adminMenu),
-      h('section', { class: 'role-content' }, [
+    const renderReviewsList = (rows = overview().reviews ?? []) => h('div', { class: 'review-feed admin-review-feed' }, rows.length === 0 ? [emptyState('Nessuna recensione disponibile.')] : rows.map((review: any) => h('article', { class: 'review-card' }, [
+      h('div', { class: 'review-topline' }, [h('strong', `${review.rating}/5`), statusPill(review.status)]),
+      h('p', review.comment ?? 'Recensione senza commento.'),
+      h('small', `${review.user ?? 'Utente'} - ${review.event ?? 'Evento'} - ${review.organizer ?? 'Organizzatore'}`),
+    ])));
+
+    const renderAdminReviews = () => [
+      h('div', { class: 'page-heading' }, [h('h1', 'Recensioni'), h('p', 'Tutte le recensioni, filtrabili per evento, organizer, stelle e categoria.')]),
+      h('div', { class: 'filter-strip' }, ['Organizzatore', 'Evento', 'Stelle', 'Categoria', 'Nascoste'].map((item) => h('button', { type: 'button' }, item))),
+      renderReviewsList(),
+    ];
+
+    const renderCategories = () => [
+      h('div', { class: 'page-heading' }, [h('h1', 'Categorie'), h('p', 'Gestione editoriale delle categorie con impatto su eventi e organizzatori.')]),
+      adminTable(['Icona', 'Categoria', 'Colore', 'Eventi', 'Organizzatori'], overview().categories ?? [], (category) => [
+        h('td', h('span', { class: 'logo-dot' }, category.icon ?? 'CA')),
+        h('td', h('strong', category.name)),
+        h('td', h('span', { class: 'color-swatch', style: { background: category.color } })),
+        h('td', number(category.events_count)),
+        h('td', number(category.organizers_count)),
+      ]),
+    ];
+
+    const renderTerritory = () => [
+      h('div', { class: 'page-heading' }, [h('h1', 'Territorio'), h('p', 'Regioni, province e comuni con densita eventi.')]),
+      h('section', { class: 'admin-two-col' }, [
+        adminTable(['Regione', 'Province', 'Eventi'], overview().territory?.regions ?? [], (region) => [h('td', h('strong', region.name)), h('td', number(region.provinces_count)), h('td', number(region.events_count))]),
+        adminTable(['Comune', 'Provincia', 'Eventi'], overview().territory?.municipalities ?? [], (municipality) => [h('td', h('strong', municipality.name)), h('td', municipality.province ?? '-'), h('td', number(municipality.events_count))]),
+      ]),
+    ];
+
+    const renderSubscriptions = () => [
+      h('div', { class: 'page-heading' }, [h('h1', 'Abbonamenti'), h('p', 'Piani, rinnovi, stato e pagamenti predisposti.')]),
+      adminTable(['Organizzatore', 'Piano', 'Rinnovo', 'Stato', 'Pagamenti'], overview().subscriptions ?? [], (subscription) => [
+        h('td', h('strong', subscription.organizer ?? '-')),
+        h('td', subscription.plan ?? '-'),
+        h('td', subscription.renewal ?? '-'),
+        h('td', statusPill(subscription.status ?? 'n/d')),
+        h('td', subscription.payments ?? '-'),
+      ]),
+    ];
+
+    const renderStatistics = () => [
+      h('div', { class: 'page-heading' }, [h('h1', 'Statistiche'), h('p', 'Numeri chiave della piattaforma in un unica vista.')]),
+      h('section', { class: 'admin-chart-grid' }, [
+        renderMiniBars('Crescita utenti', chart('customer_growth')),
+        renderMiniBars('Crescita organizzatori', chart('organizer_growth')),
+        renderMiniBars('Eventi per mese', chart('events_by_month')),
+        renderMiniBars('Prenotazioni', chart('bookings_by_month')),
+        renderHorizontalBars('Eventi per categoria', chart('events_by_category')),
+      ]),
+    ];
+
+    const renderAudit = () => [
+      h('div', { class: 'page-heading' }, [h('h1', 'Audit Log'), h('p', 'Azioni operative e amministrative tracciate.')]),
+      adminTable(['Azione', 'Oggetto', 'ID', 'Data'], overview().audit_logs ?? [], (log) => [
+        h('td', h('strong', log.action)),
+        h('td', log.subject_type ?? '-'),
+        h('td', String(log.subject_id ?? '-')),
+        h('td', log.created_at ?? '-'),
+      ]),
+    ];
+
+    const renderSettings = () => [
+      h('div', { class: 'page-heading' }, [h('h1', 'Impostazioni'), h('p', 'Configurazione piattaforma, moderazione e policy operative.')]),
+      h('section', { class: 'admin-detail-grid' }, ['Moderazione post-evento', 'Notifiche operative', 'Policy recensioni', 'Piani e limiti'].map((item) => h('article', { class: 'admin-panel' }, [h('h3', item), h('p', 'Sezione pronta per configurazioni amministrative avanzate.')]))),
+    ];
+
+    const renderRegistrations = () => h('div', { class: 'registration-stack' }, [
+      ...(overview().latest_registrations?.organizers ?? []).slice(0, 3).map((item: any) => h('article', [h('strong', item.name), h('small', `Organizer - ${item.municipality ?? 'territorio non definito'}`)])),
+      ...(overview().latest_registrations?.customers ?? []).slice(0, 3).map((item: any) => h('article', [h('strong', item.name), h('small', `Cliente - ${item.registered_at ?? ''}`)])),
+    ]);
+
+    const renderAdminPage = () => {
+      if (route.value === '/admin/events') return renderAdminEvents();
+      if (route.value === '/admin/organizers') return renderAdminOrganizers();
+      if (route.value === '/admin/customers') return renderCustomers();
+      if (route.value === '/admin/rankings') return renderAdminRankings();
+      if (route.value === '/admin/reviews') return renderAdminReviews();
+      if (route.value === '/admin/categories') return renderCategories();
+      if (route.value === '/admin/territory') return renderTerritory();
+      if (route.value === '/admin/subscriptions') return renderSubscriptions();
+      if (route.value === '/admin/statistics') return renderStatistics();
+      if (route.value === '/admin/audit') return renderAudit();
+      if (route.value === '/admin/settings') return renderSettings();
+
+      return renderAdminDashboard();
+    };
+
+    const AdminLayout = () => h('main', { class: 'admin-console' }, [
+      h('aside', { class: 'admin-sidebar' }, [
+        h('div', { class: 'admin-brand' }, [h('strong', 'EL'), h('span', 'Eventi Locali')]),
+        h('nav', adminMenu.map(([label, target]) => h('button', {
+          class: route.value === target ? 'active' : '',
+          type: 'button',
+          onClick: () => { void go(target); },
+        }, [h('i', adminIcon(label)), h('span', label)]))),
+        h('button', { class: 'admin-logout', type: 'button', onClick: logout }, 'Logout'),
+      ]),
+      h('section', { class: 'admin-main' }, [
+        h('header', { class: 'admin-topbar' }, [
+          h('div', [h('span', currentUser.value?.email ?? ''), h('strong', 'Dashboard amministratore')]),
+          h('button', { type: 'button', onClick: () => { void loadAdminData(); } }, loading.value ? 'Aggiorno...' : 'Aggiorna dati'),
+        ]),
         apiError.value ? h('p', { class: 'api-error' }, apiError.value) : null,
-        ...(route.value === '/admin/events'
-          ? renderAdminEvents()
-          : route.value === '/admin/organizers'
-            ? renderAdminOrganizers()
-            : route.value === '/admin/rankings'
-              ? renderAdminRankings()
-              : renderAdminDashboard()),
+        ...renderAdminPage(),
       ]),
     ]);
 

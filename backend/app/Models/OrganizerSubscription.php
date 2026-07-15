@@ -26,4 +26,9 @@ class OrganizerSubscription extends Model
     {
         return $this->belongsTo(SubscriptionPlan::class, 'subscription_plan_id');
     }
+
+    public function organizerProfile()
+    {
+        return $this->belongsTo(OrganizerProfile::class);
+    }
 }

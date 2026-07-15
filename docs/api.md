@@ -132,6 +132,7 @@ Job asincroni:
 
 ## Admin
 - `GET /admin/dashboard`
+- `GET /admin/overview`
 - `GET /admin/organizers`
 - `GET /admin/events`
 - `GET /admin/events/{event}`
@@ -157,6 +158,8 @@ Tutte le route admin sono protette da `auth:sanctum` + `role:admin`. L'admin non
 Classifiche admin:
 - eventi: `final_score = creativity_score*0.30 + participation_score*0.35 + review_score*0.35`;
 - organizzatori: ordinamento primario per eventi creati, con rating, riempimento e partecipanti come indicatori qualitativi.
+
+`GET /admin/overview` alimenta la console amministratore completa: KPI piattaforma, grafici mensili, ultimi eventi, ultime registrazioni, recensioni, tabelle eventi/organizzatori/clienti, categorie, territorio, abbonamenti e audit log.
 
 ## Middleware e policy
 - `role:customer|organizer|admin`: verifica il ruolo reale dal backend e lo stato utente.
