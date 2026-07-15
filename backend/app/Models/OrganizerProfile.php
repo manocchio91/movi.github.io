@@ -10,7 +10,7 @@ class OrganizerProfile extends Model
 {
     protected $fillable = [
         'ulid', 'owner_user_id', 'name', 'type', 'description', 'email', 'phone',
-        'website_url', 'verification_status', 'verified_at',
+        'website_url', 'municipality_id', 'address', 'verification_status', 'verified_at',
     ];
 
     protected function casts(): array
@@ -23,8 +23,18 @@ class OrganizerProfile extends Model
         return $this->belongsTo(User::class, 'owner_user_id');
     }
 
+    public function getRouteKeyName(): string
+    {
+        return 'ulid';
+    }
+
     public function events(): HasMany
     {
         return $this->hasMany(Event::class);
+    }
+
+    public function municipality(): BelongsTo
+    {
+        return $this->belongsTo(Municipality::class);
     }
 }

@@ -51,4 +51,19 @@ class Event extends Model
     {
         return $this->belongsToMany(Category::class, 'event_categories');
     }
+
+    public function ticketTypes()
+    {
+        return $this->hasMany(TicketType::class);
+    }
+
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class);
+    }
+
+    public function venue()
+    {
+        return $this->belongsTo(Venue::class);
+    }
 }

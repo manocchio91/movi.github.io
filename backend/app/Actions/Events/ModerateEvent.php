@@ -2,6 +2,7 @@
 
 namespace App\Actions\Events;
 
+use App\Actions\Notifications\NotifyInterestedCustomers;
 use App\Enums\EventStatus;
 use App\Models\Event;
 use App\Models\User;
@@ -18,6 +19,8 @@ class ModerateEvent
             'approved_by' => $admin->id,
             'published_at' => now(),
         ])->save();
+
+        app(NotifyInterestedCustomers::class)->handle($event->refresh());
 
         return $event->refresh();
     }

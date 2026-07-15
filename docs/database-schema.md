@@ -1,32 +1,30 @@
 # Schema database
 
-## Implementato nella vertical slice
-- `users`: identità, ruolo, autenticazione.
-- `personal_access_tokens`: Laravel Sanctum.
+## Tabelle principali
+- `users`: identita, ruolo `customer|organizer|admin`, autenticazione.
+- `organizer_profiles`: profilo locale con comune, indirizzo, contatti e verifica.
 - `regions`, `provinces`, `municipalities`: territorio italiano estendibile.
-- `categories`: categorie evento e preferenze future.
-- `organizer_profiles`: profilo dell'organizzatore.
-- `events`: evento con stato, capienza, territorio e moderazione.
-- `event_categories`: relazione molti-a-molti.
-
-## Predisposto per slice successive
-- `ticket_types`
-- `bookings`
-- `booking_items`
-- `waitlist_entries`
-- `check_ins`
-- `favorites`
-- `idempotency_keys`
+- `categories`: macroaree gestite da database.
+- `user_event_preferences`: relazione molti-a-molti tra clienti e macroaree preferite.
+- `notification_preferences`: canali, consenso promozionale e frequenza.
+- `venues`: luoghi collegabili al locale.
+- `events`: evento con stato, capienza, disponibilita, territorio e moderazione.
+- `event_categories`: relazione molti-a-molti tra eventi e macroaree.
+- `ticket_types`: prezzo unico/adulto/bambino, quantita massima, prenotato e stato.
+- `bookings`: prenotazioni confermate con ULID, codice, idempotency key e totale prezzo.
+- `booking_items`: righe biglietto della prenotazione.
+- `notifications`: notifiche interne/email collegate a utente, evento e categoria.
+- `notification_deliveries`: tracciamento invio per canale.
+- `audit_logs`: audit amministrativo e organizzatore.
 
 ## Vincoli chiave
 - `events.status` limitato agli stati del dominio.
 - `events.capacity_total >= events.available_total`.
-- ULID univoci per entità esposte pubblicamente.
+- ULID univoci per entita esposte pubblicamente.
 - Un profilo organizzatore per owner.
-- Un preferito per coppia utente/evento.
-- Una iscrizione waitlist per coppia utente/evento.
+- Una preferenza per coppia utente/categoria.
+- Una prenotazione duplicata con stessa idempotency key non viene ricreata.
+- Le notifiche usano `deduplication_key` per evitare duplicati.
 
-## Tabelle di supporto predisposte
-`user_profiles`, `organizer_members`, `user_category_preferences`, `user_location_preferences`, `notification_preferences`, `venues`, `event_schedules`, `booking_participants_summary`, `notifications`, `notification_deliveries`, `reviews`, `media`, `reports`, `audit_logs`.
-
-Queste tabelle sono presenti per stabilizzare il dominio e le relazioni future, ma la logica applicativa della prima vertical slice usa solo le aree necessarie alla pubblicazione e moderazione eventi.
+## Tabelle predisposte
+`user_profiles`, `organizer_members`, `user_location_preferences`, `event_schedules`, `booking_participants_summary`, `waitlist_entries`, `check_ins`, `favorites`, `reviews`, `media`, `reports`, `idempotency_keys`.

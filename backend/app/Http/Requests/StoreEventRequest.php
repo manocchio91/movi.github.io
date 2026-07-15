@@ -25,6 +25,13 @@ class StoreEventRequest extends FormRequest
             'indoor_outdoor' => ['required', 'in:indoor,outdoor,mixed'],
             'minimum_child_age' => ['nullable', 'integer', 'min:0', 'max:17'],
             'maximum_child_age' => ['nullable', 'integer', 'min:0', 'max:17', 'gte:minimum_child_age'],
+            'ticket_types' => ['nullable', 'array'],
+            'ticket_types.*.name' => ['required_with:ticket_types', 'string', 'max:120'],
+            'ticket_types.*.description' => ['nullable', 'string', 'max:500'],
+            'ticket_types.*.audience' => ['required_with:ticket_types', 'in:adult,child,generic'],
+            'ticket_types.*.price_cents' => ['required_with:ticket_types', 'integer', 'min:0'],
+            'ticket_types.*.max_quantity' => ['nullable', 'integer', 'min:1'],
+            'ticket_types.*.is_active' => ['nullable', 'boolean'],
         ];
     }
 }

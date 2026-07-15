@@ -12,6 +12,8 @@ class StoreOrganizerProfileRequest extends FormRequest
             'name' => ['required', 'string', 'max:180'],
             'type' => ['required', 'string', 'max:80'],
             'description' => ['nullable', 'string', 'max:3000'],
+            'municipality_id' => ['nullable', 'exists:municipalities,id'],
+            'address' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:40'],
             'website_url' => ['nullable', 'url', 'max:255'],

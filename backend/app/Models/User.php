@@ -32,8 +32,33 @@ class User extends Authenticatable
         return $this->hasOne(OrganizerProfile::class, 'owner_user_id');
     }
 
+    public function preferredCategories()
+    {
+        return $this->belongsToMany(Category::class, 'user_event_preferences')->withTimestamps();
+    }
+
+    public function notificationPreference()
+    {
+        return $this->hasOne(NotificationPreference::class);
+    }
+
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class);
+    }
+
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class);
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === UserRole::Admin;
+    }
+
+    public function isOrganizer(): bool
+    {
+        return $this->role === UserRole::Organizer;
     }
 }

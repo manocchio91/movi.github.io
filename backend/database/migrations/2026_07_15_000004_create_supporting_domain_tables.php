@@ -24,7 +24,7 @@ return new class extends Migration {
             $table->unique(['organizer_profile_id', 'user_id']);
         });
 
-        Schema::create('user_category_preferences', function (Blueprint $table): void {
+        Schema::create('user_event_preferences', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('category_id')->constrained()->cascadeOnDelete();
@@ -44,10 +44,10 @@ return new class extends Migration {
         Schema::create('notification_preferences', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('user_id')->unique()->constrained()->cascadeOnDelete();
-            $table->boolean('push_enabled')->default(false);
+            $table->boolean('internal_enabled')->default(true);
             $table->boolean('email_enabled')->default(true);
             $table->boolean('promotional_enabled')->default(false);
-            $table->string('frequency')->default('booking_reminders_only');
+            $table->string('frequency')->default('immediate');
             $table->jsonb('preferred_days')->nullable();
             $table->timestamps();
         });
@@ -88,12 +88,20 @@ return new class extends Migration {
         Schema::create('notifications', function (Blueprint $table): void {
             $table->id();
             $table->ulid('ulid')->unique();
-            $table->foreignId('user_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('event_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();
             $table->string('kind');
             $table->string('channel');
             $table->string('template');
+            $table->string('title');
+            $table->text('message');
+            $table->string('status')->default('queued')->index();
+            $table->boolean('read')->default(false)->index();
             $table->jsonb('payload');
             $table->string('deduplication_key')->nullable()->unique();
+            $table->timestamp('sent_at')->nullable();
+            $table->text('last_error')->nullable();
             $table->timestamps();
         });
 
@@ -172,7 +180,7 @@ return new class extends Migration {
         Schema::dropIfExists('venues');
         Schema::dropIfExists('notification_preferences');
         Schema::dropIfExists('user_location_preferences');
-        Schema::dropIfExists('user_category_preferences');
+        Schema::dropIfExists('user_event_preferences');
         Schema::dropIfExists('organizer_members');
         Schema::dropIfExists('user_profiles');
     }

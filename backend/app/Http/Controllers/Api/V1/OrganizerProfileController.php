@@ -30,6 +30,16 @@ class OrganizerProfileController extends Controller
 
     public function show(): JsonResponse
     {
-        return response()->json(['data' => request()->user()->organizerProfile]);
+        return response()->json(['data' => request()->user()->organizerProfile?->load('municipality')]);
+    }
+
+    public function update(StoreOrganizerProfileRequest $request): JsonResponse
+    {
+        $profile = $request->user()->organizerProfile;
+        abort_unless($profile, 404, 'Profilo organizzatore non trovato.');
+
+        $profile->update($request->validated());
+
+        return response()->json(['data' => $profile->refresh()->load('municipality')]);
     }
 }

@@ -13,12 +13,14 @@ class EventController extends Controller
     public function index(Request $request): JsonResponse
     {
         $events = Event::query()
-            ->with(['categories', 'municipality', 'organizerProfile'])
+            ->with(['categories', 'municipality', 'organizerProfile', 'ticketTypes'])
             ->where('status', EventStatus::Published)
             ->when($request->filled('category_id'), fn ($q) => $q->whereHas('categories', fn ($c) => $c->whereKey($request->integer('category_id'))))
             ->when($request->filled('province_id'), fn ($q) => $q->whereHas('municipality', fn ($m) => $m->where('province_id', $request->integer('province_id'))))
             ->when($request->filled('municipality_id'), fn ($q) => $q->where('municipality_id', $request->integer('municipality_id')))
             ->when($request->filled('date'), fn ($q) => $q->whereDate('starts_at', $request->date('date')))
+            ->when($request->boolean('free'), fn ($q) => $q->where('is_free', true))
+            ->when($request->boolean('available'), fn ($q) => $q->where('available_total', '>', 0))
             ->orderBy('starts_at')
             ->paginate(15);
 
@@ -30,7 +32,7 @@ class EventController extends Controller
         abort_unless($event->status === EventStatus::Published, 404);
 
         return response()->json([
-            'data' => $event->load(['categories', 'municipality', 'organizerProfile']),
+            'data' => $event->load(['categories', 'municipality', 'organizerProfile', 'ticketTypes']),
         ]);
     }
 }

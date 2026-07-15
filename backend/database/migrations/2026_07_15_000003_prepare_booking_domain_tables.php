@@ -11,10 +11,12 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('event_id')->constrained()->cascadeOnDelete();
             $table->string('name');
+            $table->text('description')->nullable();
             $table->string('audience')->default('adult');
-            $table->unsignedInteger('capacity')->nullable();
-            $table->unsignedInteger('available')->nullable();
+            $table->unsignedInteger('max_quantity')->nullable();
+            $table->unsignedInteger('booked_quantity')->default(0);
             $table->unsignedInteger('price_cents')->default(0);
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
 
@@ -24,18 +26,22 @@ return new class extends Migration {
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('event_id')->constrained()->cascadeOnDelete();
             $table->string('status')->index();
-            $table->unsignedInteger('participants_total');
-            $table->unsignedInteger('adults_total')->default(0);
-            $table->unsignedInteger('children_total')->default(0);
+            $table->unsignedInteger('total_people');
+            $table->unsignedInteger('adults_count')->default(0);
+            $table->unsignedInteger('children_count')->default(0);
+            $table->unsignedInteger('total_price_cents')->default(0);
             $table->jsonb('children_age_ranges')->nullable();
             $table->text('dietary_needs')->nullable();
             $table->text('accessibility_needs')->nullable();
+            $table->text('notes')->nullable();
             $table->string('booking_code')->unique();
             $table->string('qr_token_hash')->unique();
             $table->timestamp('booked_at');
             $table->timestamp('cancelled_at')->nullable();
+            $table->string('idempotency_key')->nullable();
             $table->boolean('event_terms_accepted')->default(false);
             $table->timestamps();
+            $table->unique(['user_id', 'event_id', 'idempotency_key']);
         });
 
         Schema::create('booking_items', function (Blueprint $table): void {
@@ -43,6 +49,8 @@ return new class extends Migration {
             $table->foreignId('booking_id')->constrained()->cascadeOnDelete();
             $table->foreignId('ticket_type_id')->constrained()->restrictOnDelete();
             $table->unsignedInteger('quantity');
+            $table->unsignedInteger('unit_price_cents')->default(0);
+            $table->unsignedInteger('total_price_cents')->default(0);
             $table->timestamps();
         });
 

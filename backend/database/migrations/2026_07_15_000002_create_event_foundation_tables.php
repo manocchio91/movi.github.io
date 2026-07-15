@@ -24,6 +24,8 @@ return new class extends Migration {
             $table->string('name');
             $table->string('type');
             $table->text('description')->nullable();
+            $table->foreignId('municipality_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('address')->nullable();
             $table->string('email');
             $table->string('phone')->nullable();
             $table->string('website_url')->nullable();

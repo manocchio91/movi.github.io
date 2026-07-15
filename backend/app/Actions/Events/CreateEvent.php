@@ -14,7 +14,9 @@ class CreateEvent
     {
         return DB::transaction(function () use ($profile, $data): Event {
             $categoryIds = $data['category_ids'];
+            $ticketTypes = $data['ticket_types'] ?? [];
             unset($data['category_ids']);
+            unset($data['ticket_types']);
 
             $event = $profile->events()->create([
                 ...$data,
@@ -25,6 +27,7 @@ class CreateEvent
             ]);
 
             $event->categories()->sync($categoryIds);
+            $this->syncTicketTypes($event, $ticketTypes);
 
             return $event;
         });
@@ -34,15 +37,50 @@ class CreateEvent
     {
         return DB::transaction(function () use ($event, $data): Event {
             $categoryIds = $data['category_ids'];
+            $ticketTypes = $data['ticket_types'] ?? [];
             unset($data['category_ids']);
+            unset($data['ticket_types']);
 
             $event->update([
                 ...$data,
                 'available_total' => $data['capacity_total'],
             ]);
             $event->categories()->sync($categoryIds);
+            $this->syncTicketTypes($event, $ticketTypes);
 
             return $event->refresh();
         });
+    }
+
+    private function syncTicketTypes(Event $event, array $ticketTypes): void
+    {
+        if ($ticketTypes === []) {
+            $event->ticketTypes()->updateOrCreate(
+                ['name' => 'Ingresso'],
+                [
+                    'description' => 'Biglietto unico',
+                    'audience' => 'generic',
+                    'max_quantity' => $event->capacity_total,
+                    'price_cents' => $event->is_free ? 0 : 1500,
+                    'is_active' => true,
+                ],
+            );
+
+            return;
+        }
+
+        $event->ticketTypes()->delete();
+
+        foreach ($ticketTypes as $ticketType) {
+            $event->ticketTypes()->create([
+                'name' => $ticketType['name'],
+                'description' => $ticketType['description'] ?? null,
+                'audience' => $ticketType['audience'],
+                'max_quantity' => $ticketType['max_quantity'] ?? null,
+                'booked_quantity' => 0,
+                'price_cents' => $ticketType['price_cents'],
+                'is_active' => $ticketType['is_active'] ?? true,
+            ]);
+        }
     }
 }

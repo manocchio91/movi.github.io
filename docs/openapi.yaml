@@ -1,40 +1,35 @@
 openapi: 3.1.0
 info:
   title: Eventi Locali API
-  version: 0.1.0
+  version: 0.2.0
 servers:
   - url: http://localhost:8080/api/v1
 paths:
   /auth/register:
     post:
-      summary: Registra un utente
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [name, email, password]
-              properties:
-                name: { type: string }
-                email: { type: string, format: email }
-                password: { type: string, minLength: 8 }
-                role: { type: string, enum: [participant, organizer] }
+      summary: Registra customer o organizer
       responses:
         "201": { description: Utente creato }
   /auth/login:
     post:
-      summary: Autentica un utente
+      summary: Login e token Sanctum
       responses:
         "200": { description: Token creato }
+  /categories:
+    get:
+      summary: Macroaree evento
+      responses:
+        "200": { description: Lista categorie }
   /events:
     get:
-      summary: Elenco eventi pubblicati
+      summary: Eventi pubblicati
       parameters:
         - { name: category_id, in: query, schema: { type: integer } }
         - { name: province_id, in: query, schema: { type: integer } }
         - { name: municipality_id, in: query, schema: { type: integer } }
         - { name: date, in: query, schema: { type: string, format: date } }
+        - { name: free, in: query, schema: { type: boolean } }
+        - { name: available, in: query, schema: { type: boolean } }
       responses:
         "200": { description: Lista paginata }
   /events/{event}:
@@ -44,58 +39,152 @@ paths:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Evento }
-        "404": { description: Evento non pubblicato o inesistente }
-  /categories:
+  /me/preferences:
     get:
-      summary: Categorie attive
+      security: [{ bearerAuth: [] }]
+      summary: Preferenze macroarea del cliente
       responses:
-        "200": { description: Lista categorie }
-  /locations/search:
+        "200": { description: Preferenze }
+    put:
+      security: [{ bearerAuth: [] }]
+      summary: Aggiorna preferenze macroarea
+      responses:
+        "200": { description: Preferenze aggiornate }
+  /me/notification-preferences:
     get:
-      summary: Cerca comuni
-      parameters:
-        - { name: q, in: query, schema: { type: string } }
+      security: [{ bearerAuth: [] }]
+      summary: Preferenze notifica
       responses:
-        "200": { description: Lista comuni }
-  /organizers:
+        "200": { description: Preferenze notifica }
+    put:
+      security: [{ bearerAuth: [] }]
+      summary: Aggiorna preferenze notifica
+      responses:
+        "200": { description: Preferenze aggiornate }
+  /events/{event}/bookings:
     post:
       security: [{ bearerAuth: [] }]
-      summary: Crea profilo organizzatore
+      summary: Prenota posti per un evento
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+        - { name: Idempotency-Key, in: header, schema: { type: string } }
+      responses:
+        "201": { description: Prenotazione confermata }
+        "422": { description: Posti non disponibili o richiesta non valida }
+  /me/bookings:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Prenotazioni del cliente
+      responses:
+        "200": { description: Lista prenotazioni }
+  /me/bookings/{booking}:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Dettaglio prenotazione cliente
+      parameters:
+        - { name: booking, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Prenotazione }
+        "403": { description: Prenotazione altrui }
+  /me/bookings/{booking}/cancel:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Annulla prenotazione e libera posti
+      parameters:
+        - { name: booking, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Prenotazione annullata }
+  /me/notifications:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Centro notifiche
+      responses:
+        "200": { description: Lista notifiche }
+  /me/notifications/{notification}/read:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Marca una notifica come letta
+      parameters:
+        - { name: notification, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Notifica letta }
+  /me/notifications/read-all:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Marca tutte le notifiche come lette
+      responses:
+        "200": { description: Notifiche lette }
+  /organizer/profile:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Profilo locale
+      responses:
+        "200": { description: Profilo }
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Crea profilo locale
       responses:
         "201": { description: Profilo creato }
+    put:
+      security: [{ bearerAuth: [] }]
+      summary: Aggiorna profilo locale
+      responses:
+        "200": { description: Profilo aggiornato }
   /organizer/events:
     get:
       security: [{ bearerAuth: [] }]
-      summary: Eventi del proprio profilo organizzatore
+      summary: Eventi del locale
       responses:
         "200": { description: Lista eventi }
     post:
       security: [{ bearerAuth: [] }]
-      summary: Crea evento in bozza
+      summary: Crea evento con ticket type
       responses:
         "201": { description: Evento creato }
-  /organizer/events/{event}/submit:
+  /organizer/events/{event}/publish:
     post:
       security: [{ bearerAuth: [] }]
-      summary: Invia evento a moderazione
+      summary: Pubblica evento e genera notifiche ai clienti interessati
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
-        "200": { description: Evento in pending_review }
+        "200": { description: Evento pubblicato }
+  /organizer/events/{event}/bookings:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Prenotazioni ricevute dal locale
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Lista prenotazioni }
   /admin/events/pending:
     get:
       security: [{ bearerAuth: [] }]
       summary: Eventi in moderazione
       responses:
-        "200": { description: Lista eventi pending }
+        "200": { description: Lista eventi }
   /admin/events/{event}/approve:
     post:
       security: [{ bearerAuth: [] }]
-      summary: Approva e pubblica evento
+      summary: Approva evento
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
-        "200": { description: Evento pubblicato }
+        "200": { description: Evento approvato }
+  /admin/organizers/pending:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Organizzatori da verificare
+      responses:
+        "200": { description: Lista organizzatori }
+  /admin/organizers/{organizer}/approve:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Approva organizzatore
+      parameters:
+        - { name: organizer, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Organizzatore approvato }
 components:
   securitySchemes:
     bearerAuth:

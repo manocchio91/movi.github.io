@@ -20,7 +20,7 @@ class AuthController extends Controller
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => $data['password'],
-            'role' => UserRole::from($data['role'] ?? 'participant'),
+            'role' => UserRole::from($data['role'] ?? 'customer'),
         ]);
 
         return response()->json([
