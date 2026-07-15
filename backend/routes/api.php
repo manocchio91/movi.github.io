@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\CustomerDashboardController;
+use App\Http\Controllers\Api\V1\CustomerSuccessfulEventController;
 use App\Http\Controllers\Api\V1\EventController;
 use App\Http\Controllers\Api\V1\FavoriteController;
 use App\Http\Controllers\Api\V1\LocationController;
@@ -44,6 +45,12 @@ Route::prefix('v1')->group(function (): void {
 
         Route::middleware('role:customer')->group(function (): void {
             Route::get('/customer/dashboard', [CustomerDashboardController::class, 'show']);
+            Route::get('/customer/successful-events', [CustomerSuccessfulEventController::class, 'index']);
+            Route::get('/customer/successful-events/{event:ulid}', [CustomerSuccessfulEventController::class, 'show']);
+            Route::get('/customer/successful-events/{event:ulid}/next-editions', [CustomerSuccessfulEventController::class, 'nextEditionsEndpoint']);
+            Route::get('/customer/successful-events/{event:ulid}/similar', [CustomerSuccessfulEventController::class, 'similar']);
+            Route::post('/customer/successful-events/{event:ulid}/notify-similar', [CustomerSuccessfulEventController::class, 'notifySimilar']);
+            Route::delete('/customer/successful-events/{event:ulid}/notify-similar', [CustomerSuccessfulEventController::class, 'deleteNotifySimilar']);
             Route::get('/me/preferences', [PreferenceController::class, 'show']);
             Route::put('/me/preferences', [PreferenceController::class, 'update']);
             Route::get('/me/notification-preferences', [NotificationPreferenceController::class, 'show']);

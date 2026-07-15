@@ -8,6 +8,8 @@ use App\Models\Booking;
 use App\Models\Campaign;
 use App\Models\Category;
 use App\Models\Event;
+use App\Models\EventSeries;
+use App\Models\EventSuccessScore;
 use App\Models\EventStatistic;
 use App\Models\ExperienceView;
 use App\Models\Municipality;
@@ -180,9 +182,18 @@ class DatabaseSeeder extends Seeder
 
         $customer->followedOrganizers()->syncWithoutDetaching([$profile->id]);
 
+        $series = EventSeries::query()->create([
+            'organizer_profile_id' => $profile->id,
+            'name' => 'Laboratorio creativo in fattoria',
+            'description' => 'Format ricorrente per famiglie e bambini.',
+            'category_id' => $categories->firstWhere('name', 'bambini')->id,
+            'active' => true,
+        ]);
+
         $event = Event::query()->create([
             'ulid' => (string) Str::ulid(),
             'organizer_profile_id' => $profile->id,
+            'event_series_id' => $series->id,
             'municipality_id' => Municipality::query()->where('name', 'Campobasso')->value('id'),
             'title' => 'Laboratorio creativo in fattoria',
             'slug' => 'laboratorio-creativo-in-fattoria',
@@ -217,6 +228,41 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $event->categories()->sync($categories->whereIn('name', ['bambini', 'corsi e laboratori'])->pluck('id'));
+
+        $completedEvent = Event::query()->create([
+            'ulid' => (string) Str::ulid(),
+            'organizer_profile_id' => $profile->id,
+            'event_series_id' => $series->id,
+            'municipality_id' => Municipality::query()->where('name', 'Campobasso')->value('id'),
+            'title' => 'Laboratorio creativo in fattoria - Edizione di marzo',
+            'slug' => 'laboratorio-creativo-in-fattoria-marzo',
+            'summary' => 'Edizione conclusa molto apprezzata dalle famiglie.',
+            'description' => 'Edizione precedente del laboratorio creativo con attivita manuali, merenda e visita guidata.',
+            'status' => EventStatus::Completed,
+            'starts_at' => now()->subMonths(3),
+            'ends_at' => now()->subMonths(3)->addHours(2),
+            'capacity_total' => 25,
+            'available_total' => 0,
+            'is_free' => false,
+            'price_notes' => 'Pagamento sul posto.',
+            'family_friendly' => true,
+            'indoor_outdoor' => 'mixed',
+            'published_at' => now()->subMonths(4),
+            'show_in_inspiration_feed' => true,
+        ]);
+        $completedEvent->categories()->sync($categories->whereIn('name', ['bambini', 'corsi e laboratori'])->pluck('id'));
+        EventSuccessScore::query()->create([
+            'event_id' => $completedEvent->id,
+            'fill_rate' => 96,
+            'attendance_rate' => 92,
+            'no_show_rate' => 8,
+            'average_rating' => 4.8,
+            'review_count' => 12,
+            'recommendation_rate' => 94,
+            'favorite_count' => 18,
+            'success_score' => 91.4,
+            'calculated_at' => now(),
+        ]);
 
         $adultTicket = TicketType::query()->create([
             'event_id' => $event->id,

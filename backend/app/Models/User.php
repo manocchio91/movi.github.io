@@ -67,6 +67,11 @@ class User extends Authenticatable
         return $this->belongsToMany(Event::class, 'favorites')->withTimestamps();
     }
 
+    public function eventFormatInterests()
+    {
+        return $this->hasMany(CustomerEventFormatInterest::class);
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === UserRole::Admin;

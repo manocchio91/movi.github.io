@@ -393,6 +393,21 @@ button {
   border-color: #d9c6a5;
 }
 
+.success-card {
+  background: linear-gradient(145deg, #ffffff, #fffaf0);
+  border-color: #ead7ac;
+}
+
+.next-edition-badge {
+  background: #e5f5ef;
+  border-radius: 999px;
+  color: #0f766e;
+  display: inline-block;
+  font-size: 0.8rem;
+  margin: 8px 0;
+  padding: 7px 10px;
+}
+
 .opportunity {
   background: linear-gradient(145deg, #ffffff, #fff7df);
 }

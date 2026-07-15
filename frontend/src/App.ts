@@ -5,6 +5,7 @@ type AppRoute =
   | '/login'
   | '/customer/dashboard'
   | '/customer/explore'
+  | '/customer/successful-events'
   | '/customer/bookings'
   | '/customer/preferences'
   | '/organizer/dashboard'
@@ -36,7 +37,8 @@ const demoUsers: DemoUser[] = [
 
 const customerMenu = [
   ['Home', '/customer/dashboard'],
-  ['Esplora eventi', '/customer/explore'],
+  ['Tutti gli Eventi', '/customer/explore'],
+  ['Eventi di Successo', '/customer/successful-events'],
   ['Le mie prenotazioni', '/customer/bookings'],
   ['Preferenze', '/customer/preferences'],
 ] as const;
@@ -55,12 +57,6 @@ const adminMenu = [
   ['Eventi da approvare', '/admin/events'],
   ['Recensioni segnalate', '/admin/reviews'],
 ] as const;
-
-const customerPreviewEvents = [
-  { title: 'Laboratorio creativo in fattoria', category: 'bambini', town: 'Campobasso', date: '23 lug', price: '32,00 euro', places: '7 posti' },
-  { title: 'Cena con delitto nel borgo', category: 'gastronomia', town: 'Bojano', date: '27 lug', price: '25,00 euro', places: '5 posti' },
-  { title: 'Escursione guidata sul tratturo', category: 'natura', town: 'Isernia', date: '30 lug', price: 'gratis', places: '14 posti' },
-];
 
 const canAccess = (role: Role, route: AppRoute) => {
   if (route === '/login' || route === '/unauthorized') return true;
@@ -85,6 +81,9 @@ export default defineComponent({
     const calendarDays = ref<any[]>([]);
     const selectedDay = ref<any | null>(null);
     const opportunities = ref<any>(null);
+    const customerDashboard = ref<any>(null);
+    const allCustomerEvents = ref<any[]>([]);
+    const successfulEvents = ref<any[]>([]);
 
     const role = computed<Role>(() => currentUser.value?.role ?? 'guest');
 
@@ -134,9 +133,31 @@ export default defineComponent({
       }
     };
 
+    const loadCustomerData = async () => {
+      if (role.value !== 'customer' || !token.value) return;
+
+      loading.value = true;
+      apiError.value = '';
+      try {
+        const [dashboard, eventPayload, successPayload] = await Promise.all([
+          api('/customer/dashboard'),
+          api('/events'),
+          api('/customer/successful-events'),
+        ]);
+        customerDashboard.value = dashboard?.data ?? null;
+        allCustomerEvents.value = eventPayload?.data?.data ?? eventPayload?.data ?? [];
+        successfulEvents.value = successPayload?.data ?? [];
+      } catch (error) {
+        apiError.value = error instanceof Error ? error.message : 'API customer non disponibile';
+      } finally {
+        loading.value = false;
+      }
+    };
+
     const go = async (nextRoute: AppRoute) => {
       route.value = canAccess(role.value, nextRoute) ? nextRoute : '/unauthorized';
       if (route.value.startsWith('/organizer')) await loadOrganizerData();
+      if (route.value.startsWith('/customer')) await loadCustomerData();
     };
 
     const login = async (user: DemoUser) => {
@@ -154,6 +175,7 @@ export default defineComponent({
         currentUser.value = { ...user, role: payload.user.role, redirect_to: payload.redirect_to };
         route.value = payload.redirect_to;
         await loadOrganizerData();
+        await loadCustomerData();
       } catch (error) {
         currentUser.value = user;
         route.value = user.redirect_to;
@@ -173,6 +195,9 @@ export default defineComponent({
       reviewEvents.value = [];
       calendarDays.value = [];
       opportunities.value = null;
+      customerDashboard.value = null;
+      allCustomerEvents.value = [];
+      successfulEvents.value = [];
     };
 
     const useSuggestion = async (suggestionUlid: string, index: number) => {
@@ -186,6 +211,11 @@ export default defineComponent({
     const inspireFromEvent = async (eventUlid: string) => {
       await api(`/organizer/top-events/${eventUlid}/inspire`, { method: 'POST' });
       await go('/organizer/events');
+    };
+
+    const notifySimilar = async (eventUlid: string) => {
+      await api(`/customer/successful-events/${eventUlid}/notify-similar`, { method: 'POST' });
+      await loadCustomerData();
     };
 
     const card = (title: string, value: string, note: string) => h('article', { class: 'role-card' }, [
@@ -229,21 +259,68 @@ export default defineComponent({
       }, label))),
     ]);
 
+    const renderEventCard = (event: any) => h('article', { class: 'experience-card' }, [
+      h('span', event.category ?? event.categories?.[0]?.name ?? 'evento'),
+      h('h3', event.title),
+      h('p', `${event.municipality?.name ?? event.municipality ?? 'Molise'}${event.starts_at ? ` - ${new Date(event.starts_at).toLocaleDateString('it-IT')}` : ''}`),
+      h('div', [h('strong', event.is_free ? 'gratis' : 'prenotabile'), h('small', `${event.available_total ?? ''} posti`)]),
+      h('button', { type: 'button' }, 'Dettaglio evento'),
+    ]);
+
+    const renderSuccessfulEventCard = (event: any) => h('article', { class: 'experience-card success-card' }, [
+      h('span', 'Evento di successo'),
+      h('h3', event.title),
+      h('p', `${event.category ?? 'categoria'} - ${event.municipality ?? ''} ${event.province ? `(${event.province})` : ''}`),
+      h('div', { class: 'event-stats' }, [
+        h('small', `Valutazione: ${event.average_rating ?? 0}/5`),
+        h('small', `Riempimento: ${event.fill_rate ?? 0}%`),
+        h('small', `Consigliato: ${event.recommendation_rate ?? 0}%`),
+        h('small', `${event.review_count ?? 0} recensioni`),
+      ]),
+      event.has_next_edition ? h('strong', { class: 'next-edition-badge' }, 'Nuova edizione disponibile') : null,
+      event.next_edition ? h('p', `Prossima: ${event.next_edition.title} - ${new Date(event.next_edition.starts_at).toLocaleDateString('it-IT')} - ${event.next_edition.available_total} posti`) : null,
+      h('div', { class: 'action-row' }, [
+        event.next_edition ? h('button', { type: 'button' }, 'Vedi la nuova edizione') : h('button', { type: 'button' }, 'Scopri eventi simili'),
+        h('button', { type: 'button', onClick: () => { void notifySimilar(event.ulid); } }, 'Avvisami quando torna'),
+      ]),
+    ]);
+
+    const renderCustomerDashboard = () => [
+      h('div', { class: 'metric-grid' }, [
+        card('Prenotazioni', `${customerDashboard.value?.bookings_count ?? 0}`, 'confermate'),
+        card('Preferiti', `${customerDashboard.value?.favorites_count ?? 0}`, 'salvati'),
+        card('Notifiche', `${customerDashboard.value?.notifications_unread ?? 0}`, 'non lette'),
+      ]),
+      h('div', { class: 'section-title' }, [
+        h('h2', 'Gli eventi piu amati'),
+        h('button', { type: 'button', onClick: () => { void go('/customer/successful-events'); } }, 'Vedi tutti'),
+      ]),
+      successfulEvents.value.length === 0 ? emptyState('Nessun evento di successo disponibile dal database.') : h('div', { class: 'event-grid' }, successfulEvents.value.slice(0, 6).map(renderSuccessfulEventCard)),
+      h('div', { class: 'section-title' }, [h('h2', 'Consigliati per te'), h('span', 'prossimi eventi')]),
+      h('div', { class: 'event-grid' }, (customerDashboard.value?.recommended_events ?? allCustomerEvents.value).slice(0, 6).map(renderEventCard)),
+    ];
+
+    const renderAllEvents = () => [
+      h('div', { class: 'section-title' }, [h('h2', 'Tutti gli Eventi'), h('span', 'filtri: categoria, comune, data, prezzo')]),
+      h('div', { class: 'filter-strip' }, ['Categoria', 'Comune', 'Provincia', 'Data', 'Prezzo'].map((item) => h('button', { type: 'button' }, item))),
+      allCustomerEvents.value.length === 0 ? emptyState('Nessun evento pubblicato disponibile dal database.') : h('div', { class: 'event-grid' }, allCustomerEvents.value.map(renderEventCard)),
+    ];
+
+    const renderSuccessfulEvents = () => [
+      h('div', { class: 'section-title' }, [h('h2', 'Eventi di Successo'), h('span', 'ranking con success score aggregato')]),
+      h('div', { class: 'filter-strip' }, ['Piu apprezzati', 'Piu recenti', 'Miglior valutazione', 'Riempimento', 'Con nuova edizione'].map((item) => h('button', { type: 'button' }, item))),
+      successfulEvents.value.length === 0 ? emptyState('Nessun evento concluso valido nel feed successi.') : h('div', { class: 'event-grid' }, successfulEvents.value.map(renderSuccessfulEventCard)),
+    ];
+
     const CustomerLayout = () => h('main', { class: 'role-shell customer-layout' }, [
       renderHeader('Dashboard cliente', customerMenu),
       h('section', { class: 'role-content' }, [
-        h('div', { class: 'metric-grid' }, [
-          card('Prenotazioni', '3', 'confermate'),
-          card('Preferiti', '8', 'salvati'),
-          card('Notifiche', '6', 'non lette'),
-        ]),
-        h('div', { class: 'section-title' }, [h('h2', 'Anteprima cliente'), h('span', 'area separata')]),
-        h('div', { class: 'event-grid' }, customerPreviewEvents.map((event) => h('article', { class: 'experience-card' }, [
-          h('span', event.category),
-          h('h3', event.title),
-          h('p', `${event.town} - ${event.date}`),
-          h('div', [h('strong', event.price), h('small', event.places)]),
-        ]))),
+        apiError.value ? h('p', { class: 'api-error' }, apiError.value) : null,
+        ...(route.value === '/customer/explore'
+          ? renderAllEvents()
+          : route.value === '/customer/successful-events'
+            ? renderSuccessfulEvents()
+            : renderCustomerDashboard()),
       ]),
     ]);
 

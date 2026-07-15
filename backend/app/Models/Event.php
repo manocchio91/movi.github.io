@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Event extends Model
 {
     protected $fillable = [
-        'ulid', 'organizer_profile_id', 'venue_id', 'municipality_id', 'title', 'slug',
+        'ulid', 'organizer_profile_id', 'event_series_id', 'venue_id', 'municipality_id', 'title', 'slug',
         'summary', 'description', 'status', 'starts_at', 'ends_at', 'booking_closes_at',
         'capacity_total', 'available_total', 'is_free', 'price_notes', 'family_friendly',
         'indoor_outdoor', 'minimum_child_age', 'maximum_child_age', 'published_at',
@@ -46,6 +46,11 @@ class Event extends Model
     public function organizerProfile(): BelongsTo
     {
         return $this->belongsTo(OrganizerProfile::class);
+    }
+
+    public function series(): BelongsTo
+    {
+        return $this->belongsTo(EventSeries::class, 'event_series_id');
     }
 
     public function municipality(): BelongsTo

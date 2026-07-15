@@ -8,6 +8,8 @@ use App\Enums\UserRole;
 use App\Models\Booking;
 use App\Models\Category;
 use App\Models\Event;
+use App\Models\EventSeries;
+use App\Models\EventSuccessScore;
 use App\Models\Municipality;
 use App\Models\NotificationPreference;
 use App\Models\OrganizerProfile;
@@ -476,6 +478,130 @@ class EventPlatformTest extends TestCase
             ->assertJsonMissing(['description' => $event->description]);
     }
 
+    public function test_customer_successful_events_show_only_valid_public_aggregate_events_and_rank_by_score(): void
+    {
+        [$customer, , $event, , $municipality] = $this->setupDomain();
+        $series = EventSeries::query()->create([
+            'organizer_profile_id' => $event->organizer_profile_id,
+            'name' => 'Cena con delitto',
+            'category_id' => $event->categories()->first()->id,
+            'active' => true,
+        ]);
+        $winner = $this->successfulEventFixture($event, $municipality->id, $series->id, 'Cena vincente', 93);
+        $low = $this->successfulEventFixture($event, $municipality->id, $series->id, 'Cena buona', 65);
+        $hidden = $this->successfulEventFixture($event, $municipality->id, $series->id, 'Cena nascosta', 99, show: false);
+        $cancelled = $this->successfulEventFixture($event, $municipality->id, $series->id, 'Cena cancellata', 98, status: EventStatus::Cancelled);
+
+        $this->actingAs($customer, 'sanctum')
+            ->getJson('/api/v1/customer/successful-events')
+            ->assertOk()
+            ->assertJsonPath('data.0.ulid', $winner->ulid)
+            ->assertJsonFragment(['title' => $low->title])
+            ->assertJsonMissing(['title' => $hidden->title])
+            ->assertJsonMissing(['title' => $cancelled->title])
+            ->assertJsonMissing(['booking_code' => 'EVT-DEMO01'])
+            ->assertJsonMissing(['total_price_cents' => 3200]);
+    }
+
+    public function test_customer_ui_renames_explore_to_tutti_gli_eventi(): void
+    {
+        $app = file_get_contents(base_path('../frontend/src/App.ts'));
+
+        $this->assertStringContainsString('Tutti gli Eventi', $app);
+        $this->assertStringNotContainsString('Esplora eventi', $app);
+    }
+
+    public function test_customer_dashboard_returns_successful_events_section(): void
+    {
+        [$customer, , $event, , $municipality] = $this->setupDomain();
+        $series = EventSeries::query()->create([
+            'organizer_profile_id' => $event->organizer_profile_id,
+            'name' => 'Format homepage',
+            'category_id' => $event->categories()->first()->id,
+            'active' => true,
+        ]);
+        $past = $this->successfulEventFixture($event, $municipality->id, $series->id, 'Evento amato homepage', 86);
+
+        $this->actingAs($customer, 'sanctum')
+            ->getJson('/api/v1/customer/dashboard')
+            ->assertOk()
+            ->assertJsonFragment(['title' => $past->title])
+            ->assertJsonStructure(['data' => ['successful_events', 'upcoming_events', 'recommended_events']]);
+    }
+
+    public function test_customer_successful_event_exposes_next_edition_and_similar_events(): void
+    {
+        [$customer, , $event, , $municipality] = $this->setupDomain();
+        $category = $event->categories()->first();
+        $series = EventSeries::query()->create([
+            'organizer_profile_id' => $event->organizer_profile_id,
+            'name' => 'Laboratorio ricorrente',
+            'category_id' => $category->id,
+            'active' => true,
+        ]);
+        $past = $this->successfulEventFixture($event, $municipality->id, $series->id, 'Laboratorio passato', 88);
+        $futureEdition = Event::query()->create([
+            'ulid' => (string) Str::ulid(),
+            'organizer_profile_id' => $event->organizer_profile_id,
+            'event_series_id' => $series->id,
+            'municipality_id' => $municipality->id,
+            'title' => 'Laboratorio nuova edizione',
+            'slug' => 'laboratorio-nuova-'.Str::random(6),
+            'summary' => 'Nuova edizione prenotabile',
+            'description' => 'Nuova edizione futura',
+            'status' => EventStatus::Published,
+            'starts_at' => now()->addMonth(),
+            'capacity_total' => 25,
+            'available_total' => 14,
+            'is_free' => false,
+            'family_friendly' => true,
+            'indoor_outdoor' => 'mixed',
+            'show_in_inspiration_feed' => true,
+        ]);
+        $futureEdition->categories()->sync([$category->id]);
+
+        $this->actingAs($customer, 'sanctum')
+            ->getJson("/api/v1/customer/successful-events/{$past->ulid}")
+            ->assertOk()
+            ->assertJsonPath('data.has_next_edition', true)
+            ->assertJsonPath('data.next_edition.title', 'Laboratorio nuova edizione')
+            ->assertJsonPath('data.next_editions.0.bookable', true)
+            ->assertJsonFragment(['title' => 'Laboratorio nuova edizione']);
+    }
+
+    public function test_customer_can_enable_and_disable_successful_event_notify_similar_preference(): void
+    {
+        [$customer, , $event, , $municipality] = $this->setupDomain();
+        $series = EventSeries::query()->create([
+            'organizer_profile_id' => $event->organizer_profile_id,
+            'name' => 'Format notifica',
+            'category_id' => $event->categories()->first()->id,
+            'active' => true,
+        ]);
+        $past = $this->successfulEventFixture($event, $municipality->id, $series->id, 'Evento da seguire', 82);
+
+        $this->actingAs($customer, 'sanctum')
+            ->postJson("/api/v1/customer/successful-events/{$past->ulid}/notify-similar")
+            ->assertCreated()
+            ->assertJsonPath('data.notify_similar', true);
+
+        $this->assertDatabaseHas('customer_event_format_interests', [
+            'user_id' => $customer->id,
+            'event_id' => $past->id,
+            'event_series_id' => $series->id,
+            'notify_similar' => true,
+        ]);
+
+        $this->actingAs($customer, 'sanctum')
+            ->deleteJson("/api/v1/customer/successful-events/{$past->ulid}/notify-similar")
+            ->assertOk();
+
+        $this->assertDatabaseMissing('customer_event_format_interests', [
+            'user_id' => $customer->id,
+            'event_id' => $past->id,
+        ]);
+    }
+
     public function test_organizer_opportunity_engine_reports_competing_events(): void
     {
         [, $organizer, $event, $categories, $municipality] = $this->setupDomain();
@@ -762,6 +888,45 @@ class EventPlatformTest extends TestCase
         $event->categories()->sync([$categories['bambini']->id]);
 
         return [$customer, $organizer, $event, $categories, $municipality];
+    }
+
+    private function successfulEventFixture(Event $baseEvent, int $municipalityId, int $seriesId, string $title, int $score, bool $show = true, EventStatus $status = EventStatus::Completed): Event
+    {
+        $event = Event::query()->create([
+            'ulid' => (string) Str::ulid(),
+            'organizer_profile_id' => $baseEvent->organizer_profile_id,
+            'event_series_id' => $seriesId,
+            'municipality_id' => $municipalityId,
+            'title' => $title,
+            'slug' => Str::slug($title).'-'.Str::random(6),
+            'summary' => 'Evento concluso con metriche aggregate.',
+            'description' => 'Descrizione pubblica evento concluso.',
+            'status' => $status,
+            'starts_at' => now()->subMonths(2),
+            'ends_at' => now()->subMonths(2)->addHours(2),
+            'capacity_total' => 50,
+            'available_total' => 0,
+            'is_free' => false,
+            'family_friendly' => true,
+            'indoor_outdoor' => 'mixed',
+            'show_in_inspiration_feed' => $show,
+        ]);
+        $event->categories()->sync($baseEvent->categories()->pluck('categories.id'));
+
+        EventSuccessScore::query()->create([
+            'event_id' => $event->id,
+            'fill_rate' => $score,
+            'attendance_rate' => max(0, $score - 3),
+            'no_show_rate' => 5,
+            'average_rating' => 4.6,
+            'review_count' => 8,
+            'recommendation_rate' => 90,
+            'favorite_count' => 12,
+            'success_score' => $score,
+            'calculated_at' => now(),
+        ]);
+
+        return $event;
     }
 
     private function reviewPayload(): array

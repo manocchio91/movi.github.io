@@ -22,6 +22,8 @@
 - `organizer_opportunity_reports`: report deterministici dell'Organizer Opportunity Engine.
 - `ai_event_suggestions`: suggerimenti AI/fallback generati server-side con input aggregato e tracciamento provider.
 - `event_success_scores`: punteggio comparabile tra eventi basato su percentuali e qualita.
+- `event_series`: collega piu edizioni dello stesso format/evento.
+- `customer_event_format_interests`: preferenze cliente per ricevere notifiche su format simili.
 - `seasonal_event_templates`: template stagionali usati come fallback senza AI.
 - `event_opportunity_snapshots`: snapshot idempotenti del livello di affollamento date.
 - `regions`, `provinces`, `municipalities`: territorio italiano estendibile.
@@ -53,6 +55,7 @@
 - Le recensioni approvate alimentano statistiche evento, profilo organizzatore e Business Dashboard.
 - Gli eventi possono salvare descrizione completa, programma, incluso/non incluso, note allergie, requisiti e policy cancellazione.
 - Gli eventi nel feed ispirazione rispettano `show_in_inspiration_feed`.
+- Gli Eventi di Successo customer rispettano `event_success_scores`, `event_series_id` e non espongono dati personali o ricavi.
 - Le notifiche usano `deduplication_key` per evitare duplicati.
 - Un follower riceve notifiche per nuove esperienze dell'organizzatore anche senza match categoria.
 - Le statistiche aggregate sono progettate per evitare query pesanti in dashboard.

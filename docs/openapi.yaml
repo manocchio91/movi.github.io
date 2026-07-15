@@ -106,8 +106,64 @@ paths:
       security: [{ bearerAuth: [] }]
       summary: Dashboard cliente protetta da role:customer
       responses:
-        "200": { description: Eventi consigliati, booking, preferiti e notifiche }
+        "200": { description: Eventi di successo, eventi futuri, consigliati, booking, preferiti e notifiche }
         "403": { description: Ruolo non autorizzato }
+  /customer/successful-events:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Eventi di Successo per customer
+      parameters:
+        - { name: category_id, in: query, schema: { type: integer } }
+        - { name: province_id, in: query, schema: { type: integer } }
+        - { name: municipality_id, in: query, schema: { type: integer } }
+        - { name: min_rating, in: query, schema: { type: number } }
+        - { name: organizer_id, in: query, schema: { type: integer } }
+        - { name: has_next_edition, in: query, schema: { type: boolean } }
+        - { name: sort, in: query, schema: { type: string, enum: [score, recent, rating, fill_rate, recommended, next_edition] } }
+        - { name: per_page, in: query, schema: { type: integer } }
+      responses:
+        "200": { description: Lista eventi conclusi con dati pubblici e aggregati }
+        "403": { description: Solo customer }
+  /customer/successful-events/{event}:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Dettaglio pubblico aggregato di un evento concluso di successo
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Dettaglio con recensioni pubbliche, nuova edizione e simili }
+        "404": { description: Evento non ammesso al feed }
+  /customer/successful-events/{event}/next-editions:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Nuove edizioni future collegate via event_series
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Edizioni future prenotabili se pubblicate }
+  /customer/successful-events/{event}/similar:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Eventi futuri simili per categoria e territorio
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Eventi simili deterministici }
+  /customer/successful-events/{event}/notify-similar:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Attiva notifiche per format simili
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "201": { description: Preferenza salvata in customer_event_format_interests }
+    delete:
+      security: [{ bearerAuth: [] }]
+      summary: Disattiva notifiche per format simili
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Preferenza rimossa }
   /me/favorites:
     get:
       security: [{ bearerAuth: [] }]

@@ -26,6 +26,12 @@ Filtri eventi: `category_id`, `province_id`, `municipality_id`, `date`, `free`, 
 
 ## Cliente
 - `GET /customer/dashboard`
+- `GET /customer/successful-events`
+- `GET /customer/successful-events/{event}`
+- `GET /customer/successful-events/{event}/next-editions`
+- `GET /customer/successful-events/{event}/similar`
+- `POST /customer/successful-events/{event}/notify-similar`
+- `DELETE /customer/successful-events/{event}/notify-similar`
 - `GET /me/preferences`
 - `PUT /me/preferences`
 - `GET /me/favorites`
@@ -50,6 +56,22 @@ Per `POST /events/{event}/bookings` usare `Idempotency-Key` per evitare prenotaz
 Per `POST /events/{event}/reviews` l'utente deve avere una prenotazione confermata e avere partecipato: check-in effettuato, booking completato oppure evento concluso. Ogni prenotazione/evento puo generare una sola recensione e l'organizzatore non puo recensire i propri eventi.
 
 Tutte le route cliente sono protette da `auth:sanctum` + `role:customer`.
+
+La UI customer mostra la pagina `Tutti gli Eventi` al posto di `Esplora eventi`. La route tecnica puo restare `/customer/explore`, ma il testo esposto all'utente e `Tutti gli Eventi`.
+
+`Eventi di Successo` usa `event_success_scores` e mostra solo eventi conclusi, non annullati/sospesi, con `show_in_inspiration_feed = true`. I dati esposti sono pubblici o aggregati: titolo, categoria, organizer, territorio, rating, review count, fill rate, recommendation rate e nuova edizione se collegata tramite `event_series_id`.
+
+Nuove edizioni:
+- collegate tramite `event_series`;
+- mostrate solo se future e pubblicate/sold out;
+- l'edizione conclusa non espone prenotazione, la nuova edizione puo essere prenotabile.
+
+Eventi simili:
+- deterministici su categoria e territorio;
+- futuri e pubblici;
+- non usano AI.
+
+`notify-similar` salva una preferenza reale in `customer_event_format_interests` e sincronizza la categoria in `user_event_preferences`.
 
 ## Organizzatore
 - `GET /organizer/profile`
