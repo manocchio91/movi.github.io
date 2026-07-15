@@ -254,7 +254,35 @@ paths:
       security: [{ bearerAuth: [] }]
       summary: Organizer Opportunity Engine
       responses:
-        "200": { description: Concorrenza, sovrapposizioni e suggerimenti deterministici }
+        "200": { description: Concorrenza, suggerimenti AI/fallback e top events aggregati }
+  /organizer/opportunities/generate:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Genera suggerimenti evento server-side con fallback stagionale
+      responses:
+        "201": { description: Suggerimenti salvati in ai_event_suggestions }
+  /organizer/opportunities/top-events:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Eventi di maggior successo con dati pubblici o aggregati
+      responses:
+        "200": { description: Feed ispirazione filtrato da show_in_inspiration_feed }
+  /organizer/opportunities/{suggestion}/use:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Crea bozza da suggerimento senza pubblicare
+      parameters:
+        - { name: suggestion, in: path, required: true, schema: { type: string } }
+      responses:
+        "201": { description: Bozza evento creata }
+  /organizer/top-events/{event}/inspire:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Crea bozza generica ispirata a un format di successo
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "201": { description: Bozza generica creata senza copiare contenuti protetti }
   /organizer/campaigns:
     get:
       security: [{ bearerAuth: [] }]
@@ -272,6 +300,18 @@ paths:
       summary: Vista calendario giornaliera o mensile
       responses:
         "200": { description: Esperienze con colore categoria }
+  /organizer/calendar/availability:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Disponibilita mensile con livello empty, low o crowded
+      responses:
+        "200": { description: Giorni con conteggio eventi pubblici e colore logico }
+  /organizer/calendar/events:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Eventi pubblici sintetici in una data
+      responses:
+        "200": { description: Titolo, categoria, ora, comune, organizer e sold out }
   /organizer/map:
     get:
       security: [{ bearerAuth: [] }]
@@ -305,6 +345,36 @@ paths:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Lista prenotazioni }
+  /organizer/events/{event}/summary:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Riepilogo aperto/chiuso con prenotati, check-in, no-show e rating
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Summary evento proprietario }
+  /organizer/events/{event}/participants:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Partecipanti del proprio evento
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Partecipanti e stato check-in }
+  /organizer/events/{event}/reviews:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Recensioni del proprio evento
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Recensioni e statistiche evento }
+  /organizer/reviews/events:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Recensioni raggruppate per evento
+      responses:
+        "200": { description: Lista eventi con media, conteggio, distribuzione e ultima recensione }
   /admin/events/pending:
     get:
       security: [{ bearerAuth: [] }]

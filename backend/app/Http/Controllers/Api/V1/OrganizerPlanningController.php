@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Event;
+use App\Services\OrganizerCalendarAvailabilityService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -57,6 +58,40 @@ class OrganizerPlanningController extends Controller
             ]);
 
         return response()->json(['data' => $events]);
+    }
+
+    public function availability(Request $request, OrganizerCalendarAvailabilityService $availability): JsonResponse
+    {
+        $profile = $request->user()->organizerProfile;
+        abort_unless($profile, 403);
+
+        $filters = $request->validate([
+            'month' => ['required', 'integer', 'between:1,12'],
+            'year' => ['required', 'integer', 'min:2024', 'max:2035'],
+            'municipality_id' => ['nullable', 'integer', 'exists:municipalities,id'],
+            'province_id' => ['nullable', 'integer', 'exists:provinces,id'],
+            'latitude' => ['nullable', 'numeric'],
+            'longitude' => ['nullable', 'numeric'],
+            'radius' => ['nullable', 'numeric', 'min:1', 'max:200'],
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+        ]);
+
+        return response()->json(['data' => $availability->availability($profile, $filters)]);
+    }
+
+    public function events(Request $request, OrganizerCalendarAvailabilityService $availability): JsonResponse
+    {
+        $profile = $request->user()->organizerProfile;
+        abort_unless($profile, 403);
+
+        $filters = $request->validate([
+            'date' => ['required', 'date'],
+            'municipality_id' => ['nullable', 'integer', 'exists:municipalities,id'],
+            'province_id' => ['nullable', 'integer', 'exists:provinces,id'],
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+        ]);
+
+        return response()->json(['data' => $availability->events($profile, $filters)]);
     }
 
     private function categoryColor(?string $category): string

@@ -60,15 +60,24 @@ Tutte le route cliente sono protette da `auth:sanctum` + `role:customer`.
 - `GET /organizer/followers`
 - `GET /organizer/categories`
 - `GET /organizer/opportunities`
+- `POST /organizer/opportunities/generate`
+- `GET /organizer/opportunities/top-events`
+- `POST /organizer/opportunities/{suggestion}/use`
+- `POST /organizer/top-events/{event}/inspire`
 - `POST /organizer/campaigns`
 - `GET /organizer/campaigns`
 - `GET /organizer/calendar`
+- `GET /organizer/calendar/availability`
+- `GET /organizer/calendar/events`
 - `GET /organizer/map`
 - `POST /organizer/profile`
 - `PUT /organizer/profile`
 - `GET /organizer/events`
 - `POST /organizer/events`
 - `GET /organizer/events/{event}`
+- `GET /organizer/events/{event}/summary`
+- `GET /organizer/events/{event}/participants`
+- `GET /organizer/events/{event}/reviews`
 - `PUT /organizer/events/{event}`
 - `PATCH /organizer/events/{event}`
 - `POST /organizer/events/{event}/submit`
@@ -76,8 +85,27 @@ Tutte le route cliente sono protette da `auth:sanctum` + `role:customer`.
 - `POST /organizer/events/{event}/close-bookings`
 - `POST /organizer/events/{event}/cancel`
 - `GET /organizer/events/{event}/bookings`
+- `GET /organizer/reviews/events`
+- `GET /organizer/reviews/events/{event}`
 
 `GET/POST/PUT /organizer/profile` richiede `role:organizer`; le altre route organizzatore richiedono anche `organizer.approved`. Un organizzatore pending puo vedere/aggiornare lo stato del profilo, ma non puo creare, pubblicare o gestire eventi.
+
+Calendario creazione evento:
+- `empty`/verde: nessun evento pubblico nello stesso territorio e giorno.
+- `low`/giallo: un evento pubblico.
+- `crowded`/rosso: due o piu eventi pubblici.
+- gli eventi annullati non influenzano il colore.
+
+Formula `success_score`:
+`fill_rate*0.35 + attendance_rate*0.25 + rating_normalizzato*0.20 + recommendation_rate*0.10 + favorite_bonus - no_show_rate*0.20`.
+
+Prompt AI server-side v1:
+il backend prepara solo dati aggregati: tipo organizer, territorio, mese/stagione, date libere, categorie popolari, storico aggregato del locale. Nessun partecipante, email, telefono, ricavo o dato privato viene inviato. Se il provider non e disponibile, il sistema usa `seasonal_event_templates`.
+
+Job asincroni:
+- `RecalculateEventSuccessScore`: aggiorna `event_success_scores` in modo idempotente.
+- `GenerateOrganizerEventSuggestions`: genera o aggiorna `ai_event_suggestions` per mese/territorio.
+- `RecalculateOpportunitySnapshot`: salva snapshot calendario in `event_opportunity_snapshots`.
 
 ## Admin
 - `GET /admin/dashboard`

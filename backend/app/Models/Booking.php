@@ -47,4 +47,9 @@ class Booking extends Model
     {
         return $this->hasOne(Review::class);
     }
+
+    public function checkIns()
+    {
+        return $this->hasMany(CheckIn::class);
+    }
 }

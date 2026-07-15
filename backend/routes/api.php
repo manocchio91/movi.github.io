@@ -76,13 +76,22 @@ Route::prefix('v1')->group(function (): void {
                 Route::get('/organizer/followers', [OrganizerAnalyticsController::class, 'followers']);
                 Route::get('/organizer/categories', [OrganizerAnalyticsController::class, 'categories']);
                 Route::get('/organizer/opportunities', [OrganizerOpportunityController::class, 'index']);
+                Route::post('/organizer/opportunities/generate', [OrganizerOpportunityController::class, 'generate']);
+                Route::get('/organizer/opportunities/top-events', [OrganizerOpportunityController::class, 'topEvents']);
+                Route::post('/organizer/opportunities/{suggestion:ulid}/use', [OrganizerOpportunityController::class, 'useSuggestion']);
+                Route::post('/organizer/top-events/{event:ulid}/inspire', [OrganizerOpportunityController::class, 'inspire']);
                 Route::post('/organizer/campaigns', [OrganizerAnalyticsController::class, 'storeCampaign']);
                 Route::get('/organizer/campaigns', [OrganizerAnalyticsController::class, 'campaigns']);
                 Route::get('/organizer/calendar', [OrganizerPlanningController::class, 'calendar']);
+                Route::get('/organizer/calendar/availability', [OrganizerPlanningController::class, 'availability']);
+                Route::get('/organizer/calendar/events', [OrganizerPlanningController::class, 'events']);
                 Route::get('/organizer/map', [OrganizerPlanningController::class, 'map']);
                 Route::get('/organizer/events', [OrganizerEventController::class, 'index']);
                 Route::post('/organizer/events', [OrganizerEventController::class, 'store']);
                 Route::get('/organizer/events/{event:ulid}', [OrganizerEventController::class, 'show']);
+                Route::get('/organizer/events/{event:ulid}/summary', [OrganizerEventController::class, 'summary']);
+                Route::get('/organizer/events/{event:ulid}/participants', [OrganizerEventController::class, 'participants']);
+                Route::get('/organizer/events/{event:ulid}/reviews', [OrganizerEventController::class, 'reviews']);
                 Route::put('/organizer/events/{event:ulid}', [OrganizerEventController::class, 'update']);
                 Route::patch('/organizer/events/{event:ulid}', [OrganizerEventController::class, 'update']);
                 Route::post('/organizer/events/{event:ulid}/submit', [OrganizerEventController::class, 'submit']);
@@ -90,6 +99,8 @@ Route::prefix('v1')->group(function (): void {
                 Route::post('/organizer/events/{event:ulid}/close-bookings', [OrganizerEventController::class, 'closeBookings']);
                 Route::post('/organizer/events/{event:ulid}/cancel', [OrganizerEventController::class, 'cancel']);
                 Route::get('/organizer/events/{event:ulid}/bookings', [OrganizerEventController::class, 'bookings']);
+                Route::get('/organizer/reviews/events', [OrganizerReviewController::class, 'events']);
+                Route::get('/organizer/reviews/events/{event:ulid}', [OrganizerReviewController::class, 'event']);
             });
         });
 

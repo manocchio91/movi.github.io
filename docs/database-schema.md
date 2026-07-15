@@ -20,6 +20,10 @@
 - `analytics_events`: eventi analytics atomici.
 - `dashboard_cache`: cache dashboard ricalcolabile da job.
 - `organizer_opportunity_reports`: report deterministici dell'Organizer Opportunity Engine.
+- `ai_event_suggestions`: suggerimenti AI/fallback generati server-side con input aggregato e tracciamento provider.
+- `event_success_scores`: punteggio comparabile tra eventi basato su percentuali e qualita.
+- `seasonal_event_templates`: template stagionali usati come fallback senza AI.
+- `event_opportunity_snapshots`: snapshot idempotenti del livello di affollamento date.
 - `regions`, `provinces`, `municipalities`: territorio italiano estendibile.
 - `categories`: macroaree gestite da database.
 - `user_event_preferences`: relazione molti-a-molti tra clienti e macroaree preferite.
@@ -47,6 +51,8 @@
 - Gli organizzatori non possono recensire esperienze del proprio profilo.
 - Solo organizzatori con `organizer_profiles.verification_status = verified` possono accedere alle route operative e pubblicare eventi.
 - Le recensioni approvate alimentano statistiche evento, profilo organizzatore e Business Dashboard.
+- Gli eventi possono salvare descrizione completa, programma, incluso/non incluso, note allergie, requisiti e policy cancellazione.
+- Gli eventi nel feed ispirazione rispettano `show_in_inspiration_feed`.
 - Le notifiche usano `deduplication_key` per evitare duplicati.
 - Un follower riceve notifiche per nuove esperienze dell'organizzatore anche senza match categoria.
 - Le statistiche aggregate sono progettate per evitare query pesanti in dashboard.

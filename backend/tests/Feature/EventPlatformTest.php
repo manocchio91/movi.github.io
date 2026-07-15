@@ -295,6 +295,187 @@ class EventPlatformTest extends TestCase
             ->assertJsonMissing(['comment' => 'Recensione altra']);
     }
 
+    public function test_organizer_events_include_open_and_closed_summaries(): void
+    {
+        [$customer, $organizer, $event, , $municipality] = $this->setupDomain();
+        $closed = Event::query()->create([
+            'ulid' => (string) Str::ulid(),
+            'organizer_profile_id' => $event->organizer_profile_id,
+            'municipality_id' => $municipality->id,
+            'title' => 'Laboratorio concluso',
+            'slug' => 'laboratorio-concluso-'.Str::random(6),
+            'summary' => 'Evento chiuso',
+            'description' => 'Evento concluso con check-in parziale.',
+            'status' => EventStatus::Completed,
+            'starts_at' => now()->subWeek(),
+            'ends_at' => now()->subWeek()->addHours(2),
+            'capacity_total' => 10,
+            'available_total' => 0,
+            'is_free' => true,
+            'family_friendly' => true,
+            'indoor_outdoor' => 'indoor',
+        ]);
+        Booking::query()->create([
+            'ulid' => (string) Str::ulid(),
+            'user_id' => $customer->id,
+            'event_id' => $closed->id,
+            'status' => 'checked_in',
+            'total_people' => 3,
+            'adults_count' => 2,
+            'children_count' => 1,
+            'booking_code' => 'EVT-CLOSED1',
+            'qr_token_hash' => 'hash-closed-1',
+            'booked_at' => now()->subWeeks(2),
+        ]);
+        Booking::query()->create([
+            'ulid' => (string) Str::ulid(),
+            'user_id' => User::factory()->create(['role' => UserRole::Customer])->id,
+            'event_id' => $closed->id,
+            'status' => 'confirmed',
+            'total_people' => 2,
+            'adults_count' => 2,
+            'children_count' => 0,
+            'booking_code' => 'EVT-CLOSED2',
+            'qr_token_hash' => 'hash-closed-2',
+            'booked_at' => now()->subWeeks(2),
+        ]);
+
+        $this->actingAs($organizer, 'sanctum')
+            ->getJson('/api/v1/organizer/events?sort=asc')
+            ->assertOk()
+            ->assertJsonFragment(['visual_status' => 'Aperto'])
+            ->assertJsonFragment(['visual_status' => 'Chiuso'])
+            ->assertJsonFragment(['checked_in_people' => 3])
+            ->assertJsonFragment(['no_show' => 2]);
+    }
+
+    public function test_full_event_description_fields_are_saved_and_returned(): void
+    {
+        [, $organizer, , $categories, $municipality] = $this->setupDomain();
+
+        $response = $this->actingAs($organizer, 'sanctum')
+            ->postJson('/api/v1/organizer/events', [
+                'title' => 'Cena esperienziale completa',
+                'summary' => 'Descrizione breve sicura.',
+                'description' => 'Descrizione completa senza HTML non sanificato.',
+                'program' => '20:00 accoglienza; 21:00 cena; 23:00 chiusura.',
+                'included' => 'Cena e spettacolo.',
+                'not_included' => 'Trasporto.',
+                'important_information' => 'Arrivare in orario.',
+                'requirements' => 'Prenotazione obbligatoria.',
+                'recommended_age_range' => '18+',
+                'equipment_notes' => 'Abbigliamento comodo.',
+                'allergy_notes' => 'Segnalare allergie.',
+                'cancellation_policy' => 'Cancellazione entro 48 ore.',
+                'organizer_contact' => 'organizer@example.test',
+                'show_in_inspiration_feed' => true,
+                'municipality_id' => $municipality->id,
+                'category_ids' => [$categories['cene']->id],
+                'starts_at' => now()->addMonth()->toIso8601String(),
+                'capacity_total' => 20,
+                'is_free' => false,
+                'family_friendly' => false,
+                'indoor_outdoor' => 'indoor',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.program', '20:00 accoglienza; 21:00 cena; 23:00 chiusura.');
+
+        $this->actingAs($organizer, 'sanctum')
+            ->getJson('/api/v1/organizer/events/'.$response->json('data.ulid'))
+            ->assertOk()
+            ->assertJsonPath('data.included', 'Cena e spettacolo.')
+            ->assertJsonPath('data.cancellation_policy', 'Cancellazione entro 48 ore.');
+    }
+
+    public function test_calendar_availability_returns_green_yellow_and_red_without_cancelled_events(): void
+    {
+        [, $organizer, , $categories, $municipality] = $this->setupDomain();
+        $otherOrganizer = User::factory()->create(['role' => UserRole::Organizer]);
+        $otherProfile = OrganizerProfile::query()->create([
+            'ulid' => (string) Str::ulid(),
+            'owner_user_id' => $otherOrganizer->id,
+            'name' => 'Altro Locale Calendario',
+            'type' => 'ristorante',
+            'email' => 'calendar@example.test',
+            'municipality_id' => $municipality->id,
+            'verification_status' => 'verified',
+            'verified_at' => now(),
+        ]);
+        $yellowDay = now()->addMonth()->startOfMonth()->addDays(4);
+        $redDay = now()->addMonth()->startOfMonth()->addDays(5);
+
+        foreach ([$yellowDay, $redDay, $redDay] as $index => $date) {
+            $event = Event::query()->create([
+                'ulid' => (string) Str::ulid(),
+                'organizer_profile_id' => $otherProfile->id,
+                'municipality_id' => $municipality->id,
+                'title' => 'Evento calendario '.$index,
+                'slug' => 'evento-calendario-'.$index.'-'.Str::random(6),
+                'summary' => 'Evento pubblico',
+                'description' => 'Evento pubblico concorrente.',
+                'status' => $index === 0 ? EventStatus::Published : EventStatus::SoldOut,
+                'starts_at' => $date,
+                'capacity_total' => 10,
+                'available_total' => 2,
+                'is_free' => false,
+                'family_friendly' => false,
+                'indoor_outdoor' => 'indoor',
+            ]);
+            $event->categories()->sync([$categories['cene']->id]);
+        }
+
+        Event::query()->create([
+            'ulid' => (string) Str::ulid(),
+            'organizer_profile_id' => $otherProfile->id,
+            'municipality_id' => $municipality->id,
+            'title' => 'Evento annullato',
+            'slug' => 'evento-annullato-'.Str::random(6),
+            'summary' => 'Non conta',
+            'description' => 'Evento annullato da escludere.',
+            'status' => EventStatus::Cancelled,
+            'starts_at' => $yellowDay,
+            'capacity_total' => 10,
+            'available_total' => 10,
+            'is_free' => true,
+            'family_friendly' => false,
+            'indoor_outdoor' => 'indoor',
+        ]);
+
+        $response = $this->actingAs($organizer, 'sanctum')
+            ->getJson('/api/v1/organizer/calendar/availability?month='.$yellowDay->month.'&year='.$yellowDay->year.'&municipality_id='.$municipality->id)
+            ->assertOk();
+
+        $days = collect($response->json('data'))->keyBy('date');
+        $this->assertSame('low', $days[$yellowDay->toDateString()]['crowding_level']);
+        $this->assertSame('yellow', $days[$yellowDay->toDateString()]['color']);
+        $this->assertSame(1, $days[$yellowDay->toDateString()]['events_count']);
+        $this->assertSame('crowded', $days[$redDay->toDateString()]['crowding_level']);
+        $this->assertSame('red', $days[$redDay->toDateString()]['color']);
+    }
+
+    public function test_opportunity_fallback_creates_draft_and_inspiration_does_not_copy_private_content(): void
+    {
+        [, $organizer, $event] = $this->setupDomain();
+
+        $suggestion = $this->actingAs($organizer, 'sanctum')
+            ->postJson('/api/v1/organizer/opportunities/generate', ['month' => 2, 'year' => now()->addYear()->year])
+            ->assertCreated()
+            ->assertJsonPath('data.provider', 'fallback')
+            ->json('data');
+
+        $this->actingAs($organizer, 'sanctum')
+            ->postJson("/api/v1/organizer/opportunities/{$suggestion['ulid']}/use", ['index' => 0])
+            ->assertCreated()
+            ->assertJsonPath('data.status', 'draft');
+
+        $this->actingAs($organizer, 'sanctum')
+            ->postJson("/api/v1/organizer/top-events/{$event->ulid}/inspire")
+            ->assertCreated()
+            ->assertJsonPath('data.status', 'draft')
+            ->assertJsonMissing(['title' => $event->title])
+            ->assertJsonMissing(['description' => $event->description]);
+    }
+
     public function test_organizer_opportunity_engine_reports_competing_events(): void
     {
         [, $organizer, $event, $categories, $municipality] = $this->setupDomain();

@@ -17,6 +17,7 @@ use App\Models\OrganizerProfile;
 use App\Models\OrganizerSubscription;
 use App\Models\Province;
 use App\Models\Region;
+use App\Models\SeasonalEventTemplate;
 use App\Models\SubscriptionPlan;
 use App\Models\TicketType;
 use App\Models\User;
@@ -187,6 +188,17 @@ class DatabaseSeeder extends Seeder
             'slug' => 'laboratorio-creativo-in-fattoria',
             'summary' => 'Un pomeriggio per bambini con attivita manuali e merenda inclusa.',
             'description' => 'Esperienza dimostrativa per famiglie, con posti limitati e attivita guidate.',
+            'program' => "16:00 accoglienza\n16:30 laboratorio creativo\n17:30 merenda\n18:00 saluti",
+            'included' => 'Materiali laboratorio, merenda, guida dello staff.',
+            'not_included' => 'Trasporto e consumazioni extra.',
+            'important_information' => 'Arrivare 10 minuti prima. Evento confermato anche in caso di pioggia leggera.',
+            'requirements' => 'Consigliata la presenza di un adulto accompagnatore.',
+            'recommended_age_range' => '4-9 anni',
+            'equipment_notes' => 'Abbigliamento comodo e scarpe chiuse.',
+            'allergy_notes' => 'Segnalare allergie o intolleranze in fase di prenotazione.',
+            'cancellation_policy' => 'Annullamento gratuito fino a 48 ore prima.',
+            'organizer_contact' => 'organizer@example.test',
+            'show_in_inspiration_feed' => true,
             'status' => EventStatus::Published,
             'starts_at' => now()->addWeeks(2),
             'booking_closes_at' => now()->addWeeks(2)->subDay(),
@@ -312,6 +324,34 @@ class DatabaseSeeder extends Seeder
             'bookings_generated' => 41,
             'conversion_rate' => 36.61,
             'calculated_at' => now(),
+        ]);
+
+        SeasonalEventTemplate::query()->create([
+            'title' => 'Cena di Carnevale con animazione',
+            'category_id' => $categories->firstWhere('name', 'cene ed esperienze gastronomiche')->id,
+            'organizer_type' => 'ristorante',
+            'month_from' => 2,
+            'month_to' => 2,
+            'holiday_code' => 'carnevale',
+            'target' => 'famiglie',
+            'suggested_description' => 'Format stagionale per famiglie con menu a tema e animazione.',
+            'suggested_price_min' => 20,
+            'suggested_price_max' => 30,
+            'active' => true,
+        ]);
+
+        SeasonalEventTemplate::query()->create([
+            'title' => 'Aperitivo al tramonto',
+            'category_id' => $categories->firstWhere('name', 'degustazioni')->id,
+            'organizer_type' => null,
+            'month_from' => 6,
+            'month_to' => 8,
+            'holiday_code' => 'estate',
+            'target' => 'adulti e gruppi',
+            'suggested_description' => 'Esperienza serale estiva con degustazione e musica soft.',
+            'suggested_price_min' => 18,
+            'suggested_price_max' => 35,
+            'active' => true,
         ]);
     }
 }

@@ -16,7 +16,10 @@ class Event extends Model
         'summary', 'description', 'status', 'starts_at', 'ends_at', 'booking_closes_at',
         'capacity_total', 'available_total', 'is_free', 'price_notes', 'family_friendly',
         'indoor_outdoor', 'minimum_child_age', 'maximum_child_age', 'published_at',
-        'submitted_at', 'approved_at', 'approved_by',
+        'submitted_at', 'approved_at', 'approved_by', 'program', 'included',
+        'not_included', 'important_information', 'requirements',
+        'recommended_age_range', 'equipment_notes', 'allergy_notes',
+        'cancellation_policy', 'organizer_contact', 'show_in_inspiration_feed',
     ];
 
     protected function casts(): array
@@ -31,6 +34,7 @@ class Event extends Model
             'approved_at' => 'datetime',
             'is_free' => 'boolean',
             'family_friendly' => 'boolean',
+            'show_in_inspiration_feed' => 'boolean',
         ];
     }
 
@@ -72,6 +76,11 @@ class Event extends Model
     public function reviewStatistic(): HasOne
     {
         return $this->hasOne(ReviewStatistic::class);
+    }
+
+    public function successScore(): HasOne
+    {
+        return $this->hasOne(EventSuccessScore::class);
     }
 
     public function venue()

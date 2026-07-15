@@ -56,9 +56,19 @@ button {
 .auth-panel p,
 .wide-panel p,
 .experience-card p,
-.review-card p {
+.review-card p,
+.api-error {
   color: #66767b;
   line-height: 1.5;
+}
+
+.api-error {
+  background: #fff0e5;
+  border: 1px solid #ffd0ad;
+  border-radius: 14px;
+  color: #8a3b12;
+  font-weight: 850;
+  padding: 12px 14px;
 }
 
 .eyebrow {
@@ -267,6 +277,64 @@ button {
   padding: 11px 14px;
 }
 
+.status-badge {
+  background: #eef1ee;
+  color: #44545a;
+}
+
+.status-aperto {
+  background: #e5f5ef;
+  color: #0f766e;
+}
+
+.status-chiuso {
+  background: #eef1f4;
+  color: #415062;
+}
+
+.status-sold-out,
+.status-annullato {
+  background: #ffe9e4;
+  color: #9b2f1e;
+}
+
+.status-bozza,
+.status-in-attesa-di-approvazione {
+  background: #fff4cf;
+  color: #775407;
+}
+
+.event-management-card {
+  min-height: 260px;
+}
+
+.event-stats {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+}
+
+.event-stats small {
+  background: #f6f4ee;
+  border-radius: 10px;
+  padding: 7px 9px;
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.action-row button {
+  background: #f4f1e9;
+  border: 1px solid #e4dbcc;
+  color: #425258;
+  font-size: 0.76rem;
+  margin-top: 0;
+  padding: 8px 9px;
+}
+
 .filter-strip,
 .preference-grid {
   display: flex;
@@ -285,6 +353,10 @@ button {
 
 .wide-panel {
   margin-bottom: 18px;
+}
+
+.empty-state {
+  border-style: dashed;
 }
 
 .wide-panel strong {
@@ -323,6 +395,65 @@ button {
 
 .opportunity {
   background: linear-gradient(145deg, #ffffff, #fff7df);
+}
+
+.legend-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.legend {
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 900;
+  padding: 8px 11px;
+}
+
+.legend.green,
+.calendar-day.green {
+  background: #e5f5ef;
+  color: #0f766e;
+}
+
+.legend.yellow,
+.calendar-day.yellow {
+  background: #fff4cf;
+  color: #775407;
+}
+
+.legend.red,
+.calendar-day.red {
+  background: #ffe9e4;
+  color: #9b2f1e;
+}
+
+.calendar-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  margin-bottom: 18px;
+}
+
+.calendar-day {
+  border: 1px solid transparent;
+  border-radius: 14px;
+  display: grid;
+  gap: 4px;
+  min-height: 76px;
+  padding: 10px;
+  text-align: left;
+}
+
+.calendar-day.selected {
+  border-color: #172126;
+  box-shadow: 0 0 0 2px rgba(23, 33, 38, 0.08);
+}
+
+.calendar-day strong,
+.calendar-day small {
+  display: block;
 }
 
 .bar-chart {
@@ -378,7 +509,8 @@ button {
   .login-grid,
   .metric-grid,
   .event-grid,
-  .form-grid {
+  .form-grid,
+  .calendar-grid {
     grid-template-columns: 1fr;
   }
 }
