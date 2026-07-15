@@ -1,0 +1,103 @@
+openapi: 3.1.0
+info:
+  title: Eventi Locali API
+  version: 0.1.0
+servers:
+  - url: http://localhost:8080/api/v1
+paths:
+  /auth/register:
+    post:
+      summary: Registra un utente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name: { type: string }
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+                role: { type: string, enum: [participant, organizer] }
+      responses:
+        "201": { description: Utente creato }
+  /auth/login:
+    post:
+      summary: Autentica un utente
+      responses:
+        "200": { description: Token creato }
+  /events:
+    get:
+      summary: Elenco eventi pubblicati
+      parameters:
+        - { name: category_id, in: query, schema: { type: integer } }
+        - { name: province_id, in: query, schema: { type: integer } }
+        - { name: municipality_id, in: query, schema: { type: integer } }
+        - { name: date, in: query, schema: { type: string, format: date } }
+      responses:
+        "200": { description: Lista paginata }
+  /events/{event}:
+    get:
+      summary: Dettaglio evento pubblicato
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Evento }
+        "404": { description: Evento non pubblicato o inesistente }
+  /categories:
+    get:
+      summary: Categorie attive
+      responses:
+        "200": { description: Lista categorie }
+  /locations/search:
+    get:
+      summary: Cerca comuni
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+      responses:
+        "200": { description: Lista comuni }
+  /organizers:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Crea profilo organizzatore
+      responses:
+        "201": { description: Profilo creato }
+  /organizer/events:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Eventi del proprio profilo organizzatore
+      responses:
+        "200": { description: Lista eventi }
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Crea evento in bozza
+      responses:
+        "201": { description: Evento creato }
+  /organizer/events/{event}/submit:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Invia evento a moderazione
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Evento in pending_review }
+  /admin/events/pending:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Eventi in moderazione
+      responses:
+        "200": { description: Lista eventi pending }
+  /admin/events/{event}/approve:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Approva e pubblica evento
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Evento pubblicato }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer

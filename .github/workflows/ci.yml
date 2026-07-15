@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: eventi_test
+          POSTGRES_USER: eventi
+          POSTGRES_PASSWORD: eventi
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U eventi -d eventi_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: pdo_pgsql, intl, mbstring
+      - run: cd backend && composer install --no-interaction --prefer-dist
+      - run: cd backend && cp .env.example .env && php artisan key:generate
+      - run: cd backend && php artisan migrate --force
+      - run: cd backend && ./vendor/bin/pint --test
+      - run: cd backend && ./vendor/bin/phpstan analyse
+      - run: cd backend && php artisan test
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: cd frontend && npm ci
+      - run: cd frontend && npm run lint
+      - run: cd frontend && npm run build
