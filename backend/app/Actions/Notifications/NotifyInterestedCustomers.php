@@ -60,7 +60,7 @@ class NotifyInterestedCustomers
                                     'event_ulid' => $event->ulid,
                                     'event_title' => $event->title,
                                     'organizer_name' => $event->organizerProfile->name,
-                                    'starts_at' => $event->starts_at?->toIso8601String(),
+                                    'starts_at' => $event->starts_at->toIso8601String(),
                                     'municipality' => $event->municipality->name,
                                     'price' => $event->is_free ? 'Gratis' : $event->price_notes,
                                     'available_total' => $event->available_total,

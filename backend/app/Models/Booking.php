@@ -3,6 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Booking extends Model
 {
@@ -31,27 +34,36 @@ class Booking extends Model
         return 'ulid';
     }
 
-    public function user()
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function event()
+    /** @return BelongsTo<Event, $this> */
+    public function event(): BelongsTo
     {
         return $this->belongsTo(Event::class);
     }
 
-    public function items()
+    /**
+     * @return HasMany<BookingItem, $this>
+     */
+    public function items(): HasMany
     {
         return $this->hasMany(BookingItem::class);
     }
 
-    public function review()
+    /** @return HasOne<Review, $this> */
+    public function review(): HasOne
     {
         return $this->hasOne(Review::class);
     }
 
-    public function checkIns()
+    /** @return HasMany<CheckIn, $this> */
+    public function checkIns(): HasMany
     {
         return $this->hasMany(CheckIn::class);
     }

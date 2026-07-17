@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Campaign extends Model
 {
@@ -24,7 +25,10 @@ class Campaign extends Model
         return 'ulid';
     }
 
-    public function statistics()
+    /**
+     * @return HasOne<CampaignStatistic, $this>
+     */
+    public function statistics(): HasOne
     {
         return $this->hasOne(CampaignStatistic::class);
     }

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class EventCancellation extends Model
 {
@@ -16,7 +17,8 @@ class EventCancellation extends Model
         return ['cancelled_at' => 'datetime'];
     }
 
-    public function cancelledBy()
+    /** @return BelongsTo<User, $this> */
+    public function cancelledBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'cancelled_by_user_id');
     }

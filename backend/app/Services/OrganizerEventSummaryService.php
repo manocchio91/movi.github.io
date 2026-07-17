@@ -45,8 +45,8 @@ class OrganizerEventSummaryService
             'checked_in_people' => $checkedInPeople,
             'no_show' => $noShow,
             'attendance_rate' => $attendanceRate,
-            'average_rating' => (float) ($reviewStats?->average_rating ?? 0),
-            'reviews_count' => (int) ($reviewStats?->reviews_count ?? 0),
+            'average_rating' => (float) ($reviewStats?->average_rating ?: 0),
+            'reviews_count' => (int) ($reviewStats?->reviews_count ?: 0),
             'bookings_open' => $visualStatus === 'Aperto',
         ];
     }

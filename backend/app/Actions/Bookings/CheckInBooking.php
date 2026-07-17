@@ -21,7 +21,7 @@ class CheckInBooking
                 ->get()
                 ->first(fn (Booking $candidate): bool => Hash::check($token, $candidate->qr_token_hash));
 
-            abort_unless($booking, 404, 'QR code non valido.');
+            abort_unless($booking !== null, 404, 'QR code non valido.');
             abort_if($booking->checkIns()->exists(), 409, 'QR code già utilizzato.');
 
             $checkIn = CheckIn::query()->create([

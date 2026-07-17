@@ -18,7 +18,7 @@ class OrganizerOpportunityController extends Controller
     public function index(Request $request, OrganizerOpportunityEngine $engine, AiEventSuggestionService $suggestions, EventSuccessScoreService $scores): JsonResponse
     {
         $profile = $request->user()->organizerProfile;
-        abort_unless($profile, 403);
+        abort_unless($profile !== null, 403);
 
         if (! $request->filled('starts_at')) {
             return response()->json([
@@ -41,7 +41,7 @@ class OrganizerOpportunityController extends Controller
     public function generate(Request $request, AiEventSuggestionService $suggestions): JsonResponse
     {
         $profile = $request->user()->organizerProfile;
-        abort_unless($profile, 403);
+        abort_unless($profile !== null, 403);
 
         $input = $request->validate([
             'month' => ['nullable', 'integer', 'between:1,12'],
@@ -112,7 +112,7 @@ class OrganizerOpportunityController extends Controller
         $events->each(fn (Event $event) => $event->successScore ?: $scores->calculate($event));
 
         return $events->load('successScore')
-            ->sortByDesc(fn (Event $event) => $event->successScore?->success_score ?? 0)
+            ->sortByDesc(fn (Event $event) => $event->successScore?->success_score ?: 0)
             ->take(10)
             ->map(fn (Event $event) => [
                 'ulid' => $event->ulid,
@@ -120,7 +120,7 @@ class OrganizerOpportunityController extends Controller
                 'category' => $event->categories->first()?->name,
                 'month' => $event->starts_at->format('Y-m'),
                 'organizer_type' => $event->organizerProfile?->type,
-                'territory' => $event->municipality?->province?->name ?? $event->municipality?->name,
+                'territory' => $event->municipality->province->name,
                 'price_band' => $this->priceBand((int) $event->ticketTypes->min('price_cents'), (int) $event->ticketTypes->max('price_cents')),
                 'capacity_total' => $event->capacity_total,
                 'fill_rate' => (float) $event->successScore->fill_rate,

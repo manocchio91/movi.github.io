@@ -15,7 +15,7 @@ class AiEventSuggestionService
     {
         $month = (int) ($filters['month'] ?? now()->month);
         $year = (int) ($filters['year'] ?? now()->year);
-        $territory = $profile->municipality?->name ?? 'Molise';
+        $territory = $profile->municipality_id !== null ? $profile->municipality->name : 'Molise';
         $context = $this->context($profile, $month, $year, $territory);
         $suggestions = $this->fallbackSuggestions($profile, $context);
 
@@ -99,7 +99,7 @@ class AiEventSuggestionService
             'title' => $template->title,
             'recommended_date' => $context['available_dates'][$index] ?? $context['available_dates'][0],
             'target' => $template->target ?? 'pubblico locale',
-            'category' => $template->category?->name ?? ($context['organizer_history']['best_category'] ?? 'esperienze locali'),
+            'category' => $template->category_id !== null ? $template->category->name : ($context['organizer_history']['best_category'] ?? 'esperienze locali'),
             'reason' => 'Suggerimento fallback basato su stagione, territorio, categorie attive e storico aggregato del locale.',
             'suggested_price_range' => [
                 'min' => (int) $template->suggested_price_min,

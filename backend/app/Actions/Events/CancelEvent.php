@@ -76,7 +76,7 @@ class CancelEvent
                     ['channel' => 'email'],
                     [
                         'status' => 'queued',
-                        'recipient' => $booking->user?->email ?? '',
+                        'recipient' => $booking->user->email,
                     ],
                 );
             }

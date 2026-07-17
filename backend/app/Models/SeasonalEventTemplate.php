@@ -3,7 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property-read Category|null $category
+ */
 class SeasonalEventTemplate extends Model
 {
     protected $fillable = [
@@ -17,7 +21,8 @@ class SeasonalEventTemplate extends Model
         return ['active' => 'boolean'];
     }
 
-    public function category()
+    /** @return BelongsTo<Category, $this> */
+    public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
     }

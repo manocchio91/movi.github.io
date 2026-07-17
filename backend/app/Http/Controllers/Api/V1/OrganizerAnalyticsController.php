@@ -15,7 +15,7 @@ class OrganizerAnalyticsController extends Controller
     public function statistics(OrganizerDashboardMetrics $metrics): JsonResponse
     {
         $profile = request()->user()->organizerProfile;
-        abort_unless($profile, 403);
+        abort_unless($profile !== null, 403);
 
         return response()->json([
             'data' => $metrics->calculate($profile),
@@ -26,7 +26,7 @@ class OrganizerAnalyticsController extends Controller
     public function analytics(): JsonResponse
     {
         $profile = request()->user()->organizerProfile;
-        abort_unless($profile, 403);
+        abort_unless($profile !== null, 403);
 
         return response()->json([
             'data' => AnalyticsEvent::query()
@@ -40,7 +40,7 @@ class OrganizerAnalyticsController extends Controller
     public function followers(): JsonResponse
     {
         $profile = request()->user()->organizerProfile;
-        abort_unless($profile, 403);
+        abort_unless($profile !== null, 403);
 
         return response()->json(['data' => $profile->followers()->latest('organizer_followers.created_at')->get()]);
     }
@@ -48,7 +48,7 @@ class OrganizerAnalyticsController extends Controller
     public function categories(OrganizerDashboardMetrics $metrics): JsonResponse
     {
         $profile = request()->user()->organizerProfile;
-        abort_unless($profile, 403);
+        abort_unless($profile !== null, 403);
 
         return response()->json(['data' => $metrics->categoryPerformance($profile)]);
     }
@@ -56,7 +56,7 @@ class OrganizerAnalyticsController extends Controller
     public function campaigns(): JsonResponse
     {
         $profile = request()->user()->organizerProfile;
-        abort_unless($profile, 403);
+        abort_unless($profile !== null, 403);
 
         return response()->json([
             'data' => Campaign::query()
@@ -70,7 +70,7 @@ class OrganizerAnalyticsController extends Controller
     public function storeCampaign(Request $request): JsonResponse
     {
         $profile = $request->user()->organizerProfile;
-        abort_unless($profile, 403);
+        abort_unless($profile !== null, 403);
 
         $data = $request->validate([
             'event_id' => ['nullable', 'exists:events,id'],

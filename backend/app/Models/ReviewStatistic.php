@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ReviewStatistic extends Model
 {
@@ -19,12 +20,14 @@ class ReviewStatistic extends Model
         return ['calculated_at' => 'datetime'];
     }
 
-    public function event()
+    /** @return BelongsTo<Event, $this> */
+    public function event(): BelongsTo
     {
         return $this->belongsTo(Event::class);
     }
 
-    public function organizerProfile()
+    /** @return BelongsTo<OrganizerProfile, $this> */
+    public function organizerProfile(): BelongsTo
     {
         return $this->belongsTo(OrganizerProfile::class);
     }

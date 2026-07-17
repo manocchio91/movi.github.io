@@ -27,16 +27,16 @@ class CustomerDashboardController extends Controller
         return response()->json([
             'data' => [
                 'successful_events' => $successfulEvents
-                    ->sortByDesc(fn (Event $event) => $event->successScore?->success_score ?? 0)
+                    ->sortByDesc(fn (Event $event) => $event->successScore?->success_score ?: 0)
                     ->values()
                     ->map(fn (Event $event) => [
                         'ulid' => $event->ulid,
                         'title' => $event->title,
                         'category' => $event->categories->first()?->name,
                         'municipality' => $event->municipality?->name,
-                        'average_rating' => (float) ($event->successScore?->average_rating ?? 0),
-                        'fill_rate' => (float) ($event->successScore?->fill_rate ?? 0),
-                        'success_score' => (float) ($event->successScore?->success_score ?? 0),
+                        'average_rating' => (float) ($event->successScore?->average_rating ?: 0),
+                        'fill_rate' => (float) ($event->successScore?->fill_rate ?: 0),
+                        'success_score' => (float) ($event->successScore?->success_score ?: 0),
                     ]),
                 'upcoming_events' => Event::query()
                     ->with(['categories', 'municipality', 'organizerProfile'])

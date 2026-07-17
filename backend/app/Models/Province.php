@@ -9,6 +9,7 @@ class Province extends Model
 {
     protected $fillable = ['region_id', 'name', 'code'];
 
+    /** @return BelongsTo<Region, $this> */
     public function region(): BelongsTo
     {
         return $this->belongsTo(Region::class);

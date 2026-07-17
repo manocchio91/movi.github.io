@@ -37,7 +37,7 @@ class OrganizerOpportunityEngine
             'by_category' => $this->categoryBreakdown($events),
             'competing_events' => $overlapping->map(fn (Event $event) => [
                 'title' => $event->title,
-                'category' => $event->categories->first()?->name ?? 'altro',
+                'category' => $event->categories->pluck('name')->first() ?? 'altro',
                 'organizer' => $event->organizerProfile->name,
                 'municipality' => $event->municipality->name,
                 'distance_km' => $event->municipality_id === $municipalityId ? 0 : null,

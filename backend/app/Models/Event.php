@@ -9,6 +9,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
+/**
+ * @property-read int $participants_count
+ * @property-read int $customer_cancellations_count
+ * @property-read ReviewStatistic|null $reviewStatistic
+ * @property-read EventSuccessScore|null $successScore
+ */
 class Event extends Model
 {
     protected $fillable = [
@@ -46,67 +52,84 @@ class Event extends Model
         return 'ulid';
     }
 
+    /** @return BelongsTo<OrganizerProfile, $this> */
     public function organizerProfile(): BelongsTo
     {
         return $this->belongsTo(OrganizerProfile::class);
     }
 
+    /** @return BelongsTo<EventSeries, $this> */
     public function series(): BelongsTo
     {
         return $this->belongsTo(EventSeries::class, 'event_series_id');
     }
 
+    /** @return BelongsTo<Municipality, $this> */
     public function municipality(): BelongsTo
     {
         return $this->belongsTo(Municipality::class);
     }
 
+    /** @return BelongsToMany<Category, $this> */
     public function categories(): BelongsToMany
     {
         return $this->belongsToMany(Category::class, 'event_categories');
     }
 
-    public function ticketTypes()
+    /**
+     * @return HasMany<TicketType, $this>
+     */
+    public function ticketTypes(): HasMany
     {
         return $this->hasMany(TicketType::class);
     }
 
-    public function bookings()
+    /**
+     * @return HasMany<Booking, $this>
+     */
+    public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
     }
 
+    /** @return HasMany<Review, $this> */
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
     }
 
+    /** @return HasOne<ReviewStatistic, $this> */
     public function reviewStatistic(): HasOne
     {
         return $this->hasOne(ReviewStatistic::class);
     }
 
+    /** @return HasOne<EventSuccessScore, $this> */
     public function successScore(): HasOne
     {
         return $this->hasOne(EventSuccessScore::class);
     }
 
+    /** @return HasOne<EventCancellation, $this> */
     public function cancellation(): HasOne
     {
         return $this->hasOne(EventCancellation::class);
     }
 
+    /** @return HasOne<EventRanking, $this> */
     public function ranking(): HasOne
     {
         return $this->hasOne(EventRanking::class);
     }
 
-    public function venue()
+    /** @return BelongsTo<Venue, $this> */
+    public function venue(): BelongsTo
     {
         return $this->belongsTo(Venue::class);
     }
 
-    public function views()
+    /** @return HasMany<ExperienceView, $this> */
+    public function views(): HasMany
     {
         return $this->hasMany(ExperienceView::class);
     }

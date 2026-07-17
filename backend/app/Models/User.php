@@ -4,10 +4,17 @@ namespace App\Models;
 
 use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
+/**
+ * @property-read int $reviews_count
+ * @property-read int $favorites_count
+ */
 class User extends Authenticatable
 {
     use HasApiTokens;
@@ -27,47 +34,62 @@ class User extends Authenticatable
         ];
     }
 
-    public function organizerProfile()
+    /** @return HasOne<OrganizerProfile, $this> */
+    public function organizerProfile(): HasOne
     {
         return $this->hasOne(OrganizerProfile::class, 'owner_user_id');
     }
 
-    public function preferredCategories()
+    /**
+     * @return BelongsToMany<Category, $this>
+     */
+    public function preferredCategories(): BelongsToMany
     {
         return $this->belongsToMany(Category::class, 'user_event_preferences')->withTimestamps();
     }
 
-    public function notificationPreference()
+    /**
+     * @return HasOne<NotificationPreference, $this>
+     */
+    public function notificationPreference(): HasOne
     {
         return $this->hasOne(NotificationPreference::class);
     }
 
-    public function bookings()
+    /** @return HasMany<Booking, $this> */
+    public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
     }
 
-    public function reviews()
+    /** @return HasMany<Review, $this> */
+    public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
     }
 
-    public function notifications()
+    /** @return HasMany<Notification, $this> */
+    public function notifications(): HasMany
     {
         return $this->hasMany(Notification::class);
     }
 
-    public function followedOrganizers()
+    /**
+     * @return BelongsToMany<OrganizerProfile, $this>
+     */
+    public function followedOrganizers(): BelongsToMany
     {
         return $this->belongsToMany(OrganizerProfile::class, 'organizer_followers')->withTimestamps();
     }
 
-    public function favorites()
+    /** @return BelongsToMany<Event, $this> */
+    public function favorites(): BelongsToMany
     {
         return $this->belongsToMany(Event::class, 'favorites')->withTimestamps();
     }
 
-    public function eventFormatInterests()
+    /** @return HasMany<CustomerEventFormatInterest, $this> */
+    public function eventFormatInterests(): HasMany
     {
         return $this->hasMany(CustomerEventFormatInterest::class);
     }

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Notification extends Model
 {
@@ -26,7 +27,10 @@ class Notification extends Model
         return 'ulid';
     }
 
-    public function deliveries()
+    /**
+     * @return HasMany<NotificationDelivery, $this>
+     */
+    public function deliveries(): HasMany
     {
         return $this->hasMany(NotificationDelivery::class);
     }

@@ -30,7 +30,24 @@
 
 ## Problemi residui
 
-PHPStan usa correttamente `larastan/larastan` e completa l'analisi dei 119 file configurati, ma rileva 278 errori statici preesistenti. Gli errori non sono stati corretti in questo checkpoint.
+Nel checkpoint `v0.1-backend-stable`, PHPStan completava l'analisi dei 119 file configurati con 278 errori statici preesistenti. La pulizia è stata completata nel checkpoint successivo, come documentato di seguito.
+
+## PHPStan cleanup completed
+
+- Errori iniziali: 278
+- Errori finali: 0 su 119 file analizzati
+- Gruppi completati:
+  1. parsing dei cast Eloquent;
+  2. return type e generics delle relazioni;
+  3. proprietà Eloquent reali;
+  4. generics delle relazioni residue;
+  5. `argument.type` e nullability dei consumer;
+  6. `nullsafe.neverNull`.
+- Test invariati e verdi: 34 test, 174 assertions
+- Laravel Pint verde su 141 file
+- Nessuna baseline PHPStan
+- Nessun `ignoreErrors`
+- Nessun abbassamento del livello di analisi
 
 ## Comandi per riprendere
 

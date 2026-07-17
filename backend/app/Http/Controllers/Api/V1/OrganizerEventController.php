@@ -17,7 +17,7 @@ class OrganizerEventController extends Controller
     public function index(Request $request, OrganizerEventSummaryService $summary): JsonResponse
     {
         $profile = request()->user()->organizerProfile;
-        abort_unless($profile, 403);
+        abort_unless($profile !== null, 403);
 
         $sort = $request->query('sort') === 'asc' ? 'asc' : 'desc';
         $events = $profile->events()
@@ -47,7 +47,7 @@ class OrganizerEventController extends Controller
     public function store(StoreEventRequest $request, CreateEvent $createEvent): JsonResponse
     {
         $profile = $request->user()->organizerProfile;
-        abort_unless($profile, 403);
+        abort_unless($profile !== null, 403);
 
         $event = $createEvent->handle($profile, $request->validated());
 

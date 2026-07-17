@@ -32,11 +32,11 @@ class CustomerSuccessfulEventController extends Controller
 
         $events = match ($request->query('sort')) {
             'recent' => $events->sortByDesc('starts_at'),
-            'rating' => $events->sortByDesc(fn (Event $event) => $event->successScore?->average_rating ?? 0),
-            'fill_rate' => $events->sortByDesc(fn (Event $event) => $event->successScore?->fill_rate ?? 0),
-            'recommended' => $events->sortByDesc(fn (Event $event) => $event->successScore?->recommendation_rate ?? 0),
+            'rating' => $events->sortByDesc(fn (Event $event) => $event->successScore?->average_rating ?: 0),
+            'fill_rate' => $events->sortByDesc(fn (Event $event) => $event->successScore?->fill_rate ?: 0),
+            'recommended' => $events->sortByDesc(fn (Event $event) => $event->successScore?->recommendation_rate ?: 0),
             'next_edition' => $events->sortByDesc(fn (Event $event) => $this->nextEditions($event)->isNotEmpty() ? 1 : 0),
-            default => $events->sortByDesc(fn (Event $event) => $event->successScore?->success_score ?? 0),
+            default => $events->sortByDesc(fn (Event $event) => $event->successScore?->success_score ?: 0),
         };
 
         $perPage = min(24, max(1, (int) $request->query('per_page', 12)));
@@ -158,11 +158,11 @@ class CustomerSuccessfulEventController extends Controller
             'municipality' => $event->municipality?->name,
             'province' => $event->municipality?->province?->name,
             'held_at' => $event->starts_at,
-            'average_rating' => (float) ($event->successScore?->average_rating ?? 0),
-            'review_count' => (int) ($event->successScore?->review_count ?? 0),
-            'fill_rate' => (float) ($event->successScore?->fill_rate ?? 0),
-            'recommendation_rate' => (float) ($event->successScore?->recommendation_rate ?? 0),
-            'success_score' => (float) ($event->successScore?->success_score ?? 0),
+            'average_rating' => (float) ($event->successScore?->average_rating ?: 0),
+            'review_count' => (int) ($event->successScore?->review_count ?: 0),
+            'fill_rate' => (float) ($event->successScore?->fill_rate ?: 0),
+            'recommendation_rate' => (float) ($event->successScore?->recommendation_rate ?: 0),
+            'success_score' => (float) ($event->successScore?->success_score ?: 0),
             'success_reasons' => ['riempimento', 'recensioni positive', 'partecipazione effettiva'],
             'badge' => 'Evento di successo',
             'has_next_edition' => $nextEdition !== null,

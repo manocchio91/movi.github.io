@@ -13,7 +13,7 @@ class OrganizerDashboardController extends Controller
     public function show(OrganizerDashboardMetrics $metrics): JsonResponse
     {
         $profile = request()->user()->organizerProfile;
-        abort_unless($profile, 403);
+        abort_unless($profile !== null, 403);
 
         $events = $profile->events();
         $eventIds = $profile->events()->pluck('id');

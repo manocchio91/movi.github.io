@@ -14,7 +14,6 @@ use App\Models\OrganizerProfile;
 use App\Models\OrganizerSubscription;
 use App\Models\Province;
 use App\Models\Review;
-use App\Models\SubscriptionPlan;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -129,17 +128,17 @@ class AdminPlatformOverviewController extends Controller
             'ulid' => $event->ulid,
             'title' => $event->title,
             'organizer' => $event->organizerProfile?->name,
-            'category' => $event->categories->first()?->name ?? 'Senza categoria',
+            'category' => $event->categories->pluck('name')->first() ?? 'Senza categoria',
             'municipality' => $event->municipality?->name,
             'province' => $event->municipality?->province?->code,
-            'date' => $event->starts_at?->toDateString(),
+            'date' => $event->starts_at->toDateString(),
             'status' => $event->status->value,
             'booked' => $event->bookings_count,
             'participants' => $event->participants_count,
             'customer_cancellations' => $event->customer_cancellations_count,
-            'average_rating' => (float) ($event->reviewStatistic?->average_rating ?? 0),
+            'average_rating' => (float) ($event->reviewStatistic?->average_rating ?: 0),
             'fill_rate' => $event->capacity_total > 0 ? round((($event->capacity_total - $event->available_total) / $event->capacity_total) * 100, 1) : 0,
-            'success_score' => $event->successScore?->success_score ?? null,
+            'success_score' => $event->successScore?->success_score,
         ])->values()->all();
     }
 
@@ -159,7 +158,7 @@ class AdminPlatformOverviewController extends Controller
                 'completed_events' => (clone $eventQuery)->where('status', EventStatus::Completed->value)->count(),
                 'cancelled_events' => (clone $eventQuery)->where('status', EventStatus::Cancelled->value)->count(),
                 'bookings_received' => Booking::query()->whereIn('event_id', (clone $eventQuery)->pluck('id'))->count(),
-                'average_rating' => (float) ($organizer->reviewStatistic?->average_rating ?? 0),
+                'average_rating' => (float) ($organizer->reviewStatistic?->average_rating ?: 0),
                 'followers' => $organizer->followers_count,
             ];
         })->values()->all();
@@ -247,7 +246,7 @@ class AdminPlatformOverviewController extends Controller
             ->get()
             ->map(fn (OrganizerSubscription $subscription) => [
                 'organizer' => $subscription->organizerProfile?->name,
-                'plan' => $subscription->plan?->name ?? SubscriptionPlan::query()->find($subscription->subscription_plan_id)?->name,
+                'plan' => $subscription->plan->name,
                 'renewal' => $subscription->current_period_ends_at?->toDateString(),
                 'status' => $subscription->status,
                 'payments' => 'predisposto',

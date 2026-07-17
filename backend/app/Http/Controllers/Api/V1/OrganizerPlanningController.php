@@ -13,7 +13,7 @@ class OrganizerPlanningController extends Controller
     public function calendar(Request $request): JsonResponse
     {
         $profile = $request->user()->organizerProfile;
-        abort_unless($profile, 403);
+        abort_unless($profile !== null, 403);
 
         $events = Event::query()
             ->with(['categories', 'organizerProfile', 'municipality'])
@@ -25,7 +25,7 @@ class OrganizerPlanningController extends Controller
                 'ulid' => $event->ulid,
                 'title' => $event->title,
                 'starts_at' => $event->starts_at,
-                'category' => $event->categories->first()?->name ?? 'altro',
+                'category' => $event->categories->pluck('name')->first() ?? 'altro',
                 'color' => $this->categoryColor($event->categories->first()?->name),
                 'organizer' => $event->organizerProfile->name,
                 'municipality' => $event->municipality->name,
@@ -38,7 +38,7 @@ class OrganizerPlanningController extends Controller
     public function map(Request $request): JsonResponse
     {
         $profile = $request->user()->organizerProfile;
-        abort_unless($profile, 403);
+        abort_unless($profile !== null, 403);
 
         $events = Event::query()
             ->with(['categories', 'municipality'])
@@ -49,7 +49,7 @@ class OrganizerPlanningController extends Controller
             ->map(fn (Event $event) => [
                 'ulid' => $event->ulid,
                 'title' => $event->title,
-                'category' => $event->categories->first()?->name ?? 'altro',
+                'category' => $event->categories->pluck('name')->first() ?? 'altro',
                 'starts_at' => $event->starts_at,
                 'municipality' => $event->municipality->name,
                 'latitude' => $event->municipality->latitude,
@@ -63,7 +63,7 @@ class OrganizerPlanningController extends Controller
     public function availability(Request $request, OrganizerCalendarAvailabilityService $availability): JsonResponse
     {
         $profile = $request->user()->organizerProfile;
-        abort_unless($profile, 403);
+        abort_unless($profile !== null, 403);
 
         $filters = $request->validate([
             'month' => ['required', 'integer', 'between:1,12'],
@@ -82,7 +82,7 @@ class OrganizerPlanningController extends Controller
     public function events(Request $request, OrganizerCalendarAvailabilityService $availability): JsonResponse
     {
         $profile = $request->user()->organizerProfile;
-        abort_unless($profile, 403);
+        abort_unless($profile !== null, 403);
 
         $filters = $request->validate([
             'date' => ['required', 'date'],

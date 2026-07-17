@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AiEventSuggestion extends Model
 {
@@ -27,7 +28,8 @@ class AiEventSuggestion extends Model
         return 'ulid';
     }
 
-    public function organizerProfile()
+    /** @return BelongsTo<OrganizerProfile, $this> */
+    public function organizerProfile(): BelongsTo
     {
         return $this->belongsTo(OrganizerProfile::class);
     }

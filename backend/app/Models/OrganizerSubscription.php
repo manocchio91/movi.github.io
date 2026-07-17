@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OrganizerSubscription extends Model
 {
@@ -22,12 +23,18 @@ class OrganizerSubscription extends Model
         ];
     }
 
-    public function plan()
+    /**
+     * @return BelongsTo<SubscriptionPlan, $this>
+     */
+    public function plan(): BelongsTo
     {
         return $this->belongsTo(SubscriptionPlan::class, 'subscription_plan_id');
     }
 
-    public function organizerProfile()
+    /**
+     * @return BelongsTo<OrganizerProfile, $this>
+     */
+    public function organizerProfile(): BelongsTo
     {
         return $this->belongsTo(OrganizerProfile::class);
     }

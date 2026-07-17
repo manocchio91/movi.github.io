@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Review extends Model
 {
@@ -29,32 +31,46 @@ class Review extends Model
         return 'ulid';
     }
 
-    public function event()
+    /**
+     * @return BelongsTo<Event, $this>
+     */
+    public function event(): BelongsTo
     {
         return $this->belongsTo(Event::class);
     }
 
-    public function organizerProfile()
+    /**
+     * @return BelongsTo<OrganizerProfile, $this>
+     */
+    public function organizerProfile(): BelongsTo
     {
         return $this->belongsTo(OrganizerProfile::class);
     }
 
-    public function user()
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function booking()
+    /** @return BelongsTo<Booking, $this> */
+    public function booking(): BelongsTo
     {
         return $this->belongsTo(Booking::class);
     }
 
-    public function images()
+    /**
+     * @return HasMany<ReviewImage, $this>
+     */
+    public function images(): HasMany
     {
         return $this->hasMany(ReviewImage::class);
     }
 
-    public function reports()
+    /** @return HasMany<ReviewReport, $this> */
+    public function reports(): HasMany
     {
         return $this->hasMany(ReviewReport::class);
     }

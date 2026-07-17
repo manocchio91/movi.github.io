@@ -4,8 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
+/**
+ * @property-read int $followers_count
+ * @property-read Municipality|null $municipality
+ * @property-read ReviewStatistic|null $reviewStatistic
+ * @property-read OrganizerSubscription|null $subscription
+ */
 class OrganizerProfile extends Model
 {
     protected $fillable = [
@@ -24,6 +32,7 @@ class OrganizerProfile extends Model
         ];
     }
 
+    /** @return BelongsTo<User, $this> */
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_user_id');
@@ -34,37 +43,46 @@ class OrganizerProfile extends Model
         return 'ulid';
     }
 
+    /** @return HasMany<Event, $this> */
     public function events(): HasMany
     {
         return $this->hasMany(Event::class);
     }
 
+    /** @return HasMany<Review, $this> */
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
     }
 
-    public function reviewStatistic()
+    /**
+     * @return HasOne<ReviewStatistic, $this>
+     */
+    public function reviewStatistic(): HasOne
     {
         return $this->hasOne(ReviewStatistic::class);
     }
 
-    public function ranking()
+    /** @return HasOne<OrganizerRanking, $this> */
+    public function ranking(): HasOne
     {
         return $this->hasOne(OrganizerRanking::class);
     }
 
+    /** @return BelongsTo<Municipality, $this> */
     public function municipality(): BelongsTo
     {
         return $this->belongsTo(Municipality::class);
     }
 
-    public function followers()
+    /** @return BelongsToMany<User, $this> */
+    public function followers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'organizer_followers')->withTimestamps();
     }
 
-    public function subscription()
+    /** @return HasOne<OrganizerSubscription, $this> */
+    public function subscription(): HasOne
     {
         return $this->hasOne(OrganizerSubscription::class);
     }

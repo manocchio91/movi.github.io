@@ -33,7 +33,7 @@ class OrganizerProfileController extends Controller
     public function update(StoreOrganizerProfileRequest $request): JsonResponse
     {
         $profile = $request->user()->organizerProfile;
-        abort_unless($profile, 404, 'Profilo organizzatore non trovato.');
+        abort_unless($profile !== null, 404, 'Profilo organizzatore non trovato.');
 
         $profile->update($request->validated());
 
