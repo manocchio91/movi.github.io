@@ -410,7 +410,7 @@ export default defineComponent({
       h('h3', event.title),
       h('p', `${event.municipality?.name ?? event.municipality ?? 'Molise'}${event.starts_at ? ` - ${new Date(event.starts_at).toLocaleDateString('it-IT')}` : ''}`),
       h('div', [h('strong', event.is_free ? 'gratis' : 'prenotabile'), h('small', `${event.available_total ?? ''} posti`)]),
-      h('button', { type: 'button' }, 'Dettaglio evento'),
+      h('button', { type: 'button', disabled: true, title: 'Dettaglio disponibile nell’app mobile' }, 'Dettaglio non disponibile'),
     ]);
 
     const renderSuccessfulEventCard = (event: any) => h('article', { class: 'experience-card success-card' }, [
@@ -426,7 +426,9 @@ export default defineComponent({
       event.has_next_edition ? h('strong', { class: 'next-edition-badge' }, 'Nuova edizione disponibile') : null,
       event.next_edition ? h('p', `Prossima: ${event.next_edition.title} - ${new Date(event.next_edition.starts_at).toLocaleDateString('it-IT')} - ${event.next_edition.available_total} posti`) : null,
       h('div', { class: 'action-row' }, [
-        event.next_edition ? h('button', { type: 'button' }, 'Vedi la nuova edizione') : h('button', { type: 'button' }, 'Scopri eventi simili'),
+        event.next_edition
+          ? h('button', { type: 'button', disabled: true, title: 'Azione non ancora collegata in questa console' }, 'Nuova edizione non disponibile')
+          : h('button', { type: 'button', disabled: true, title: 'Azione non ancora collegata in questa console' }, 'Eventi simili non disponibili'),
         h('button', { type: 'button', onClick: () => { void notifySimilar(event.ulid); } }, 'Avvisami quando torna'),
       ]),
     ]);
@@ -448,13 +450,21 @@ export default defineComponent({
 
     const renderAllEvents = () => [
       h('div', { class: 'section-title' }, [h('h2', 'Tutti gli Eventi'), h('span', 'filtri: categoria, comune, data, prezzo')]),
-      h('div', { class: 'filter-strip' }, ['Categoria', 'Comune', 'Provincia', 'Data', 'Prezzo'].map((item) => h('button', { type: 'button' }, item))),
+      h('div', { class: 'filter-strip' }, ['Categoria', 'Comune', 'Provincia', 'Data', 'Prezzo'].map((item) => h('button', {
+        type: 'button',
+        disabled: true,
+        title: 'Filtro non ancora collegato',
+      }, item))),
       allCustomerEvents.value.length === 0 ? emptyState('Nessun evento pubblicato disponibile dal database.') : h('div', { class: 'event-grid' }, allCustomerEvents.value.map(renderEventCard)),
     ];
 
     const renderSuccessfulEvents = () => [
       h('div', { class: 'section-title' }, [h('h2', 'Eventi di Successo'), h('span', 'ranking con success score aggregato')]),
-      h('div', { class: 'filter-strip' }, ['Piu apprezzati', 'Piu recenti', 'Miglior valutazione', 'Riempimento', 'Con nuova edizione'].map((item) => h('button', { type: 'button' }, item))),
+      h('div', { class: 'filter-strip' }, ['Piu apprezzati', 'Piu recenti', 'Miglior valutazione', 'Riempimento', 'Con nuova edizione'].map((item) => h('button', {
+        type: 'button',
+        disabled: true,
+        title: 'Filtro non ancora collegato',
+      }, item))),
       successfulEvents.value.length === 0 ? emptyState('Nessun evento concluso valido nel feed successi.') : h('div', { class: 'event-grid' }, successfulEvents.value.map(renderSuccessfulEventCard)),
     ];
 
@@ -804,7 +814,11 @@ export default defineComponent({
 
     const renderAdminReviews = () => [
       h('div', { class: 'page-heading' }, [h('h1', 'Recensioni'), h('p', 'Tutte le recensioni, filtrabili per evento, organizer, stelle e categoria.')]),
-      h('div', { class: 'filter-strip' }, ['Organizzatore', 'Evento', 'Stelle', 'Categoria', 'Nascoste'].map((item) => h('button', { type: 'button' }, item))),
+      h('div', { class: 'filter-strip' }, ['Organizzatore', 'Evento', 'Stelle', 'Categoria', 'Nascoste'].map((item) => h('button', {
+        type: 'button',
+        disabled: true,
+        title: 'Filtro non ancora collegato',
+      }, item))),
       renderReviewsList(),
     ];
 

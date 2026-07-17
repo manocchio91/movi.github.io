@@ -1,8 +1,53 @@
-backend/vendor/
-backend/.env
-backend/storage/logs/*.log
-frontend/node_modules/
-frontend/dist/
-frontend/*.tsbuildinfo
-frontend/src/*.js
+# Environment and local secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+key.properties
+google-services.json
+GoogleService-Info.plist
+
+# Dependencies
+vendor/
+node_modules/
+
+# Build output
+build/
+dist/
+.dart_tool/
+.pub/
+.pub-cache/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.tsbuildinfo
+
+# Laravel runtime data
+storage/logs/
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+!storage/framework/cache/.gitignore
+!storage/framework/sessions/.gitignore
+!storage/framework/views/.gitignore
+bootstrap/cache/*.php
+!bootstrap/cache/.gitignore
+
+# Logs, temporary files and local tooling
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
 .DS_Store
+Thumbs.db
+.idea/
+.vscode/
+coverage/
+.phpunit.cache/
+.phpunit.result.cache

@@ -14,6 +14,8 @@ class Booking extends Model
         'idempotency_key', 'event_terms_accepted',
     ];
 
+    protected $hidden = ['qr_token_hash', 'idempotency_key'];
+
     protected function casts(): array
     {
         return [

@@ -6,6 +6,7 @@ use App\Enums\EventStatus;
 use App\Models\Event;
 use App\Models\OrganizerOpportunityReport;
 use App\Models\OrganizerProfile;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -13,8 +14,8 @@ class OrganizerOpportunityEngine
 {
     public function analyze(OrganizerProfile $organizer, array $input): array
     {
-        $startsAt = \Carbon\Carbon::parse($input['starts_at']);
-        $endsAt = isset($input['ends_at']) ? \Carbon\Carbon::parse($input['ends_at']) : $startsAt->copy()->addHours(2);
+        $startsAt = Carbon::parse($input['starts_at']);
+        $endsAt = isset($input['ends_at']) ? Carbon::parse($input['ends_at']) : $startsAt->copy()->addHours(2);
         $municipalityId = $input['municipality_id'] ?? null;
         $categoryIds = collect($input['category_ids'] ?? []);
 

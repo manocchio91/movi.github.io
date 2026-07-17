@@ -11,12 +11,13 @@ class RequestId
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $requestId = $request->header('X-Request-Id', (string) Str::uuid());
-        $request->headers->set('X-Request-Id', $requestId);
+        $requestId = $request->header('X-Request-ID', (string) Str::uuid());
+        $request->headers->set('X-Request-ID', $requestId);
+        $request->attributes->set('request_id', $requestId);
 
         /** @var Response $response */
         $response = $next($request);
-        $response->headers->set('X-Request-Id', $requestId);
+        $response->headers->set('X-Request-ID', $requestId);
 
         return $response;
     }

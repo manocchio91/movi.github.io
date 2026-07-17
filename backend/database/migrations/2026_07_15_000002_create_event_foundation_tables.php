@@ -5,7 +5,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::create('categories', function (Blueprint $table): void {
@@ -71,7 +72,7 @@ return new class extends Migration {
         });
 
         DB::statement("ALTER TABLE events ADD CONSTRAINT events_status_check CHECK (status IN ('draft','pending_review','published','sold_out','cancelled','completed','rejected','suspended'))");
-        DB::statement("ALTER TABLE events ADD CONSTRAINT events_capacity_check CHECK (capacity_total >= available_total)");
+        DB::statement('ALTER TABLE events ADD CONSTRAINT events_capacity_check CHECK (capacity_total >= available_total)');
     }
 
     public function down(): void

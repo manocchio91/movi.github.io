@@ -23,6 +23,21 @@ Frontend: `http://localhost:5173`
 
 Health check: `http://localhost:8080/health`
 
+## App mobile Flutter
+Il prototipo mobile Android/iOS si trova in `mobile/` e contiene due esperienze separate, Customer e Organizer, con login demo e dati mock sostituibili dalle API reali.
+
+```bash
+cd mobile
+flutter pub get
+flutter analyze
+flutter test
+flutter run
+```
+
+Account mobile demo:
+- Customer: `customer@demo.it` / `password`
+- Organizer: `organizer@demo.it` / `password`
+
 ## Account demo
 - Admin: `admin@example.test` / `password`
 - Organizzatore: `organizer@example.test` / `password`

@@ -2,8 +2,8 @@
 
 namespace App\Jobs;
 
-use App\Models\OrganizerStatistic;
 use App\Models\OrganizerProfile;
+use App\Models\OrganizerStatistic;
 use App\Services\BusinessIntelligence\OrganizerDashboardMetrics;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;

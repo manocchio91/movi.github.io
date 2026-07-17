@@ -16,6 +16,7 @@ use App\Models\Province;
 use App\Models\Review;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
 
@@ -118,7 +119,7 @@ class AdminPlatformOverviewController extends Controller
     {
         return $months->map(fn (string $month) => [
             'label' => $month,
-            'value' => $items->filter(fn ($item) => $item->{$field} && \Carbon\Carbon::parse($item->{$field})->format('Y-m') === $month)->count(),
+            'value' => $items->filter(fn ($item) => $item->{$field} && Carbon::parse($item->{$field})->format('Y-m') === $month)->count(),
         ])->values()->all();
     }
 

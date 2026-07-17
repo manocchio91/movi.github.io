@@ -12,4 +12,9 @@ class CheckIn extends Model
     {
         return ['checked_in_at' => 'datetime'];
     }
+
+    public function booking()
+    {
+        return $this->belongsTo(Booking::class);
+    }
 }

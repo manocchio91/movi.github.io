@@ -409,6 +409,39 @@ paths:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Lista prenotazioni }
+  /organizer/events/{event}/check-ins:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Valida una sola volta il QR di una prenotazione dell'evento
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [qr_token]
+              properties:
+                qr_token: { type: string, minLength: 32 }
+      responses:
+        "201":
+          description: Check-in registrato
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [booking_ulid, booking_status, checked_in_at]
+                    properties:
+                      booking_ulid: { type: string }
+                      booking_status: { type: string, enum: [checked_in] }
+                      checked_in_at: { type: string, format: date-time }
+        "404": { description: QR non valido }
+        "409": { description: QR già utilizzato }
   /organizer/events/{event}/summary:
     get:
       security: [{ bearerAuth: [] }]
@@ -593,3 +626,4 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
+      description: Personal access token opaco emesso da Laravel Sanctum. Non è un JWT.

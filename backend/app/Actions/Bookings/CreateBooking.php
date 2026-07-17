@@ -42,6 +42,7 @@ class CreateBooking
             $ticketItems = collect($data['items'] ?? []);
             abort_if($ticketItems->sum('quantity') !== $totalPeople, 422, 'La quantita dei biglietti deve corrispondere ai partecipanti.');
             $totalPrice = 0;
+            $qrToken = Str::random(64);
 
             foreach ($ticketItems as $item) {
                 /** @var TicketType $ticket */
@@ -75,7 +76,7 @@ class CreateBooking
                 'accessibility_needs' => $data['accessibility_needs'] ?? null,
                 'notes' => $data['notes'] ?? null,
                 'booking_code' => 'EVT-'.Str::upper(Str::random(8)),
-                'qr_token_hash' => Hash::make(Str::random(48)),
+                'qr_token_hash' => Hash::make($qrToken),
                 'booked_at' => now(),
                 'idempotency_key' => $idempotencyKey,
                 'event_terms_accepted' => true,
@@ -121,6 +122,8 @@ class CreateBooking
                 'recipient' => (string) $user->id,
                 'sent_at' => now(),
             ]);
+
+            $booking->setAttribute('qr_token', $qrToken);
 
             return $booking->load(['items.ticketType', 'event']);
         });

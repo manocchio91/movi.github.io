@@ -2,7 +2,6 @@
 
 namespace App\Jobs;
 
-use App\Jobs\RecalculateOrganizerKpis;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 

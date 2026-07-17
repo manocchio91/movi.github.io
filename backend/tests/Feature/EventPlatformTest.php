@@ -111,8 +111,16 @@ class EventPlatformTest extends TestCase
 
     public function test_login_returns_role_and_dashboard_redirect(): void
     {
-        $customer = User::factory()->create(['role' => UserRole::Customer]);
-        $organizer = User::factory()->create(['role' => UserRole::Organizer]);
+        $customer = User::factory()->create([
+            'role' => UserRole::Customer,
+            'status' => 'active',
+            'email_verified_at' => now(),
+        ]);
+        $organizer = User::factory()->create([
+            'role' => UserRole::Organizer,
+            'status' => 'active',
+            'email_verified_at' => now(),
+        ]);
         $admin = User::factory()->create(['role' => UserRole::Admin]);
 
         $this->postJson('/api/v1/auth/login', ['email' => $customer->email, 'password' => 'password'])
@@ -607,8 +615,14 @@ class EventPlatformTest extends TestCase
     {
         [, $organizer, $event, $categories, $municipality] = $this->setupDomain();
 
+        $query = http_build_query([
+            'starts_at' => $event->starts_at->toIso8601String(),
+            'municipality_id' => $municipality->id,
+            'category_ids' => [$categories['bambini']->id],
+        ]);
+
         $this->actingAs($organizer, 'sanctum')
-            ->getJson('/api/v1/organizer/opportunities?starts_at='.$event->starts_at->toIso8601String().'&municipality_id='.$municipality->id.'&category_ids[]='.$categories['bambini']->id)
+            ->getJson('/api/v1/organizer/opportunities?'.$query)
             ->assertOk()
             ->assertJsonPath('data.summary.events_same_day', 1)
             ->assertJsonPath('data.summary.similar_category_events', 1);
@@ -906,7 +920,11 @@ class EventPlatformTest extends TestCase
     public function test_admin_events_and_rankings_are_available_without_event_approval(): void
     {
         [, , $event] = $this->setupDomain(20);
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create([
+            'role' => UserRole::Admin,
+            'status' => 'active',
+            'email_verified_at' => now(),
+        ]);
 
         ReviewStatistic::query()->create([
             'event_id' => $event->id,
@@ -943,7 +961,11 @@ class EventPlatformTest extends TestCase
     public function test_admin_overview_feeds_the_control_center_dashboard(): void
     {
         [, , $event] = $this->setupDomain();
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create([
+            'role' => UserRole::Admin,
+            'status' => 'active',
+            'email_verified_at' => now(),
+        ]);
 
         $this->actingAs($admin, 'sanctum')
             ->getJson('/api/v1/admin/overview')
@@ -980,8 +1002,16 @@ class EventPlatformTest extends TestCase
 
     private function setupDomain(int $capacity = 10): array
     {
-        $customer = User::factory()->create(['role' => UserRole::Customer]);
-        $organizer = User::factory()->create(['role' => UserRole::Organizer]);
+        $customer = User::factory()->create([
+            'role' => UserRole::Customer,
+            'status' => 'active',
+            'email_verified_at' => now(),
+        ]);
+        $organizer = User::factory()->create([
+            'role' => UserRole::Organizer,
+            'status' => 'active',
+            'email_verified_at' => now(),
+        ]);
         $region = Region::query()->create(['name' => 'Molise '.Str::random(4), 'code' => Str::upper(Str::random(3))]);
         $province = Province::query()->create(['region_id' => $region->id, 'name' => 'Campobasso', 'code' => Str::upper(Str::random(2))]);
         $municipality = Municipality::query()->create(['province_id' => $province->id, 'name' => 'Campobasso', 'istat_code' => Str::random(6)]);

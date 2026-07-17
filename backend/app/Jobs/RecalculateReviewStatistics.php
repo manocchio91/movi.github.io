@@ -2,9 +2,9 @@
 
 namespace App\Jobs;
 
+use App\Models\EventStatistic;
 use App\Models\Review;
 use App\Models\ReviewStatistic;
-use App\Models\EventStatistic;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
