@@ -27,7 +27,6 @@ class CustomerHomeScreen extends ConsumerWidget {
         ),
       ],
       children: [
-        Text(user.area, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 16),
         TextField(
           decoration: const InputDecoration(

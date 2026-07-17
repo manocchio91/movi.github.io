@@ -1,80 +1,55 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/app_role.dart';
-
-class DemoUser {
-  const DemoUser({
-    required this.email,
-    required this.name,
-    required this.role,
-    required this.area,
-  });
-
-  final String email;
-  final String name;
-  final AppRole role;
-  final String area;
-}
+import '../network/api_client.dart';
+import 'authentication_repository.dart';
 
 class AuthState {
-  const AuthState({this.user, this.error});
-
-  final DemoUser? user;
+  const AuthState({this.user, this.error, this.isLoading = false});
+  final AuthUser? user;
   final String? error;
-
+  final bool isLoading;
   bool get isAuthenticated => user != null;
 }
 
 class AuthController extends Notifier<AuthState> {
-  static const demoPassword = 'password';
+  late final AuthenticationRepository _repository;
 
   @override
-  AuthState build() => const AuthState();
-
-  void login({required String email, required String password}) {
-    if (password != demoPassword) {
-      state = const AuthState(error: 'Credenziali demo non valide.');
-      return;
-    }
-
-    final normalized = email.trim().toLowerCase();
-    if (normalized == 'customer@demo.it') {
-      state = const AuthState(
-        user: DemoUser(
-          email: 'customer@demo.it',
-          name: 'Giulia',
-          role: AppRole.customer,
-          area: 'Campobasso e dintorni',
-        ),
-      );
-      return;
-    }
-    if (normalized == 'organizer@demo.it') {
-      state = const AuthState(
-        user: DemoUser(
-          email: 'organizer@demo.it',
-          name: 'Masseria Collevento',
-          role: AppRole.organizer,
-          area: 'Termoli',
-        ),
-      );
-      return;
-    }
-
-    state = const AuthState(error: 'Usa uno degli account demo disponibili.');
+  AuthState build() {
+    _repository = ref.read(authenticationRepositoryProvider);
+    Future<void>.microtask(_restoreSession);
+    return const AuthState(isLoading: true);
   }
 
-  void loginAs(AppRole role) {
-    switch (role) {
-      case AppRole.customer:
-        login(email: 'customer@demo.it', password: demoPassword);
-      case AppRole.organizer:
-        login(email: 'organizer@demo.it', password: demoPassword);
+  Future<void> _restoreSession() async {
+    final user = await _repository.currentUser();
+    state = AuthState(user: user);
+  }
+
+  Future<void> login({required String email, required String password}) async {
+    if (email.trim().isEmpty || password.isEmpty) {
+      state = const AuthState(error: 'Inserisci email e password.');
+      return;
+    }
+    state = const AuthState(isLoading: true);
+    try {
+      final user = await _repository.login(email: email, password: password);
+      state = AuthState(user: user);
+    } on AuthenticationException catch (error) {
+      state = AuthState(error: error.message);
     }
   }
 
-  void logout() => state = const AuthState();
+  Future<void> logout() async {
+    state = AuthState(user: state.user, isLoading: true);
+    await _repository.logout();
+    state = const AuthState();
+  }
 }
 
+final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
+final authenticationRepositoryProvider = Provider<AuthenticationRepository>(
+  (ref) => AuthenticationRepository(ref.watch(apiClientProvider)),
+);
 final authControllerProvider =
     NotifierProvider<AuthController, AuthState>(AuthController.new);

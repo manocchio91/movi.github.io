@@ -58,3 +58,18 @@ docker compose exec app php artisan test
 docker compose exec app ./vendor/bin/pint --test
 docker compose exec app ./vendor/bin/phpstan analyse --memory-limit=1G
 ```
+
+## Mobile Authentication Integration
+
+- Flutter autentica Customer e Organizer tramite il backend Laravel reale.
+- Laravel Sanctum emette un personal access token opaco, inviato come Bearer token alle richieste protette.
+- Il login Customer reale è verificato con redirect alla shell Customer.
+- Il login Organizer reale è verificato con redirect alla shell Organizer.
+- `GET /api/v1/me` ripristina e valida l'utente autenticato.
+- `POST /api/v1/auth/logout` revoca il token corrente e riporta l'app al login.
+- Il token è persistito localmente tramite `SharedPreferences`; al riavvio l'app valida la sessione con `/me`.
+- Il routing Flutter usa il ruolo restituito da Laravel: `customer` verso `/customer`, `organizer` verso `/organizer`.
+- `DevelopmentDemoUsersSeeder` crea in modo idempotente e solo in ambiente locale gli account Customer e Organizer di sviluppo; il profilo Organizer è verificato.
+- `flutter analyze` non rileva problemi.
+- I 3 widget test Flutter sono verdi.
+- La build Flutter Web è verde.

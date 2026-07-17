@@ -13,8 +13,8 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _email = TextEditingController(text: 'customer@demo.it');
-  final _password = TextEditingController(text: 'password');
+  final _email = TextEditingController();
+  final _password = TextEditingController();
 
   @override
   void dispose() {
@@ -60,63 +60,42 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     bottom: 22,
                     child: Text(
                       'Eventi Locali\nMolise',
-                      style:
-                          Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.w900,
-                                color: scheme.onPrimaryContainer,
-                              ),
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineMedium
+                          ?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            color: scheme.onPrimaryContainer,
+                          ),
                     ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 28),
-            Text('Accedi alla preview mobile',
+            Text('Accedi',
                 style: Theme.of(context)
                     .textTheme
                     .headlineSmall
                     ?.copyWith(fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
-            const Text(
-                'Account demo per navigare Customer App e Organizer App. Il selettore è solo per sviluppo.'),
+            const Text('Inserisci le credenziali del tuo account.'),
             const SizedBox(height: 24),
-            SegmentedButton<AppRole>(
-              segments: const [
-                ButtonSegment(
-                    value: AppRole.customer,
-                    label: Text('Customer'),
-                    icon: Icon(Icons.person_rounded)),
-                ButtonSegment(
-                    value: AppRole.organizer,
-                    label: Text('Organizer'),
-                    icon: Icon(Icons.storefront_rounded)),
-              ],
-              selected: {
-                _email.text.contains('organizer')
-                    ? AppRole.organizer
-                    : AppRole.customer
-              },
-              onSelectionChanged: (value) {
-                final role = value.first;
-                setState(() {
-                  _email.text = role == AppRole.customer
-                      ? 'customer@demo.it'
-                      : 'organizer@demo.it';
-                });
-              },
-            ),
-            const SizedBox(height: 16),
             TextField(
               controller: _email,
+              enabled: !auth.isLoading,
               keyboardType: TextInputType.emailAddress,
+              autofillHints: const [AutofillHints.email],
               decoration: const InputDecoration(
-                  labelText: 'Email demo',
-                  prefixIcon: Icon(Icons.mail_rounded)),
+                  labelText: 'Email', prefixIcon: Icon(Icons.mail_rounded)),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _password,
+              enabled: !auth.isLoading,
               obscureText: true,
+              autofillHints: const [AutofillHints.password],
+              onSubmitted: auth.isLoading ? null : (_) => _login(),
               decoration: const InputDecoration(
                   labelText: 'Password', prefixIcon: Icon(Icons.lock_rounded)),
             ),
@@ -126,38 +105,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ],
             const SizedBox(height: 20),
             FilledButton.icon(
-              onPressed: () => ref.read(authControllerProvider.notifier).login(
-                    email: _email.text,
-                    password: _password.text,
-                  ),
-              icon: const Icon(Icons.login_rounded),
-              label: const Text('Entra'),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => ref
-                        .read(authControllerProvider.notifier)
-                        .loginAs(AppRole.customer),
-                    child: const Text('Customer demo'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => ref
-                        .read(authControllerProvider.notifier)
-                        .loginAs(AppRole.organizer),
-                    child: const Text('Organizer demo'),
-                  ),
-                ),
-              ],
+              onPressed: auth.isLoading ? null : _login,
+              icon: auth.isLoading
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.login_rounded),
+              label: Text(auth.isLoading ? 'Accesso...' : 'Entra'),
             ),
           ],
         ),
       ),
     );
+  }
+
+  void _login() {
+    ref.read(authControllerProvider.notifier).login(
+          email: _email.text,
+          password: _password.text,
+        );
   }
 }
