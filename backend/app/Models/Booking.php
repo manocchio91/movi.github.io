@@ -13,11 +13,12 @@ class Booking extends Model
         'ulid', 'user_id', 'event_id', 'status', 'total_people', 'adults_count',
         'children_count', 'total_price_cents', 'children_age_ranges', 'dietary_needs',
         'accessibility_needs', 'notes', 'booking_code', 'qr_token_hash', 'booked_at',
+        'qr_token_encrypted',
         'cancelled_at', 'cancellation_reason', 'cancelled_by_user_id',
         'idempotency_key', 'event_terms_accepted',
     ];
 
-    protected $hidden = ['qr_token_hash', 'idempotency_key'];
+    protected $hidden = ['qr_token_hash', 'qr_token_encrypted', 'idempotency_key'];
 
     protected function casts(): array
     {
@@ -26,6 +27,7 @@ class Booking extends Model
             'booked_at' => 'datetime',
             'cancelled_at' => 'datetime',
             'event_terms_accepted' => 'boolean',
+            'qr_token_encrypted' => 'encrypted',
         ];
     }
 

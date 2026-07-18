@@ -208,7 +208,9 @@ paths:
         - { name: event, in: path, required: true, schema: { type: string } }
         - { name: Idempotency-Key, in: header, schema: { type: string } }
       responses:
-        "201": { description: Prenotazione confermata }
+        "201": { description: Prenotazione confermata; include qr_token, anche nei retry idempotenti }
+        "401": { description: Autenticazione richiesta }
+        "403": { description: Solo Customer }
         "422": { description: Posti non disponibili o richiesta non valida }
   /me/bookings:
     get:
@@ -225,6 +227,32 @@ paths:
       responses:
         "200": { description: Prenotazione }
         "403": { description: Prenotazione altrui }
+  /me/bookings/{booking}/qr:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Recupera il token QR persistente della prenotazione Customer
+      description: Il token resta recuperabile dopo il check-in, ma non può essere riutilizzato. Hash e ciphertext non sono mai esposti.
+      parameters:
+        - { name: booking, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Token QR della prenotazione
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [booking_ulid, qr_token]
+                    properties:
+                      booking_ulid: { type: string }
+                      qr_token: { type: string, minLength: 32 }
+        "401": { description: Autenticazione richiesta }
+        "403": { description: Prenotazione altrui o ruolo non Customer }
+        "404": { description: Prenotazione non trovata }
+        "409": { description: Booking legacy senza token QR recuperabile }
   /me/bookings/{booking}/cancel:
     post:
       security: [{ bearerAuth: [] }]

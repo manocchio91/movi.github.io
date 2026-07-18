@@ -63,6 +63,7 @@ Route::prefix('v1')->group(function (): void {
             Route::post('/events/{event:ulid}/reviews', [ReviewController::class, 'store']);
             Route::get('/me/bookings', [BookingController::class, 'index']);
             Route::get('/me/bookings/{booking:ulid}', [BookingController::class, 'show']);
+            Route::get('/me/bookings/{booking:ulid}/qr', [BookingController::class, 'qr']);
             Route::post('/me/bookings/{booking:ulid}/cancel', [BookingController::class, 'cancel']);
             Route::get('/me/favorites', [FavoriteController::class, 'index']);
             Route::post('/me/favorites/{event:ulid}', [FavoriteController::class, 'store']);

@@ -272,16 +272,16 @@ class EventDetailScreen extends ConsumerWidget {
   }
 }
 
-class BookingFlowScreen extends StatefulWidget {
-  const BookingFlowScreen({super.key, required this.id});
+class DemoBookingFlowScreen extends StatefulWidget {
+  const DemoBookingFlowScreen({super.key, required this.id});
 
   final String id;
 
   @override
-  State<BookingFlowScreen> createState() => _BookingFlowScreenState();
+  State<DemoBookingFlowScreen> createState() => _BookingFlowScreenState();
 }
 
-class _BookingFlowScreenState extends State<BookingFlowScreen> {
+class _BookingFlowScreenState extends State<DemoBookingFlowScreen> {
   int adults = 2;
   int kids = 0;
   bool accepted = false;
@@ -426,8 +426,8 @@ class SuccessEventsScreen extends ConsumerWidget {
   }
 }
 
-class BookingsScreen extends ConsumerWidget {
-  const BookingsScreen({super.key});
+class DemoBookingsScreen extends ConsumerWidget {
+  const DemoBookingsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

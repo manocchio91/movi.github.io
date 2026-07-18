@@ -44,4 +44,17 @@ class BookingController extends Controller
 
         return response()->json(['data' => $cancelBooking->handle($booking)]);
     }
+
+    public function qr(Booking $booking): JsonResponse
+    {
+        abort_unless($booking->user_id === request()->user()->id, 403);
+        abort_if($booking->qr_token_encrypted === null, 409, 'QR non disponibile per questa prenotazione.');
+
+        return response()->json([
+            'data' => [
+                'booking_ulid' => $booking->ulid,
+                'qr_token' => $booking->qr_token_encrypted,
+            ],
+        ]);
+    }
 }

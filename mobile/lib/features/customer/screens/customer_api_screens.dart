@@ -330,10 +330,13 @@ class CustomerApiEventDetailScreen extends ConsumerWidget {
       bottomNavigationBar: SafeArea(
           minimum: const EdgeInsets.all(16),
           child: FilledButton.icon(
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Funzione in arrivo'))),
+            onPressed: result.valueOrNull?.availableSeats == 0
+                ? null
+                : () => context.push('/customer/events/$id/book'),
             icon: const Icon(Icons.confirmation_number_rounded),
-            label: const Text('Prenota · Funzione in arrivo'),
+            label: Text(result.valueOrNull?.availableSeats == 0
+                ? 'Evento esaurito'
+                : 'Prenota'),
           )),
       body: SafeArea(
           child: result.when(

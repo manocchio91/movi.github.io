@@ -44,6 +44,7 @@ Filtri eventi: `q` (ricerca case-insensitive in titolo e descrizione), `category
 - `POST /reviews/{review}/report`
 - `GET /me/bookings`
 - `GET /me/bookings/{booking}`
+- `GET /me/bookings/{booking}/qr`
 - `POST /me/bookings/{booking}/cancel`
 - `GET /me/notifications`
 - `POST /me/notifications/{notification}/read`
@@ -51,7 +52,9 @@ Filtri eventi: `q` (ricerca case-insensitive in titolo e descrizione), `category
 - `POST /organizers/{organizer}/follow`
 - `DELETE /organizers/{organizer}/follow`
 
-Per `POST /events/{event}/bookings` usare `Idempotency-Key` per evitare prenotazioni duplicate.
+Per `POST /events/{event}/bookings` usare `Idempotency-Key` per evitare prenotazioni duplicate. Un retry restituisce lo stesso booking e lo stesso `qr_token`, senza decrementare nuovamente disponibilita evento o ticket. Il vincolo univoco database resta la protezione finale in caso di collisione concorrente.
+
+Il QR usa un token casuale ad alta entropia. Il database conserva separatamente l'hash per il check-in e il valore cifrato reversibile per il Customer; nessuno dei due campi interni viene serializzato. `GET /me/bookings/{booking}/qr` restituisce il token solo al proprietario autenticato. Un booking legacy privo del valore cifrato riceve `409`; dopo il check-in il token resta recuperabile, ma un secondo utilizzo viene rifiutato dal backend.
 
 Per `POST /events/{event}/reviews` l'utente deve avere una prenotazione confermata e avere partecipato: check-in effettuato, booking completato oppure evento concluso. Ogni prenotazione/evento puo generare una sola recensione e l'organizzatore non puo recensire i propri eventi.
 

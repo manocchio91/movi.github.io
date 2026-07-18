@@ -30,6 +30,7 @@ class ApiEvent {
     required this.notIncluded,
     required this.importantInformation,
     required this.cancellationPolicy,
+    required this.ticketTypes,
     this.rating,
   });
 
@@ -68,6 +69,7 @@ class ApiEvent {
       notIncluded: _strings(json['not_included']),
       importantInformation: _string(json['important_information']),
       cancellationPolicy: _string(json['cancellation_policy']),
+      ticketTypes: tickets.map(TicketType.fromJson).toList(growable: false),
       rating: _doubleOrNull(json['average_rating']),
     );
   }
@@ -90,6 +92,7 @@ class ApiEvent {
   final List<String> notIncluded;
   final String importantInformation;
   final String cancellationPolicy;
+  final List<TicketType> ticketTypes;
   final double? rating;
 
   String get category => categories.isEmpty ? '' : categories.first.name;
@@ -107,6 +110,42 @@ class ApiEvent {
     if (minimumPriceCents == null) return 'Prezzo non disponibile';
     return 'Da €${(minimumPriceCents! / 100).toStringAsFixed(2)}';
   }
+}
+
+class TicketType {
+  const TicketType({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.priceCents,
+    required this.maxQuantity,
+    required this.bookedQuantity,
+    required this.isActive,
+  });
+
+  factory TicketType.fromJson(Map<String, dynamic> json) => TicketType(
+        id: _int(json['id']),
+        name: _string(json['name']),
+        description: _string(json['description']),
+        priceCents: _int(json['price_cents']),
+        maxQuantity: _nullableInt(json['max_quantity']),
+        bookedQuantity: _int(json['booked_quantity']),
+        isActive: json['is_active'] == true || json['is_active'] == 1,
+      );
+
+  final int id;
+  final String name;
+  final String description;
+  final int priceCents;
+  final int? maxQuantity;
+  final int bookedQuantity;
+  final bool isActive;
+
+  int? get availableQuantity => maxQuantity == null
+      ? null
+      : (maxQuantity! - bookedQuantity).clamp(0, maxQuantity!);
+  bool get isAvailable =>
+      isActive && (availableQuantity == null || availableQuantity! > 0);
 }
 
 class EventPage {
@@ -175,6 +214,11 @@ List<Map<String, dynamic>> _maps(dynamic value) => value is List
     : const [];
 String _string(dynamic value) => value is String ? value : '';
 int _int(dynamic value) => value is int ? value : int.tryParse('$value') ?? 0;
+int? _nullableInt(dynamic value) => value == null
+    ? null
+    : value is int
+        ? value
+        : int.tryParse('$value');
 double? _doubleOrNull(dynamic value) =>
     value is num ? value.toDouble() : double.tryParse('$value');
 List<String> _strings(dynamic value) {

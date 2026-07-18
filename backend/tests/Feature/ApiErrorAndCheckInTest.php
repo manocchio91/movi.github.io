@@ -60,6 +60,11 @@ class ApiErrorAndCheckInTest extends TestCase
             ->assertJsonMissingPath('data.booking')
             ->assertJsonMissingPath('data.id');
 
+        $this->actingAs($customer, 'sanctum')
+            ->getJson('/api/v1/me/bookings/'.$response->json('data.ulid').'/qr')
+            ->assertOk()
+            ->assertJsonPath('data.qr_token', $token);
+
         $this->actingAs($organizer, 'sanctum')
             ->postJson("/api/v1/organizer/events/{$event->ulid}/check-ins", ['qr_token' => $token])
             ->assertConflict()

@@ -6,6 +6,8 @@ import '../../features/auth/login_screen.dart';
 import '../../features/customer/customer_shell.dart';
 import '../../features/customer/screens/customer_screens.dart';
 import '../../features/customer/screens/customer_api_screens.dart';
+import '../../features/customer/booking/booking_flow_screen.dart';
+import '../../features/customer/booking/booking_list_screen.dart';
 import '../../features/organizer/organizer_shell.dart';
 import '../../features/organizer/screens/organizer_screens.dart';
 import '../auth/auth_controller.dart';
@@ -93,7 +95,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [
             GoRoute(
               path: '/customer/bookings',
-              builder: (_, __) => const BookingsScreen(),
+              builder: (_, __) => const CustomerBookingsScreen(),
+              routes: [
+                GoRoute(
+                  path: ':id',
+                  parentNavigatorKey: _rootKey,
+                  builder: (_, state) => CustomerBookingDetailScreen(
+                    bookingUlid: state.pathParameters['id']!,
+                  ),
+                ),
+              ],
             ),
           ]),
           StatefulShellBranch(routes: [
