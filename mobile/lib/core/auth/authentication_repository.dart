@@ -93,6 +93,8 @@ class AuthenticationRepository {
     }
   }
 
+  Future<String?> accessToken() => _readToken();
+
   Future<void> _saveToken(String token) async =>
       (await SharedPreferences.getInstance()).setString(_tokenKey, token);
   Future<String?> _readToken() async =>

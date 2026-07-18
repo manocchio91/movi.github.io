@@ -24,6 +24,7 @@ paths:
     get:
       summary: Eventi pubblicati
       parameters:
+        - { name: q, in: query, description: Ricerca case-insensitive in titolo e descrizione, schema: { type: string, maxLength: 200 } }
         - { name: category_id, in: query, schema: { type: integer } }
         - { name: province_id, in: query, schema: { type: integer } }
         - { name: municipality_id, in: query, schema: { type: integer } }

@@ -22,7 +22,7 @@ Base path: `/api/v1`
 - `GET /subscription-plans`
 - `GET /organizers/{organizer}`
 
-Filtri eventi: `category_id`, `province_id`, `municipality_id`, `date`, `free`, `available`.
+Filtri eventi: `q` (ricerca case-insensitive in titolo e descrizione), `category_id`, `province_id`, `municipality_id`, `date`, `free`, `available`. I filtri sono combinabili e la risposta mantiene la paginazione standard Laravel.
 
 ## Cliente
 - `GET /customer/dashboard`

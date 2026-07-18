@@ -2,12 +2,17 @@ import 'package:eventi_locali_mobile/core/auth/auth_controller.dart';
 import 'package:eventi_locali_mobile/core/auth/authentication_repository.dart';
 import 'package:eventi_locali_mobile/core/models/app_role.dart';
 import 'package:eventi_locali_mobile/core/network/api_client.dart';
+import 'package:eventi_locali_mobile/features/customer/data/customer_repositories.dart';
 import 'package:eventi_locali_mobile/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('customer API errors expose a readable message', () {
+    expect(const CustomerApiException('Errore API').toString(), 'Errore API');
+  });
+
   testWidgets('shows real login screen', (tester) async {
     await _pumpApp(tester);
 
@@ -20,7 +25,8 @@ void main() {
 
   testWidgets('real customer login opens customer shell', (tester) async {
     await _pumpApp(tester);
-    await tester.enterText(find.byType(TextField).first, 'customer@example.test');
+    await tester.enterText(
+        find.byType(TextField).first, 'customer@example.test');
     await tester.enterText(find.byType(TextField).last, 'password');
     await tester.tap(find.text('Entra'));
     await tester.pumpAndSettle();
@@ -31,7 +37,8 @@ void main() {
 
   testWidgets('real organizer login opens organizer shell', (tester) async {
     await _pumpApp(tester);
-    await tester.enterText(find.byType(TextField).first, 'organizer@example.test');
+    await tester.enterText(
+        find.byType(TextField).first, 'organizer@example.test');
     await tester.enterText(find.byType(TextField).last, 'password');
     await tester.tap(find.text('Entra'));
     await tester.pumpAndSettle();
@@ -47,6 +54,7 @@ Future<void> _pumpApp(WidgetTester tester) async {
   await tester.pumpWidget(ProviderScope(
     overrides: [
       authenticationRepositoryProvider.overrideWithValue(_TestAuthRepository()),
+      apiClientProvider.overrideWithValue(_TestApiClient()),
     ],
     child: const EventiLocaliApp(),
   ));
@@ -61,13 +69,41 @@ class _TestAuthRepository extends AuthenticationRepository {
   Future<AuthUser?> currentUser() async => null;
 
   @override
-  Future<AuthUser> login({required String email, required String password}) async {
-    final role = email.startsWith('organizer')
-        ? AppRole.organizer
-        : AppRole.customer;
+  Future<AuthUser> login(
+      {required String email, required String password}) async {
+    final role =
+        email.startsWith('organizer') ? AppRole.organizer : AppRole.customer;
     return AuthUser(name: 'Test User', email: email, role: role);
   }
 
   @override
   Future<void> logout() async {}
+
+  @override
+  Future<String?> accessToken() async => 'test-token';
+}
+
+class _TestApiClient extends ApiClient {
+  @override
+  Future<ApiResponse> get(String path, {String? token}) async {
+    if (path == '/categories') {
+      return const ApiResponse(statusCode: 200, body: {
+        'data': [
+          {'id': 1, 'name': 'Enogastronomia'}
+        ]
+      });
+    }
+    if (path.startsWith('/customer/successful-events')) {
+      return const ApiResponse(statusCode: 200, body: {'data': []});
+    }
+    if (path.startsWith('/events')) {
+      return const ApiResponse(statusCode: 200, body: {
+        'data': [],
+        'current_page': 1,
+        'last_page': 1,
+        'total': 0,
+      });
+    }
+    return const ApiResponse(statusCode: 404, body: {'message': 'Not found'});
+  }
 }

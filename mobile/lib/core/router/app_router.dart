@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/customer/customer_shell.dart';
 import '../../features/customer/screens/customer_screens.dart';
+import '../../features/customer/screens/customer_api_screens.dart';
 import '../../features/organizer/organizer_shell.dart';
 import '../../features/organizer/screens/organizer_screens.dart';
 import '../auth/auth_controller.dart';
@@ -48,13 +49,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/customer',
-                builder: (_, __) => const CustomerHomeScreen(),
+                builder: (_, __) => const CustomerApiHomeScreen(),
                 routes: [
                   GoRoute(
                     path: 'events/:id',
                     parentNavigatorKey: _rootKey,
-                    builder: (_, state) =>
-                        EventDetailScreen(id: state.pathParameters['id']!),
+                    builder: (_, state) => CustomerApiEventDetailScreen(
+                        id: state.pathParameters['id']!),
                   ),
                   GoRoute(
                     path: 'events/:id/book',
@@ -80,13 +81,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [
             GoRoute(
               path: '/customer/all-events',
-              builder: (_, __) => const AllEventsScreen(),
+              builder: (_, __) => const CustomerApiAllEventsScreen(),
             ),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(
               path: '/customer/success',
-              builder: (_, __) => const SuccessEventsScreen(),
+              builder: (_, __) => const CustomerApiSuccessEventsScreen(),
             ),
           ]),
           StatefulShellBranch(routes: [

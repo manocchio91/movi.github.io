@@ -149,3 +149,34 @@ Integrazione della Home Customer con le API Laravel reali, mantenendo separati a
 6. **Test end-to-end**: ampliare widget test, test repository/API con fake controllati e scenari browser/Android completi per customer e organizer.
 
 Il primo gruppo consigliato è **build e configurazione**: risolvere il conflitto della porta `8081`, definire una configurazione ambiente esplicita per `http://localhost:8080` su web e rendere ripetibile l'avvio prima di collegare autenticazione o feature reali.
+## Customer Home API Integration
+
+La Home Customer e le schermate di scoperta non usano più il repository demo. Il client HTTP e il token Sanctum restano quelli introdotti nella fase di autenticazione.
+
+### Endpoint usati
+
+| Metodo | Endpoint | Autenticazione | Uso e parametri |
+|---|---|---|---|
+| GET | `/categories` | No | Macro-categorie attive. Risposta `{data: [...]}`. |
+| GET | `/events` | No | Eventi pubblicati, paginati (15 per pagina). Usa `page`, `q` e `category_id`; il backend supporta inoltre `province_id`, `municipality_id`, `date`, `free`, `available`. |
+| GET | `/events/{ulid}` | No | Dettaglio di un evento pubblicato; 404 per eventi non pubblici o ULID inesistente. |
+| GET | `/customer/successful-events` | Sanctum, ruolo customer | Eventi conclusi ammessi dal feed di successo. Supporta i filtri e l'ordinamento documentati in OpenAPI. |
+
+`GET /events` conserva la paginazione Laravel (`data`, `current_page`, `last_page`, `per_page`, `total` e link) e ora accetta `q`: stringa opzionale, massimo 200 caratteri, ricerca PostgreSQL case-insensitive su titolo e descrizione. Valori vuoti o di soli spazi non filtrano la lista.
+
+### Schermate collegate
+
+| Componente | Dato precedente | API reale | Stato |
+|---|---|---|---|
+| Home Customer | `DemoRepository.events` e `macroAreas` | `/events`, `/categories`, `/customer/successful-events` | Collegato |
+| Tutti gli Eventi | Lista in-memory | `/events`, con ricerca, categoria e `page` | Collegato |
+| Barra di ricerca | Navigazione senza ricerca | `/events?q=...` con debounce 400 ms | Collegato |
+| Eventi di Successo | `DemoRepository.successEvents` | `/customer/successful-events` | Collegato |
+| Card evento Customer | `LocalEvent` demo | DTO `ApiEvent` | Collegato |
+| Dettaglio evento | Lookup in-memory con fallback demo | `/events/{ulid}` | Collegato |
+
+Sono presenti stati di caricamento, errore con retry, lista vuota, pull-to-refresh della Home e caricamento delle pagine successive. I campi API assenti non vengono sostituiti con dati inventati: immagini mancanti usano un placeholder neutro, rating e prezzo sono omessi o dichiarati non disponibili. Il pulsante Prenota non avvia alcun flusso e mostra “Funzione in arrivo”.
+
+I mock Organizer, prenotazioni, recensioni e preferenze non inclusi in questa fase restano invariati. Non è stato aggiunto un seeder: il database Docker locale non era verificabile perché Docker Desktop non risultava attivo durante l'integrazione.
+
+Problemi residui: il backend non espone immagini evento; la lista pubblica non include rating; i filtri territoriali e data sono disponibili nel repository API ma non sono stati aggiunti alla UI oltre al design attuale. La prossima fase consigliata è l'integrazione della prenotazione reale.

@@ -4,17 +4,22 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\EventStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\IndexEventRequest;
 use App\Models\Event;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class EventController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(IndexEventRequest $request): JsonResponse
     {
+        $search = trim((string) $request->validated('q', ''));
+
         $events = Event::query()
             ->with(['categories', 'municipality', 'organizerProfile', 'ticketTypes'])
             ->where('status', EventStatus::Published)
+            ->when($search !== '', fn ($q) => $q->where(fn ($event) => $event
+                ->where('title', 'ilike', "%{$search}%")
+                ->orWhere('description', 'ilike', "%{$search}%")))
             ->when($request->filled('category_id'), fn ($q) => $q->whereHas('categories', fn ($c) => $c->whereKey($request->integer('category_id'))))
             ->when($request->filled('province_id'), fn ($q) => $q->whereHas('municipality', fn ($m) => $m->where('province_id', $request->integer('province_id'))))
             ->when($request->filled('municipality_id'), fn ($q) => $q->where('municipality_id', $request->integer('municipality_id')))
