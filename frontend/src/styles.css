@@ -709,6 +709,11 @@ button {
   color: #0f766e;
 }
 
+.status-published {
+  background: #e5f5ef;
+  color: #0f766e;
+}
+
 .status-chiuso {
   background: #eef1f4;
   color: #415062;
@@ -720,10 +725,29 @@ button {
   color: #9b2f1e;
 }
 
+.status-cancelled,
+.status-rejected,
+.status-suspended {
+  background: #ffe9e4;
+  color: #9b2f1e;
+}
+
 .status-bozza,
 .status-in-attesa-di-approvazione {
   background: #fff4cf;
   color: #775407;
+}
+
+.status-draft,
+.status-pending_review {
+  background: #fff4cf;
+  color: #775407;
+}
+
+.status-completed,
+.status-archived {
+  background: #eef1f4;
+  color: #415062;
 }
 
 .event-management-card {
@@ -755,6 +779,46 @@ button {
   font-size: 0.76rem;
   margin-top: 0;
   padding: 8px 9px;
+}
+
+.organizer-event-filters button.active {
+  background: #0f766e;
+  border-color: #0f766e;
+  color: white;
+}
+
+.organizer-events-state {
+  margin-top: 16px;
+}
+
+.organizer-events-pagination {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.organizer-events-pagination button {
+  background: #0f766e;
+  border: 0;
+  border-radius: 12px;
+  color: white;
+  font-weight: 900;
+  padding: 10px 14px;
+}
+
+.organizer-events-pagination button:disabled,
+.organizer-event-filters button:disabled,
+.action-row button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.organizer-events-pagination span {
+  color: #425258;
+  font-size: 0.9rem;
+  font-weight: 800;
 }
 
 .filter-strip,
@@ -963,6 +1027,12 @@ button {
 
   .role-shell {
     grid-template-columns: 1fr;
+  }
+
+  .organizer-events-pagination {
+    align-items: stretch;
+    flex-direction: column;
+    text-align: center;
   }
 
   .app-header {

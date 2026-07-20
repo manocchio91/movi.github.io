@@ -10,9 +10,9 @@ class OrganizerDashboardMetrics
 {
     private const VALID_BOOKING_STATUSES = ['confirmed', 'checked_in', 'completed'];
 
-    private const OPERATIONAL_EVENT_STATUSES = [EventStatus::Published->value, EventStatus::SoldOut->value];
+    public const OPERATIONAL_EVENT_STATUSES = [EventStatus::Published->value, EventStatus::SoldOut->value];
 
-    private const UNPUBLISHED_EVENT_STATUSES = [
+    public const UNPUBLISHED_EVENT_STATUSES = [
         EventStatus::Draft->value,
         EventStatus::PendingReview->value,
         EventStatus::Rejected->value,

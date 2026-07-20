@@ -83,3 +83,15 @@ Contesto: il browser integrato può non esporre una sessione utilizzabile durant
 Decisione: in tale caso il Browser QA può essere eseguito manualmente dall'utente e registrato esplicitamente nel report di milestone.
 
 Conseguenze: il collaudo non viene dichiarato automatico e resta distinta la responsabilità della verifica manuale.
+
+## ADR-008
+
+### Filtri e paginazione delle liste reali sono server-side
+
+Stato: Accepted
+
+Contesto: filtrare o paginare nel browser una sola pagina produce elenchi incompleti e classificazioni incoerenti.
+
+Decisione: applicare filtri, ordinamento e paginazione nell'endpoint backend; il frontend invia i parametri correnti e visualizza i metadati restituiti.
+
+Conseguenze: ogni cambio filtro genera una nuova richiesta, torna alla pagina 1 e non riutilizza dati appartenenti al filtro precedente.

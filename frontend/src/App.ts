@@ -61,6 +61,52 @@ type OrganizerDashboardResponse = {
   data: OrganizerDashboardData;
 };
 
+type OrganizerEventStatus = 'draft' | 'pending_review' | 'published' | 'sold_out' | 'cancelled' | 'completed' | 'rejected' | 'suspended' | 'archived';
+type OrganizerEventFilter = 'future' | 'completed' | 'unpublished';
+
+type OrganizerEvent = {
+  ulid: string;
+  title: string;
+  status: OrganizerEventStatus;
+  starts_at: string;
+  ends_at: string | null;
+  capacity_total: number;
+  available_total: number;
+};
+
+type OrganizerEventSummary = {
+  municipality: string | null;
+  starts_at: string;
+  capacity_total: number;
+  booked_people: number;
+  available_total: number;
+  fill_rate: number;
+  checked_in_people: number;
+  no_show: number;
+  average_rating: number;
+  reviews_count: number;
+  bookings_open: boolean;
+};
+
+type OrganizerEventListItem = {
+  event: OrganizerEvent;
+  summary: OrganizerEventSummary;
+};
+
+type OrganizerEventPaginationMeta = {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+  from: number | null;
+  to: number | null;
+};
+
+type OrganizerEventListResponse = {
+  data: OrganizerEventListItem[];
+  meta: OrganizerEventPaginationMeta;
+};
+
 class ApiError extends Error {
   constructor(public readonly status: number, message: string) {
     super(message);
@@ -68,6 +114,18 @@ class ApiError extends Error {
 }
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api/v1';
+
+const organizerEventStatusLabels: Record<OrganizerEventStatus, string> = {
+  draft: 'Bozza',
+  pending_review: 'In revisione',
+  published: 'Pubblicato',
+  sold_out: 'Esaurito',
+  cancelled: 'Annullato',
+  completed: 'Concluso',
+  rejected: 'Rifiutato',
+  suspended: 'Sospeso',
+  archived: 'Archiviato',
+};
 
 const demoUsers: DemoUser[] = [
   { role: 'customer', name: 'Cliente Demo', email: 'customer@example.test', password: 'password', redirect_to: '/customer/dashboard' },
@@ -194,7 +252,16 @@ export default defineComponent({
     const dashboardLoading = ref(false);
     const dashboardError = ref('');
     const dashboardForbidden = ref(false);
-    const organizerEvents = ref<any[]>([]);
+    const organizerEvents = ref<OrganizerEventListItem[]>([]);
+    const organizerEventsLoading = ref(false);
+    const organizerEventsError = ref('');
+    const organizerEventsForbidden = ref(false);
+    const organizerEventsPage = ref(1);
+    const organizerEventsMeta = ref<OrganizerEventPaginationMeta | null>(null);
+    const organizerEventsFilter = ref<OrganizerEventFilter>('future');
+    const cancellingOrganizerEvent = ref<string | null>(null);
+    const organizerEventsLoadedKey = ref('');
+    let organizerEventsRequestId = 0;
     const reviewEvents = ref<any[]>([]);
     const calendarDays = ref<any[]>([]);
     const selectedDay = ref<any | null>(null);
@@ -242,6 +309,13 @@ export default defineComponent({
     const clearOrganizerData = () => {
       organizerDashboard.value = null;
       organizerEvents.value = [];
+      organizerEventsLoading.value = false;
+      organizerEventsError.value = '';
+      organizerEventsForbidden.value = false;
+      organizerEventsPage.value = 1;
+      organizerEventsMeta.value = null;
+      organizerEventsLoadedKey.value = '';
+      cancellingOrganizerEvent.value = null;
       reviewEvents.value = [];
       calendarDays.value = [];
       selectedDay.value = null;
@@ -283,19 +357,68 @@ export default defineComponent({
       }
     };
 
+    const loadOrganizerEvents = async (force = false) => {
+      if (role.value !== 'organizer' || !token.value) return;
+
+      const requestKey = `${organizerEventsFilter.value}:${organizerEventsPage.value}`;
+      if (!force && organizerEventsLoadedKey.value === requestKey) return;
+
+      const requestId = ++organizerEventsRequestId;
+      organizerEventsLoading.value = true;
+      organizerEventsError.value = '';
+      organizerEventsForbidden.value = false;
+      organizerEvents.value = [];
+      organizerEventsMeta.value = null;
+
+      try {
+        const query = new URLSearchParams({
+          filter: organizerEventsFilter.value,
+          page: String(organizerEventsPage.value),
+          per_page: '12',
+          sort: organizerEventsFilter.value === 'completed' ? 'desc' : 'asc',
+        });
+        const response = await api<OrganizerEventListResponse>(`/organizer/events?${query.toString()}`);
+        if (requestId !== organizerEventsRequestId) return;
+
+        organizerEvents.value = response?.data ?? [];
+        organizerEventsMeta.value = response?.meta ?? null;
+        organizerEventsLoadedKey.value = requestKey;
+        if (!response?.meta) organizerEventsError.value = 'La lista eventi non ha restituito metadati di paginazione.';
+      } catch (error) {
+        if (requestId !== organizerEventsRequestId) return;
+
+        if (error instanceof ApiError && error.status === 401) {
+          clearOrganizerData();
+          token.value = null;
+          currentUser.value = null;
+          route.value = '/login';
+          apiError.value = 'Sessione scaduta o non valida. Accedi di nuovo.';
+          return;
+        }
+
+        if (error instanceof ApiError && error.status === 403) {
+          organizerEventsForbidden.value = true;
+          organizerEventsError.value = error.message || 'Accesso non autorizzato o profilo Organizer non approvato.';
+          return;
+        }
+
+        organizerEventsError.value = error instanceof Error ? error.message : 'Impossibile caricare la lista eventi Organizer.';
+      } finally {
+        if (requestId === organizerEventsRequestId) organizerEventsLoading.value = false;
+      }
+    };
+
     const loadOrganizerData = async () => {
       if (role.value !== 'organizer' || !token.value) return;
 
       loading.value = true;
       apiError.value = '';
       try {
-        const [events, reviewGroups, availability, opportunityPayload] = await Promise.all([
-          api('/organizer/events?sort=asc'),
+        const [reviewGroups, availability, opportunityPayload] = await Promise.all([
           api('/organizer/reviews/events'),
           api(`/organizer/calendar/availability?month=${new Date().getMonth() + 1}&year=${new Date().getFullYear()}`),
           api('/organizer/opportunities'),
         ]);
-        organizerEvents.value = events?.data ?? [];
         reviewEvents.value = reviewGroups?.data ?? [];
         calendarDays.value = availability?.data ?? [];
         selectedDay.value = calendarDays.value.find((day) => day.events_count > 0) ?? calendarDays.value[0] ?? null;
@@ -361,6 +484,7 @@ export default defineComponent({
     const go = async (nextRoute: AppRoute) => {
       route.value = canAccess(role.value, nextRoute) ? nextRoute : '/unauthorized';
       if (route.value === '/organizer/dashboard') await loadOrganizerDashboard();
+      else if (route.value === '/organizer/events') await loadOrganizerEvents();
       else if (route.value.startsWith('/organizer')) await loadOrganizerData();
       if (route.value.startsWith('/customer')) await loadCustomerData();
       if (route.value.startsWith('/admin')) await loadAdminData();
@@ -434,14 +558,54 @@ export default defineComponent({
     };
 
     const cancelOrganizerEvent = async (eventUlid: string) => {
-      await api(`/organizer/events/${eventUlid}/cancel`, {
-        method: 'POST',
-        body: JSON.stringify({
-          reason_code: 'ORGANIZER_REQUEST',
-          reason: 'Annullamento richiesto dall organizzatore dalla dashboard.',
-        }),
-      });
-      await loadOrganizerData();
+      if (cancellingOrganizerEvent.value || !window.confirm('Confermi l’annullamento di questo evento?')) return;
+
+      cancellingOrganizerEvent.value = eventUlid;
+      organizerEventsError.value = '';
+      try {
+        await api(`/organizer/events/${eventUlid}/cancel`, {
+          method: 'POST',
+          body: JSON.stringify({
+            reason_code: 'ORGANIZER_REQUEST',
+            reason: 'Annullamento richiesto dall organizzatore dalla lista eventi.',
+          }),
+        });
+        organizerEventsLoadedKey.value = '';
+        await loadOrganizerEvents(true);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) {
+          clearOrganizerData();
+          token.value = null;
+          currentUser.value = null;
+          route.value = '/login';
+          apiError.value = 'Sessione scaduta o non valida. Accedi di nuovo.';
+        } else if (error instanceof ApiError && error.status === 403) {
+          organizerEventsForbidden.value = true;
+          organizerEventsError.value = error.message || 'Non sei autorizzato ad annullare questo evento.';
+          organizerEvents.value = [];
+          organizerEventsMeta.value = null;
+        } else {
+          organizerEventsError.value = error instanceof Error ? error.message : 'Impossibile annullare l’evento.';
+        }
+      } finally {
+        cancellingOrganizerEvent.value = null;
+      }
+    };
+
+    const selectOrganizerEventsFilter = async (filter: OrganizerEventFilter) => {
+      if (organizerEventsFilter.value === filter && organizerEventsPage.value === 1) return;
+      organizerEventsFilter.value = filter;
+      organizerEventsPage.value = 1;
+      organizerEventsLoadedKey.value = '';
+      await loadOrganizerEvents(true);
+    };
+
+    const changeOrganizerEventsPage = async (page: number) => {
+      const lastPage = organizerEventsMeta.value?.last_page ?? 1;
+      if (page < 1 || page > lastPage || page === organizerEventsPage.value) return;
+      organizerEventsPage.value = page;
+      organizerEventsLoadedKey.value = '';
+      await loadOrganizerEvents(true);
     };
 
     const notifySimilar = async (eventUlid: string) => {
@@ -613,40 +777,96 @@ export default defineComponent({
       ];
     };
 
-    const renderOrganizerEvents = () => [
-      h('div', { class: 'section-title' }, [h('h2', 'I miei eventi'), h('span', 'ordinati per data, solo proprietario')]),
-      h('div', { class: 'filter-strip' }, ['open', 'closed', 'cancelled', 'future'].map((status) => h('button', {
+    const renderOrganizerEvents = () => {
+      const filterLabels: Record<OrganizerEventFilter, string> = {
+        future: 'Futuri',
+        completed: 'Conclusi',
+        unpublished: 'Non pubblicati',
+      };
+      const emptyMessages: Record<OrganizerEventFilter, string> = {
+        future: 'Nessun evento futuro.',
+        completed: 'Nessun evento concluso.',
+        unpublished: 'Nessun evento non pubblicato.',
+      };
+      const filters = (Object.keys(filterLabels) as OrganizerEventFilter[]).map((filter) => h('button', {
         type: 'button',
-        onClick: async () => {
-          const payload = await api(`/organizer/events?status=${status}&sort=asc`);
-          organizerEvents.value = payload?.data ?? [];
-        },
-      }, status))),
-      organizerEvents.value.length === 0 ? emptyState() : h('div', { class: 'event-grid' }, organizerEvents.value.map((item) => h('article', { class: 'experience-card event-management-card' }, [
-        h('span', { class: `status-badge status-${String(item.summary.visual_status).toLowerCase().replaceAll(' ', '-')}` }, item.summary.visual_status),
-        h('h3', item.event.title),
-        h('p', `${item.summary.municipality ?? ''} - ${new Date(item.summary.starts_at).toLocaleString('it-IT')}`),
-        h('div', { class: 'event-stats' }, item.summary.visual_status === 'Aperto'
-          ? [
-              h('small', `Prenotati: ${item.summary.booked_people}`),
-              h('small', `Capienza: ${item.summary.capacity_total}`),
-              h('small', `Disponibili: ${item.summary.available_total}`),
-              h('small', `Riempimento: ${item.summary.fill_rate}%`),
-            ]
-          : [
-              h('small', `Prenotati: ${item.summary.booked_people}`),
-              h('small', `Partecipanti: ${item.summary.checked_in_people}`),
-              h('small', `No-show: ${item.summary.no_show}`),
-              h('small', `Rating: ${item.summary.average_rating}`),
-            ]),
-        h('div', { class: 'action-row' }, [
-          ...['Dettaglio', 'Modifica', 'Prenotazioni', 'Partecipanti', 'Recensioni', 'Statistiche'].map((label) => h('button', { type: 'button' }, label)),
-          item.event.status !== 'cancelled' && new Date(item.event.starts_at).getTime() > Date.now()
-            ? h('button', { type: 'button', class: 'danger-button', onClick: () => { void cancelOrganizerEvent(item.event.ulid); } }, 'Annulla evento')
-            : null,
-        ]),
-      ]))),
-    ];
+        class: organizerEventsFilter.value === filter ? 'active' : '',
+        disabled: organizerEventsLoading.value,
+        onClick: () => { void selectOrganizerEventsFilter(filter); },
+      }, filterLabels[filter]));
+      const header = [
+        h('div', { class: 'section-title' }, [h('h2', 'I miei eventi'), h('span', 'dati reali, filtrati e paginati dal backend')]),
+        h('div', { class: 'filter-strip organizer-event-filters' }, filters),
+      ];
+
+      if (organizerEventsLoading.value) {
+        return [...header, h('article', { class: 'wide-panel organizer-events-state' }, [
+          h('strong', 'Caricamento eventi...'),
+          h('p', `Recupero degli eventi ${filterLabels[organizerEventsFilter.value].toLowerCase()}.`),
+        ])];
+      }
+
+      if (organizerEventsError.value) {
+        return [...header, h('article', { class: ['wide-panel', 'organizer-events-state', organizerEventsForbidden.value ? 'dashboard-forbidden' : 'dashboard-error'] }, [
+          h('strong', organizerEventsForbidden.value ? 'Lista eventi non accessibile' : 'Impossibile caricare gli eventi'),
+          h('p', organizerEventsError.value),
+          organizerEventsForbidden.value ? null : h('button', { type: 'button', onClick: () => { void loadOrganizerEvents(true); } }, 'Riprova'),
+        ])];
+      }
+
+      if (organizerEvents.value.length === 0) {
+        return [...header, h('article', { class: 'wide-panel empty-state organizer-events-state' }, [
+          h('strong', emptyMessages[organizerEventsFilter.value]),
+          h('p', 'Il filtro è stato applicato dal backend.'),
+        ])];
+      }
+
+      const cards = h('div', { class: 'event-grid' }, organizerEvents.value.map((item) => {
+        const eventEndsAt = item.event.ends_at ?? item.event.starts_at;
+        const canCancel = !['cancelled', 'completed', 'archived'].includes(item.event.status)
+          && new Date(eventEndsAt).getTime() > Date.now();
+
+        return h('article', { class: 'experience-card event-management-card' }, [
+          h('span', { class: `status-badge status-${item.event.status}` }, organizerEventStatusLabels[item.event.status]),
+          h('h3', item.event.title),
+          h('p', `${item.summary.municipality ?? 'Luogo non indicato'} · ${new Date(item.summary.starts_at).toLocaleString('it-IT')}`),
+          h('div', { class: 'event-stats' }, [
+            h('small', `Prenotati: ${item.summary.booked_people}`),
+            h('small', `Capienza: ${item.summary.capacity_total}`),
+            h('small', `Disponibili: ${item.summary.available_total}`),
+            h('small', `Riempimento: ${item.summary.fill_rate}%`),
+            item.event.status === 'completed' ? h('small', `Partecipanti: ${item.summary.checked_in_people}`) : null,
+            item.event.status === 'completed' ? h('small', `Assenti: ${item.summary.no_show}`) : null,
+            item.event.status === 'completed' && item.summary.reviews_count > 0 ? h('small', `Valutazione: ${item.summary.average_rating}`) : null,
+          ]),
+          canCancel ? h('div', { class: 'action-row' }, [
+            h('button', {
+              type: 'button',
+              class: 'danger-button',
+              disabled: cancellingOrganizerEvent.value !== null,
+              onClick: () => { void cancelOrganizerEvent(item.event.ulid); },
+            }, cancellingOrganizerEvent.value === item.event.ulid ? 'Annullamento...' : 'Annulla evento'),
+          ]) : null,
+        ]);
+      }));
+
+      const meta = organizerEventsMeta.value;
+      const pagination = meta ? h('nav', { class: 'organizer-events-pagination', 'aria-label': 'Paginazione eventi' }, [
+        h('button', {
+          type: 'button',
+          disabled: meta.current_page <= 1 || organizerEventsLoading.value,
+          onClick: () => { void changeOrganizerEventsPage(meta.current_page - 1); },
+        }, 'Precedente'),
+        h('span', `Pagina ${meta.current_page} di ${meta.last_page} · ${meta.total} eventi`),
+        h('button', {
+          type: 'button',
+          disabled: meta.current_page >= meta.last_page || organizerEventsLoading.value,
+          onClick: () => { void changeOrganizerEventsPage(meta.current_page + 1); },
+        }, 'Successivo'),
+      ]) : null;
+
+      return [...header, cards, pagination];
+    };
 
     const renderCreateEvent = () => [
       h('div', { class: 'section-title' }, [h('h2', 'Crea evento'), h('span', 'calendario DB con colori backend')]),

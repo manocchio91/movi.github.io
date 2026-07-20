@@ -6,42 +6,51 @@ use App\Actions\Events\CancelEvent;
 use App\Actions\Events\CreateEvent;
 use App\Actions\Events\PublishEvent;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\IndexOrganizerEventRequest;
 use App\Http\Requests\StoreEventRequest;
 use App\Models\Event;
+use App\Services\BusinessIntelligence\OrganizerDashboardMetrics;
 use App\Services\OrganizerEventSummaryService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class OrganizerEventController extends Controller
 {
-    public function index(Request $request, OrganizerEventSummaryService $summary): JsonResponse
+    public function index(IndexOrganizerEventRequest $request, OrganizerEventSummaryService $summary): JsonResponse
     {
-        $profile = request()->user()->organizerProfile;
+        $profile = $request->user()->organizerProfile;
         abort_unless($profile !== null, 403);
 
-        $sort = $request->query('sort') === 'asc' ? 'asc' : 'desc';
-        $events = $profile->events()
+        $validated = $request->validated();
+        $filter = (string) ($validated['filter'] ?? 'all');
+        $sort = (string) ($validated['sort'] ?? 'asc');
+        $perPage = (int) ($validated['per_page'] ?? 12);
+
+        $query = $profile->events()
             ->with(['categories', 'ticketTypes', 'municipality', 'reviewStatistic'])
-            ->when($request->filled('category_id'), fn ($query) => $query->whereHas('categories', fn ($category) => $category->whereKey($request->integer('category_id'))))
-            ->when($request->filled('date_from'), fn ($query) => $query->whereDate('starts_at', '>=', $request->date('date_from')))
-            ->when($request->filled('date_to'), fn ($query) => $query->whereDate('starts_at', '<=', $request->date('date_to')))
-            ->orderBy('starts_at', $sort)
-            ->get()
-            ->map(fn (Event $event) => ['event' => $event, 'summary' => $summary->summarize($event)])
-            ->filter(function (array $item) use ($request): bool {
-                $status = $request->query('status');
+            ->when($filter === 'future', fn ($events) => $events
+                ->whereIn('status', OrganizerDashboardMetrics::OPERATIONAL_EVENT_STATUSES)
+                ->where('starts_at', '>=', now()))
+            ->when($filter === 'completed', fn ($events) => $events->where('status', 'completed'))
+            ->when($filter === 'unpublished', fn ($events) => $events->whereIn('status', OrganizerDashboardMetrics::UNPUBLISHED_EVENT_STATUSES))
+            ->when($filter === 'cancelled', fn ($events) => $events->where('status', 'cancelled'))
+            ->orderBy('starts_at', $sort);
 
-                return match ($status) {
-                    'open' => $item['summary']['visual_status'] === 'Aperto',
-                    'closed' => $item['summary']['visual_status'] === 'Chiuso',
-                    'cancelled' => $item['summary']['visual_status'] === 'Annullato',
-                    'future' => $item['event']->starts_at->isFuture(),
-                    default => true,
-                };
-            })
-            ->values();
+        $events = $query->paginate($perPage);
+        $items = $events->getCollection()->map(
+            fn (Event $event) => ['event' => $event, 'summary' => $summary->summarize($event)],
+        )->values();
 
-        return response()->json(['data' => $events]);
+        return response()->json([
+            'data' => $items,
+            'meta' => [
+                'current_page' => $events->currentPage(),
+                'last_page' => $events->lastPage(),
+                'per_page' => $events->perPage(),
+                'total' => $events->total(),
+                'from' => $events->firstItem(),
+                'to' => $events->lastItem(),
+            ],
+        ]);
     }
 
     public function store(StoreEventRequest $request, CreateEvent $createEvent): JsonResponse

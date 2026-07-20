@@ -420,8 +420,30 @@ paths:
     get:
       security: [{ bearerAuth: [] }]
       summary: Eventi del locale
+      description: Lista paginata degli eventi del solo Organizer autenticato, classificata con la stessa semantica della dashboard.
+      parameters:
+        - name: filter
+          in: query
+          schema: { type: string, enum: [all, future, completed, unpublished, cancelled], default: all }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [asc, desc], default: asc }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 12 }
       responses:
-        "200": { description: Lista eventi }
+        "200":
+          description: Lista eventi paginata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizerEventListResponse"
+        "401": { description: Token assente o non valido }
+        "403": { description: Ruolo Organizer o profilo approvato richiesto }
+        "422": { description: Parametri di filtro o paginazione non validi }
     post:
       security: [{ bearerAuth: [] }]
       summary: Crea evento con ticket type
@@ -665,6 +687,41 @@ paths:
         "204": { description: Recensione eliminata }
 components:
   schemas:
+    OrganizerEventListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            required: [event, summary]
+            properties:
+              event:
+                type: object
+                required: [ulid, title, status, starts_at, capacity_total, available_total]
+                additionalProperties: true
+                properties:
+                  ulid: { type: string }
+                  title: { type: string }
+                  status: { type: string, enum: [draft, pending_review, published, sold_out, cancelled, completed, rejected, suspended, archived] }
+                  starts_at: { type: string, format: date-time }
+                  capacity_total: { type: integer, minimum: 0 }
+                  available_total: { type: integer, minimum: 0 }
+              summary:
+                type: object
+                required: [ulid, title, status, visual_status, starts_at, capacity_total, booked_people, available_total, checked_in_people, no_show]
+                additionalProperties: true
+        meta:
+          type: object
+          required: [current_page, last_page, per_page, total, from, to]
+          properties:
+            current_page: { type: integer, minimum: 1 }
+            last_page: { type: integer, minimum: 1 }
+            per_page: { type: integer, minimum: 1, maximum: 50 }
+            total: { type: integer, minimum: 0 }
+            from: { type: [integer, "null"], minimum: 1 }
+            to: { type: [integer, "null"], minimum: 1 }
     OrganizerDashboardResponse:
       type: object
       required: [data]

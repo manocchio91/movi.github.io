@@ -352,9 +352,13 @@ class EventPlatformTest extends TestCase
         ]);
 
         $this->actingAs($organizer, 'sanctum')
-            ->getJson('/api/v1/organizer/events?sort=asc')
+            ->getJson('/api/v1/organizer/events?filter=future&sort=asc')
             ->assertOk()
-            ->assertJsonFragment(['visual_status' => 'Aperto'])
+            ->assertJsonFragment(['visual_status' => 'Aperto']);
+
+        $this->actingAs($organizer, 'sanctum')
+            ->getJson('/api/v1/organizer/events?filter=completed&sort=asc')
+            ->assertOk()
             ->assertJsonFragment(['visual_status' => 'Chiuso'])
             ->assertJsonFragment(['checked_in_people' => 3])
             ->assertJsonFragment(['no_show' => 2]);

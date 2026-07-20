@@ -15,7 +15,7 @@ APP EVENTI è una piattaforma territoriale per scoprire, pubblicare, prenotare e
 | v0.3 | Completata | Autenticazione mobile collegata al backend reale |
 | v0.4 | Completata | Customer Home, categorie ed eventi collegati alle API reali |
 | v0.5 | Completata | Booking Customer reale, idempotenza, QR, lista/dettaglio e annullamento |
-| v0.6 | Prossima | Dashboard Organizer con dati reali |
+| v0.6 | In corso | Dashboard e lista eventi Organizer con dati reali |
 | v0.7 | Pianificata, contenuto da definire | Evoluzione operativa Organizer |
 | v0.8 | Pianificata, contenuto da definire | Analytics, recensioni e strumenti di supporto Organizer |
 | v0.9 | Pianificata, contenuto da definire | Consolidamento Opportunity Engine e preparazione MVP |
@@ -25,12 +25,12 @@ APP EVENTI è una piattaforma territoriale per scoprire, pubblicare, prenotare e
 
 Ordine iniziale previsto:
 
-1. Analisi dello stato reale dell'area Organizer.
-2. Collegamento della dashboard ai dati reali.
-3. KPI principali.
-4. Lista degli eventi dell'organizzatore.
-5. Distinzione tra eventi futuri, pubblicati e conclusi.
-6. Creazione e modifica evento.
+1. Analisi dello stato reale dell'area Organizer. Completata.
+2. Collegamento della dashboard ai dati reali. Completato.
+3. KPI principali. Completati.
+4. Lista degli eventi dell'organizzatore. Completata.
+5. Distinzione tra eventi futuri, conclusi e non pubblicati. Completata.
+6. Creazione e modifica evento. Prossimo blocco.
 7. Gestione partecipanti.
 8. Check-in.
 9. Statistiche.
