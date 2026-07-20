@@ -72,6 +72,7 @@ class CustomerBooking {
     required this.items,
     required this.eventTitle,
     this.eventStartsAt,
+    this.eventEndsAt,
     this.qrToken,
   });
   factory CustomerBooking.fromJson(Map<String, dynamic> json) {
@@ -85,6 +86,7 @@ class CustomerBooking {
       items: _maps(json['items']).map(BookingItem.fromJson).toList(),
       eventTitle: _string(event?['title']),
       eventStartsAt: DateTime.tryParse(_string(event?['starts_at']))?.toLocal(),
+      eventEndsAt: DateTime.tryParse(_string(event?['ends_at']))?.toLocal(),
       qrToken: _nullableString(json['qr_token']),
     );
   }
@@ -96,13 +98,14 @@ class CustomerBooking {
   final List<BookingItem> items;
   final String eventTitle;
   final DateTime? eventStartsAt;
+  final DateTime? eventEndsAt;
   final String? qrToken;
 
   bool get isCancelled => status.startsWith('cancelled');
   bool get isCompleted =>
       status == 'completed' ||
       status == 'checked_in' ||
-      (eventStartsAt != null && eventStartsAt!.isBefore(DateTime.now()));
+      ((eventEndsAt ?? eventStartsAt)?.isBefore(DateTime.now()) ?? false);
   bool get canCancel => status == 'confirmed' && !isCompleted;
 }
 

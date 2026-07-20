@@ -173,6 +173,16 @@ void main() {
     expect(classifyBooking(cancelled), BookingGroup.cancelled);
   });
 
+  test('confirmed booking stays cancellable until the event ends', () {
+    final inProgress = _serverBooking(
+      'in-progress',
+      startsAt: DateTime.now().subtract(const Duration(hours: 1)),
+      endsAt: DateTime.now().add(const Duration(hours: 1)),
+    );
+    expect(inProgress.canCancel, isTrue);
+    expect(classifyBooking(inProgress), BookingGroup.upcoming);
+  });
+
   testWidgets('real bookings tab includes free booking and no demo data',
       (tester) async {
     final free = _serverBooking('free', price: 0, status: 'confirmed');
@@ -251,6 +261,24 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('cancel-booking')), findsNothing);
     }
+  });
+
+  testWidgets('past event hides cancellation', (tester) async {
+    final repository = _FakeBookingRepository();
+    repository.currentBooking = _serverBooking(
+      'past-event',
+      startsAt: DateTime.now().subtract(const Duration(hours: 2)),
+      endsAt: DateTime.now().subtract(const Duration(hours: 1)),
+    );
+    await tester.pumpWidget(ProviderScope(
+        overrides: [
+          bookingRepositoryProvider.overrideWithValue(repository),
+        ],
+        child: const MaterialApp(
+          home: CustomerBookingDetailScreen(bookingUlid: 'booking-past-event'),
+        )));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('cancel-booking')), findsNothing);
   });
 
   testWidgets('cancellation API error is readable', (tester) async {
@@ -374,7 +402,10 @@ Future<void> _pumpBookingFlow(WidgetTester tester, ApiEvent event) async {
 }
 
 CustomerBooking _serverBooking(String eventUlid,
-        {int price = 1500, String status = 'confirmed'}) =>
+        {int price = 1500,
+        String status = 'confirmed',
+        DateTime? startsAt,
+        DateTime? endsAt}) =>
     CustomerBooking(
       ulid: 'booking-$eventUlid',
       bookingCode: 'EVT-$eventUlid',
@@ -383,7 +414,9 @@ CustomerBooking _serverBooking(String eventUlid,
       totalPriceCents: price,
       items: const [],
       eventTitle: 'Server $eventUlid',
-      eventStartsAt: DateTime.now().add(const Duration(days: 2)),
+      eventStartsAt: startsAt ?? DateTime.now().add(const Duration(days: 2)),
+      eventEndsAt:
+          endsAt ?? DateTime.now().add(const Duration(days: 2, hours: 2)),
       qrToken: 'secure-token',
     );
 
