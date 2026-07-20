@@ -109,6 +109,13 @@ Una funzione è conclusa quando:
 5. Leggere le istruzioni `AGENTS.md`.
 6. Definire il perimetro e analizzare prima di modificare.
 
+La verifica iniziale dello stato Git deve inoltre rispettare queste regole:
+
+- non richiedere la corrispondenza esatta tra HEAD e un hash salvato in `PROJECT_STATE.md`;
+- verificare invece branch, working tree, cronologia recente e coerenza funzionale;
+- un HEAD successivo dovuto a commit documentali non è un'anomalia;
+- fermarsi soltanto in presenza di modifiche inattese, branch errato, divergenze remote o regressioni reali.
+
 ## Fine sessione
 
 1. Eseguire test e controlli proporzionati alle modifiche.

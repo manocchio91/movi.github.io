@@ -4,12 +4,15 @@
 
 ## Riferimenti correnti
 
-- Versione corrente: v0.5 — Customer booking reale con QR e annullamento
+- Versione corrente: `v0.5-customer-booking-qr`
 - Ultimo aggiornamento: 20 luglio 2026
 - Repository: `manocchio91/app-eventi`
 - Branch corrente: `wip/customer-booking-qr`
-- Ultimo commit: `257dc70 - docs: add project documentation and development workflow`
+- Ultimo commit applicativo: `c5e9605 - v0.5 - Customer booking reale con QR e annullamento`
+- Ultimo aggiornamento documentale noto: `ddee2bb - docs: align project state with repository`
 - Ultimo tag: `v0.5-customer-booking-qr`, verificato localmente sul commit `c5e9605`
+
+Il commit documentale indicato può essere precedente a HEAD quando l'ultimo commit riguarda esclusivamente l'aggiornamento di questo stesso documento. Non costituisce un blocco se HEAD è successivo e il working tree è coerente.
 
 ## Stato delle aree
 
