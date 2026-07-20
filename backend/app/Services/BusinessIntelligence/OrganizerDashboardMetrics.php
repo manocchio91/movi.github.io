@@ -8,29 +8,47 @@ use Illuminate\Support\Facades\DB;
 
 class OrganizerDashboardMetrics
 {
+    private const VALID_BOOKING_STATUSES = ['confirmed', 'checked_in', 'completed'];
+
+    private const OPERATIONAL_EVENT_STATUSES = [EventStatus::Published->value, EventStatus::SoldOut->value];
+
+    private const UNPUBLISHED_EVENT_STATUSES = [
+        EventStatus::Draft->value,
+        EventStatus::PendingReview->value,
+        EventStatus::Rejected->value,
+        EventStatus::Suspended->value,
+        EventStatus::Archived->value,
+    ];
+
     public function calculate(OrganizerProfile $profile): array
     {
         $eventIds = $profile->events()->pluck('id');
         $events = $profile->events();
-        $bookings = DB::table('bookings')->whereIn('event_id', $eventIds)->where('status', 'confirmed');
+        $operationalFutureEvents = $profile->events()
+            ->whereIn('status', self::OPERATIONAL_EVENT_STATUSES)
+            ->where('starts_at', '>=', now());
+        $bookings = DB::table('bookings')
+            ->whereIn('event_id', $eventIds)
+            ->whereIn('status', self::VALID_BOOKING_STATUSES);
         $participants = (clone $bookings)->select('user_id')->distinct()->pluck('user_id');
         $returningParticipants = DB::table('bookings')
             ->whereIn('event_id', $eventIds)
-            ->where('status', 'confirmed')
+            ->whereIn('status', self::VALID_BOOKING_STATUSES)
             ->select('user_id', DB::raw('count(*) as bookings_count'))
             ->groupBy('user_id')
-            ->having('bookings_count', '>=', 2)
+            ->havingRaw('count(*) >= 2')
             ->count();
         $uniqueParticipants = $participants->count();
 
         return [
             'published_events' => (clone $events)->where('status', EventStatus::Published->value)->count(),
-            'future_events' => (clone $events)->where('starts_at', '>=', now())->count(),
+            'future_events' => (clone $operationalFutureEvents)->count(),
             'completed_events' => (clone $events)->where('status', EventStatus::Completed->value)->count(),
+            'unpublished_events' => (clone $events)->whereIn('status', self::UNPUBLISHED_EVENT_STATUSES)->count(),
             'cancelled_events' => (clone $events)->where('status', EventStatus::Cancelled->value)->count(),
             'sold_out_events' => (clone $events)->where('status', EventStatus::SoldOut->value)->count(),
-            'available_places' => (clone $events)->sum('available_total'),
-            'occupied_places' => (clone $events)->sum('capacity_total') - (clone $events)->sum('available_total'),
+            'available_places' => (clone $operationalFutureEvents)->sum('available_total'),
+            'occupied_places' => (clone $operationalFutureEvents)->sum('capacity_total') - (clone $operationalFutureEvents)->sum('available_total'),
             'bookings_received' => (clone $bookings)->count(),
             'participants_total' => (clone $bookings)->sum('total_people'),
             'unique_participants' => $uniqueParticipants,

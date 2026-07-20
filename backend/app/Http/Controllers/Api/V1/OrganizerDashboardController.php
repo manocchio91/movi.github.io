@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Enums\EventStatus;
 use App\Http\Controllers\Controller;
 use App\Services\BusinessIntelligence\OrganizerDashboardMetrics;
 use Illuminate\Http\JsonResponse;
@@ -15,23 +14,24 @@ class OrganizerDashboardController extends Controller
         $profile = request()->user()->organizerProfile;
         abort_unless($profile !== null, 403);
 
-        $events = $profile->events();
         $eventIds = $profile->events()->pluck('id');
+        $bi = $metrics->calculate($profile);
 
         return response()->json([
             'data' => [
                 'subscription' => $profile->subscription?->load('plan.features'),
-                'bi' => $metrics->calculate($profile),
+                'bi' => $bi,
                 'category_performance' => $metrics->categoryPerformance($profile),
-                'active_experiences' => (clone $events)->whereIn('status', [EventStatus::Published->value, EventStatus::SoldOut->value])->count(),
-                'future_experiences' => (clone $events)->where('starts_at', '>=', now())->count(),
-                'completed_experiences' => (clone $events)->where('status', EventStatus::Completed->value)->count(),
-                'bookings_total' => $profile->events()->withCount('bookings')->get()->sum('bookings_count'),
-                'available_places' => (clone $events)->sum('available_total'),
-                'participants_total' => $profile->events()->withSum('bookings', 'total_people')->get()->sum('bookings_sum_total_people'),
-                'views_total' => $profile->events()->withCount('views')->get()->sum('views_count'),
+                'active_experiences' => $bi['future_events'],
+                'future_experiences' => $bi['future_events'],
+                'completed_experiences' => $bi['completed_events'],
+                'unpublished_experiences' => $bi['unpublished_events'],
+                'bookings_total' => $bi['bookings_received'],
+                'available_places' => $bi['available_places'],
+                'participants_total' => $bi['participants_total'],
+                'views_total' => $bi['views_total'],
                 'favorites_received' => DB::table('favorites')->whereIn('event_id', $eventIds)->count(),
-                'followers' => $profile->followers()->count(),
+                'followers' => $bi['followers_total'],
                 'reviews' => DB::table('reviews')->whereIn('event_id', $eventIds)->count(),
             ],
         ]);

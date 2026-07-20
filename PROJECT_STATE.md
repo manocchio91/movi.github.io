@@ -7,7 +7,7 @@
 - Versione corrente: `v0.5-customer-booking-qr`
 - Ultimo aggiornamento: 20 luglio 2026
 - Repository: `manocchio91/app-eventi`
-- Branch corrente: `wip/customer-booking-qr`
+- Branch corrente: `feat/organizer-dashboard-contract`
 - Ultimo commit applicativo: `c5e9605 - v0.5 - Customer booking reale con QR e annullamento`
 - Ultimo aggiornamento documentale noto: `ddee2bb - docs: align project state with repository`
 - Ultimo tag: `v0.5-customer-booking-qr`, verificato localmente sul commit `c5e9605`
@@ -17,6 +17,7 @@ Il commit documentale indicato può essere precedente a HEAD quando l'ultimo com
 ## Stato delle aree
 
 - Backend: API Laravel operative sotto `/api/v1`; autenticazione Sanctum, booking, QR, annullamento, idempotenza, disponibilità e test presenti.
+- Dashboard Organizer backend: contratto stabilizzato per KPI eventi, booking e partecipanti; OpenAPI e test feature dedicati aggiornati.
 - Customer Flutter: integrazione reale completata per autenticazione, home, categorie, ricerca, eventi, dettaglio, eventi di successo, booking, QR, lista/dettaglio prenotazioni e annullamento.
 - Organizer Flutter: schermate e navigazione presenti, ma i dati provengono ancora da `InMemoryDemoRepository`. Il backend Organizer espone già dashboard, eventi, partecipanti, check-in, analytics e altre API da analizzare prima dell'integrazione.
 - Frontend web: applicazione Vue 3 + TypeScript + Vite presente nel monorepo.
@@ -32,15 +33,25 @@ Il commit documentale indicato può essere precedente a HEAD quando l'ultimo com
 
 ## Task corrente
 
-Analisi iniziale della milestone v0.6 — Dashboard Organizer.
+Contratto backend di `GET /api/v1/organizer/dashboard` stabilizzato e verificato; modifiche in attesa di approvazione per commit e push.
+
+## Task completati nella sessione
+
+- Centralizzata la definizione delle booking valide: `confirmed`, `checked_in`, `completed`.
+- Definito `participants_total` come somma di `bookings.total_people` delle sole booking valide.
+- Stabilite le classificazioni `future_events`, `completed_events` e `unpublished_events`.
+- Allineati i KPI top-level della dashboard ai corrispondenti valori BI.
+- Aggiunti test feature dedicati per contratto, isolamento Organizer, stati evento, booking e disponibilità.
+- Documentato il payload reale della dashboard in OpenAPI.
+- Verificati test mirati, suite backend, Pint, PHPStan e OpenAPI.
 
 ## Prossimo task
 
-Ricognizione completa dell'area Organizer esistente nel repository, senza modifiche al codice.
+Revisione delle modifiche e, dopo approvazione esplicita, commit e push del branch `feat/organizer-dashboard-contract`.
 
 ## Problemi aperti
 
-Nessuno, salvo eventuali anomalie rilevate durante l'analisi Organizer.
+Nessun problema bloccante. Restano fuori scope la semantica di `new_customers_rate`, le statistiche storiche già persistite e la distinzione visuale tra evento concluso e prenotazioni chiuse.
 
 ## Come riprendere il lavoro
 

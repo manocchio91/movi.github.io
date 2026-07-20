@@ -301,8 +301,21 @@ paths:
     get:
       security: [{ bearerAuth: [] }]
       summary: Dashboard SaaS organizzatore protetta da role:organizer e organizer.approved
+      description: >-
+        I KPI di prenotazioni e partecipanti considerano valide esclusivamente le booking
+        confirmed, checked_in e completed. participants_total e la somma di total_people
+        delle booking valide. future_events comprende eventi published o sold_out con
+        starts_at maggiore o uguale all'istante corrente; completed_events comprende solo
+        eventi con status completed; unpublished_events comprende draft, pending_review,
+        rejected, suspended e archived.
       responses:
-        "200": { description: KPI subscription, esperienze, prenotazioni, follower e views }
+        "200":
+          description: KPI subscription, esperienze, prenotazioni, follower e views
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizerDashboardResponse"
+        "401": { description: Token Sanctum assente o non valido }
         "403": { description: Organizer non approvato o ruolo errato }
   /organizer/reviews:
     get:
@@ -651,6 +664,128 @@ paths:
       responses:
         "204": { description: Recensione eliminata }
 components:
+  schemas:
+    OrganizerDashboardResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/OrganizerDashboardData"
+    OrganizerDashboardData:
+      type: object
+      required: [subscription, bi, category_performance, active_experiences, future_experiences, completed_experiences, unpublished_experiences, bookings_total, available_places, participants_total, views_total, favorites_received, followers, reviews]
+      properties:
+        subscription:
+          type: [object, "null"]
+          description: Abbonamento Organizer con piano e funzionalita, oppure null.
+          additionalProperties: true
+        bi:
+          $ref: "#/components/schemas/OrganizerDashboardBi"
+        category_performance:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrganizerCategoryPerformance"
+        active_experiences:
+          type: integer
+          minimum: 0
+          description: Eventi operativi futuri; coincide con future_experiences.
+        future_experiences: { type: integer, minimum: 0 }
+        completed_experiences: { type: integer, minimum: 0 }
+        unpublished_experiences: { type: integer, minimum: 0 }
+        bookings_total:
+          type: integer
+          minimum: 0
+          description: Booking valide ricevute; coincide con bi.bookings_received.
+        available_places: { type: integer, minimum: 0 }
+        participants_total:
+          type: integer
+          minimum: 0
+          description: Somma di total_people delle booking valide.
+        views_total: { type: integer, minimum: 0 }
+        favorites_received: { type: integer, minimum: 0 }
+        followers: { type: integer, minimum: 0 }
+        reviews: { type: integer, minimum: 0 }
+    OrganizerDashboardBi:
+      type: object
+      required: [published_events, future_events, completed_events, unpublished_events, cancelled_events, sold_out_events, available_places, occupied_places, bookings_received, participants_total, unique_participants, returning_participants, returning_rate, new_customers_rate, followers_total, new_followers, reviews, average_rating, review_analytics, views_total]
+      properties:
+        published_events: { type: integer, minimum: 0 }
+        future_events:
+          type: integer
+          minimum: 0
+          description: Eventi published o sold_out con starts_at maggiore o uguale a now.
+        completed_events:
+          type: integer
+          minimum: 0
+          description: Eventi con status completed.
+        unpublished_events:
+          type: integer
+          minimum: 0
+          description: Eventi draft, pending_review, rejected, suspended o archived.
+        cancelled_events: { type: integer, minimum: 0 }
+        sold_out_events: { type: integer, minimum: 0 }
+        available_places:
+          type: integer
+          minimum: 0
+          description: Posti disponibili degli eventi operativi futuri.
+        occupied_places:
+          type: integer
+          minimum: 0
+          description: Capacita meno disponibilita degli eventi operativi futuri.
+        bookings_received:
+          type: integer
+          minimum: 0
+          description: Booking confirmed, checked_in o completed ricevute.
+        participants_total:
+          type: integer
+          minimum: 0
+          description: Somma di bookings.total_people delle booking valide.
+        unique_participants: { type: integer, minimum: 0 }
+        returning_participants: { type: integer, minimum: 0 }
+        returning_rate: { type: number, minimum: 0, maximum: 100 }
+        new_customers_rate: { type: number, minimum: 0, maximum: 100 }
+        followers_total: { type: integer, minimum: 0 }
+        new_followers: { type: integer, minimum: 0 }
+        reviews: { type: integer, minimum: 0 }
+        average_rating: { type: [number, "null"] }
+        review_analytics:
+          $ref: "#/components/schemas/OrganizerReviewAnalytics"
+        views_total: { type: integer, minimum: 0 }
+    OrganizerReviewAnalytics:
+      type: object
+      required: [average_rating, reviews_count, satisfied_rate, recommendation_rate, trend, best_categories]
+      properties:
+        average_rating: { type: [number, "null"] }
+        reviews_count: { type: integer, minimum: 0 }
+        satisfied_rate: { type: number, minimum: 0, maximum: 100 }
+        recommendation_rate: { type: number, minimum: 0, maximum: 100 }
+        trend:
+          type: array
+          items:
+            type: object
+            required: [day, reviews_count, average_rating]
+            properties:
+              day: { type: string, format: date }
+              reviews_count: { type: integer, minimum: 0 }
+              average_rating: { type: number }
+        best_categories:
+          type: array
+          items:
+            type: object
+            required: [name, reviews_count, average_rating]
+            properties:
+              name: { type: string }
+              reviews_count: { type: integer, minimum: 0 }
+              average_rating: { type: number }
+    OrganizerCategoryPerformance:
+      type: object
+      required: [name, events_count, bookings_count, avg_participants, fill_rate]
+      properties:
+        name: { type: string }
+        events_count: { type: integer, minimum: 0 }
+        bookings_count: { type: integer, minimum: 0 }
+        avg_participants: { type: number, minimum: 0 }
+        fill_rate: { type: number, minimum: 0 }
   securitySchemes:
     bearerAuth:
       type: http
