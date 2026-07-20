@@ -8,7 +8,7 @@
 - Ultimo aggiornamento: 20 luglio 2026
 - Repository: `manocchio91/app-eventi`
 - Branch corrente: `wip/customer-booking-qr`
-- Ultimo commit: `c5e9605 - v0.5 - Customer booking reale con QR e annullamento`
+- Ultimo commit: `257dc70 - docs: add project documentation and development workflow`
 - Ultimo tag: `v0.5-customer-booking-qr`, verificato localmente sul commit `c5e9605`
 
 ## Stato delle aree
@@ -17,6 +17,7 @@
 - Customer Flutter: integrazione reale completata per autenticazione, home, categorie, ricerca, eventi, dettaglio, eventi di successo, booking, QR, lista/dettaglio prenotazioni e annullamento.
 - Organizer Flutter: schermate e navigazione presenti, ma i dati provengono ancora da `InMemoryDemoRepository`. Il backend Organizer espone già dashboard, eventi, partecipanti, check-in, analytics e altre API da analizzare prima dell'integrazione.
 - Frontend web: applicazione Vue 3 + TypeScript + Vite presente nel monorepo.
+- Documentazione permanente: completata e pubblicata.
 
 ## Milestone completate
 
@@ -28,17 +29,15 @@
 
 ## Task corrente
 
-Creazione della documentazione permanente di stato, roadmap, architettura e regole di sviluppo.
+Analisi iniziale della milestone v0.6 — Dashboard Organizer.
 
 ## Prossimo task
 
-Avviare v0.6 — Dashboard Organizer, partendo dall'analisi dello stato reale di backend, API e schermate Flutter Organizer.
+Ricognizione completa dell'area Organizer esistente nel repository, senza modifiche al codice.
 
 ## Problemi aperti
 
-- L'area Organizer Flutter usa ancora dati demo.
-- README e alcuni documenti storici descrivono ancora il mobile come prototipo demo e possono non riflettere completamente la milestone v0.5.
-- I dati QA locali devono mantenere coerenti disponibilità evento e contingenti delle tipologie di ticket.
+Nessuno, salvo eventuali anomalie rilevate durante l'analisi Organizer.
 
 ## Come riprendere il lavoro
 
@@ -53,5 +52,5 @@ Avviare v0.6 — Dashboard Organizer, partendo dall'analisi dello stato reale di
 
 3. Leggere `PROJECT_STATE.md`, `ROADMAP.md`, `ARCHITECTURE.md` e `DEVELOPMENT_RULES.md`.
 4. Verificare che il branch sia quello previsto per il task e che il working tree non contenga modifiche estranee.
-5. Analizzare codice, API e test esistenti prima di intervenire.
+5. Avviare la ricognizione dell'area Organizer esistente prima di modificare codice, API o test.
 6. Aggiornare questo documento al termine della sessione.
