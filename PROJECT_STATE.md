@@ -4,24 +4,23 @@
 
 ## Riferimenti correnti
 
-- Versione corrente: `v0.5-customer-booking-qr`
+- Versione corrente: `v0.6 - Dashboard Organizer Web`
 - Ultimo aggiornamento: 20 luglio 2026
 - Repository: `manocchio91/app-eventi`
-- Branch corrente: `feat/organizer-dashboard-contract`
-- Ultimo commit applicativo: `c5e9605 - v0.5 - Customer booking reale con QR e annullamento`
-- Ultimo aggiornamento documentale noto: `ddee2bb - docs: align project state with repository`
+- Branch corrente: `feat/organizer-dashboard-web`
+- Ultimo commit applicativo pubblicato: `0d47bc4 - v0.6 - Stabilize Organizer dashboard contract`
 - Ultimo tag: `v0.5-customer-booking-qr`, verificato localmente sul commit `c5e9605`
 
-Il commit documentale indicato può essere precedente a HEAD quando l'ultimo commit riguarda esclusivamente l'aggiornamento di questo stesso documento. Non costituisce un blocco se HEAD è successivo e il working tree è coerente.
+L'hash documentato può essere precedente a HEAD quando l'ultimo commit aggiorna questo stesso documento. La verifica iniziale considera branch, working tree, cronologia recente e coerenza funzionale.
 
 ## Stato delle aree
 
 - Backend: API Laravel operative sotto `/api/v1`; autenticazione Sanctum, booking, QR, annullamento, idempotenza, disponibilità e test presenti.
-- Dashboard Organizer backend: contratto stabilizzato per KPI eventi, booking e partecipanti; OpenAPI e test feature dedicati aggiornati.
+- Dashboard Organizer backend: contratto di `GET /api/v1/organizer/dashboard` stabilizzato; KPI centralizzati in `OrganizerDashboardMetrics`, documentati in OpenAPI e coperti da test feature.
+- Dashboard Organizer web: collegata esclusivamente a `GET /api/v1/organizer/dashboard` e completata con dati reali.
 - Customer Flutter: integrazione reale completata per autenticazione, home, categorie, ricerca, eventi, dettaglio, eventi di successo, booking, QR, lista/dettaglio prenotazioni e annullamento.
-- Organizer Flutter: schermate e navigazione presenti, ma i dati provengono ancora da `InMemoryDemoRepository`. Il backend Organizer espone già dashboard, eventi, partecipanti, check-in, analytics e altre API da analizzare prima dell'integrazione.
-- Frontend web: applicazione Vue 3 + TypeScript + Vite presente nel monorepo.
-- Documentazione permanente: completata e pubblicata.
+- Organizer Flutter: schermate e navigazione presenti, ma i dati provengono ancora da `InMemoryDemoRepository`.
+- Documentazione permanente: aggiornata; le decisioni architetturali e di processo sono registrate in `DECISIONS.md`.
 
 ## Milestone completate
 
@@ -30,41 +29,46 @@ Il commit documentale indicato può essere precedente a HEAD quando l'ultimo com
 - v0.3: autenticazione mobile reale
 - v0.4: Customer Home collegata alle API reali
 - v0.5: booking Customer reale con QR e annullamento
+- v0.6: Dashboard Organizer Web collegata ai dati reali
 
 ## Task corrente
 
-Contratto backend di `GET /api/v1/organizer/dashboard` stabilizzato e verificato; modifiche in attesa di approvazione per commit e push.
+Milestone Dashboard Organizer Web completata e verificata.
 
 ## Task completati nella sessione
 
-- Centralizzata la definizione delle booking valide: `confirmed`, `checked_in`, `completed`.
-- Definito `participants_total` come somma di `bookings.total_people` delle sole booking valide.
-- Stabilite le classificazioni `future_events`, `completed_events` e `unpublished_events`.
-- Allineati i KPI top-level della dashboard ai corrispondenti valori BI.
-- Aggiunti test feature dedicati per contratto, isolamento Organizer, stati evento, booking e disponibilità.
-- Documentato il payload reale della dashboard in OpenAPI.
-- Verificati test mirati, suite backend, Pint, PHPStan e OpenAPI.
+- Collegata la dashboard web Organizer esclusivamente a `GET /api/v1/organizer/dashboard`.
+- Visualizzati KPI reali per eventi futuri, conclusi e non pubblicati, booking valide, partecipanti, posti disponibili e occupati, follower, visualizzazioni, rating e recensioni.
+- Introdotto un loader dedicato e indipendente dalle altre API Organizer.
+- Gestiti loading dedicato, errore con retry, sessione non valida `401` e accesso negato `403`.
+- Verificata la corretta visualizzazione dei valori zero.
+- Gestito il rating `null` come assenza di recensioni.
+- Rimosso il grafico con valori hardcoded.
+- Eseguiti con esito positivo lint e build frontend.
+- Browser QA manuale completato dall'utente con esito positivo.
 
 ## Prossimo task
 
-Revisione delle modifiche e, dopo approvazione esplicita, commit e push del branch `feat/organizer-dashboard-contract`.
+Collegare la lista eventi Organizer ai dati reali, introducendo i filtri e la distinzione tra eventi futuri, conclusi e non pubblicati secondo la roadmap.
 
-## Problemi aperti
+## Debiti aperti
 
-Nessun problema bloccante. Restano fuori scope la semantica di `new_customers_rate`, le statistiche storiche già persistite e la distinzione visuale tra evento concluso e prenotazioni chiuse.
+- Lista eventi Organizer.
+- Filtri degli eventi.
+- Dettaglio evento Organizer.
+- Modifica evento Organizer.
+- Prenotazioni ricevute.
+- Partecipanti.
+- Check-in.
+- Statistiche avanzate.
+- Autenticazione demo trasversale.
+- Test frontend automatizzati.
+- Redesign grafico della dashboard.
 
 ## Come riprendere il lavoro
 
 1. Aprire la root del repository.
-2. Eseguire:
-
-   ```bash
-   git status
-   git branch --show-current
-   git log --oneline -5
-   ```
-
-3. Leggere `PROJECT_STATE.md`, `ROADMAP.md`, `ARCHITECTURE.md` e `DEVELOPMENT_RULES.md`.
-4. Verificare che il branch sia quello previsto per il task e che il working tree non contenga modifiche estranee.
-5. Avviare la ricognizione dell'area Organizer esistente prima di modificare codice, API o test.
-6. Aggiornare questo documento al termine della sessione.
+2. Leggere integralmente `PROJECT_STATE.md`, `ROADMAP.md`, `ARCHITECTURE.md`, `DEVELOPMENT_RULES.md` e `DECISIONS.md`.
+3. Verificare branch, working tree e cronologia recente.
+4. Avviare l'analisi circoscritta della lista eventi Organizer prima di modificare codice o contratti API.
+5. Aggiornare questo documento al termine della sessione.

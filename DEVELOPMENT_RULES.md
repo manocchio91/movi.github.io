@@ -95,7 +95,7 @@ Una funzione è conclusa quando:
 ## Inizio sessione
 
 1. Aprire la root del repository.
-2. Leggere `PROJECT_STATE.md` e il task corrente.
+2. Prima di ogni attività leggere `PROJECT_STATE.md`, `ROADMAP.md`, `ARCHITECTURE.md`, `DEVELOPMENT_RULES.md` e `DECISIONS.md`.
 3. Eseguire:
 
    ```bash

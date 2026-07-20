@@ -35,11 +35,43 @@ type DemoUser = {
   redirect_to: AppRoute;
 };
 
+type OrganizerReviewAnalytics = {
+  reviews_count: number;
+};
+
+type OrganizerDashboardBi = {
+  future_events: number;
+  completed_events: number;
+  unpublished_events: number;
+  bookings_received: number;
+  participants_total: number;
+  available_places: number;
+  occupied_places: number;
+  views_total: number;
+  followers_total: number;
+  average_rating: number | null;
+  review_analytics: OrganizerReviewAnalytics;
+};
+
+type OrganizerDashboardData = {
+  bi: OrganizerDashboardBi;
+};
+
+type OrganizerDashboardResponse = {
+  data: OrganizerDashboardData;
+};
+
+class ApiError extends Error {
+  constructor(public readonly status: number, message: string) {
+    super(message);
+  }
+}
+
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api/v1';
 
 const demoUsers: DemoUser[] = [
   { role: 'customer', name: 'Cliente Demo', email: 'customer@example.test', password: 'password', redirect_to: '/customer/dashboard' },
-  { role: 'organizer', name: 'Organizzatore Demo', email: 'organizer@example.test', password: 'password', redirect_to: '/organizer/dashboard' },
+  { role: 'organizer', name: 'Organizer sviluppo locale', email: 'organizer@app-eventi.test', password: 'password', redirect_to: '/organizer/dashboard' },
   { role: 'admin', name: 'Admin Molise', email: 'admin@example.test', password: 'password', redirect_to: '/admin/dashboard' },
 ];
 
@@ -158,7 +190,10 @@ export default defineComponent({
     const route = ref<AppRoute>(customerMobilePreview ? '/customer/dashboard' : '/login');
     const loading = ref(false);
     const apiError = ref('');
-    const organizerDashboard = ref<any>(null);
+    const organizerDashboard = ref<OrganizerDashboardData | null>(null);
+    const dashboardLoading = ref(false);
+    const dashboardError = ref('');
+    const dashboardForbidden = ref(false);
     const organizerEvents = ref<any[]>([]);
     const reviewEvents = ref<any[]>([]);
     const calendarDays = ref<any[]>([]);
@@ -183,7 +218,7 @@ export default defineComponent({
 
     const role = computed<Role>(() => currentUser.value?.role ?? 'guest');
 
-    const api = async (path: string, options: RequestInit = {}) => {
+    const api = async <T = any>(path: string, options: RequestInit = {}): Promise<T | null> => {
       if (!token.value) return null;
 
       const response = await fetch(`${apiBase}${path}`, {
@@ -197,10 +232,55 @@ export default defineComponent({
       });
 
       if (!response.ok) {
-        throw new Error(`API ${path}: ${response.status}`);
+        const errorPayload = await response.json().catch(() => null) as { message?: string } | null;
+        throw new ApiError(response.status, errorPayload?.message ?? `API ${path}: ${response.status}`);
       }
 
-      return response.status === 204 ? null : response.json();
+      return response.status === 204 ? null : response.json() as Promise<T>;
+    };
+
+    const clearOrganizerData = () => {
+      organizerDashboard.value = null;
+      organizerEvents.value = [];
+      reviewEvents.value = [];
+      calendarDays.value = [];
+      selectedDay.value = null;
+      opportunities.value = null;
+    };
+
+    const loadOrganizerDashboard = async (force = false) => {
+      if (role.value !== 'organizer' || !token.value) return;
+      if (organizerDashboard.value && !force) return;
+
+      dashboardLoading.value = true;
+      dashboardError.value = '';
+      dashboardForbidden.value = false;
+      organizerDashboard.value = null;
+
+      try {
+        const response = await api<OrganizerDashboardResponse>('/organizer/dashboard');
+        organizerDashboard.value = response?.data ?? null;
+        if (!organizerDashboard.value) dashboardError.value = 'La dashboard non ha restituito dati.';
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) {
+          clearOrganizerData();
+          token.value = null;
+          currentUser.value = null;
+          route.value = '/login';
+          apiError.value = 'Sessione scaduta o non valida. Accedi di nuovo.';
+          return;
+        }
+
+        if (error instanceof ApiError && error.status === 403) {
+          dashboardForbidden.value = true;
+          dashboardError.value = error.message || 'Accesso non autorizzato o profilo Organizer non approvato.';
+          return;
+        }
+
+        dashboardError.value = error instanceof Error ? error.message : 'Impossibile caricare la dashboard Organizer.';
+      } finally {
+        dashboardLoading.value = false;
+      }
     };
 
     const loadOrganizerData = async () => {
@@ -209,14 +289,12 @@ export default defineComponent({
       loading.value = true;
       apiError.value = '';
       try {
-        const [dashboard, events, reviewGroups, availability, opportunityPayload] = await Promise.all([
-          api('/organizer/dashboard'),
+        const [events, reviewGroups, availability, opportunityPayload] = await Promise.all([
           api('/organizer/events?sort=asc'),
           api('/organizer/reviews/events'),
           api(`/organizer/calendar/availability?month=${new Date().getMonth() + 1}&year=${new Date().getFullYear()}`),
           api('/organizer/opportunities'),
         ]);
-        organizerDashboard.value = dashboard?.data ?? null;
         organizerEvents.value = events?.data ?? [];
         reviewEvents.value = reviewGroups?.data ?? [];
         calendarDays.value = availability?.data ?? [];
@@ -282,7 +360,8 @@ export default defineComponent({
 
     const go = async (nextRoute: AppRoute) => {
       route.value = canAccess(role.value, nextRoute) ? nextRoute : '/unauthorized';
-      if (route.value.startsWith('/organizer')) await loadOrganizerData();
+      if (route.value === '/organizer/dashboard') await loadOrganizerDashboard();
+      else if (route.value.startsWith('/organizer')) await loadOrganizerData();
       if (route.value.startsWith('/customer')) await loadCustomerData();
       if (route.value.startsWith('/admin')) await loadAdminData();
     };
@@ -301,13 +380,21 @@ export default defineComponent({
         token.value = payload.token;
         currentUser.value = { ...user, role: payload.user.role, redirect_to: payload.redirect_to };
         route.value = payload.redirect_to;
-        await loadOrganizerData();
+        if (route.value === '/organizer/dashboard') await loadOrganizerDashboard(true);
+        else if (route.value.startsWith('/organizer')) await loadOrganizerData();
         await loadCustomerData();
         await loadAdminData();
       } catch (error) {
-        currentUser.value = user;
-        route.value = user.redirect_to;
-        apiError.value = error instanceof Error ? `${error.message}. Avvia il backend per vedere dati DB reali.` : 'Backend non disponibile.';
+        if (user.role === 'organizer') {
+          currentUser.value = null;
+          token.value = null;
+          route.value = '/login';
+          apiError.value = error instanceof Error ? error.message : 'Accesso Organizer non disponibile.';
+        } else {
+          currentUser.value = user;
+          route.value = user.redirect_to;
+          apiError.value = error instanceof Error ? `${error.message}. Avvia il backend per vedere dati DB reali.` : 'Backend non disponibile.';
+        }
       } finally {
         loading.value = false;
       }
@@ -318,11 +405,9 @@ export default defineComponent({
       token.value = null;
       route.value = '/login';
       apiError.value = '';
-      organizerDashboard.value = null;
-      organizerEvents.value = [];
-      reviewEvents.value = [];
-      calendarDays.value = [];
-      opportunities.value = null;
+      dashboardError.value = '';
+      dashboardForbidden.value = false;
+      clearOrganizerData();
       customerDashboard.value = null;
       allCustomerEvents.value = [];
       successfulEvents.value = [];
@@ -481,20 +566,50 @@ export default defineComponent({
     ]);
 
     const renderOrganizerDashboard = () => {
+      if (dashboardLoading.value) {
+        return [h('article', { class: 'wide-panel dashboard-state' }, [
+          h('strong', 'Caricamento dashboard...'),
+          h('p', 'Recupero dei KPI Organizer dal backend.'),
+        ])];
+      }
+
+      if (dashboardForbidden.value) {
+        return [h('article', { class: 'wide-panel dashboard-state dashboard-forbidden' }, [
+          h('strong', 'Dashboard non accessibile'),
+          h('p', dashboardError.value || 'Accesso non autorizzato o profilo Organizer non approvato.'),
+        ])];
+      }
+
+      if (dashboardError.value) {
+        return [h('article', { class: 'wide-panel dashboard-state dashboard-error' }, [
+          h('strong', 'Impossibile caricare la dashboard'),
+          h('p', dashboardError.value),
+          h('button', { type: 'button', onClick: () => { void loadOrganizerDashboard(true); } }, 'Riprova'),
+        ])];
+      }
+
       const data = organizerDashboard.value;
-      if (!data) return [emptyState('Avvia il backend e accedi come organizer per caricare la dashboard reale.')];
+      if (!data) return [emptyState('Nessun dato dashboard disponibile.')];
+      const bi = data.bi;
 
       return [
         h('div', { class: 'metric-grid' }, [
-          card('Eventi attivi', `${data.active_experiences ?? 0}`, 'pubblicati o sold out'),
-          card('Prenotazioni', `${data.bookings_total ?? 0}`, 'totali ricevute'),
-          card('Follower', `${data.followers ?? 0}`, 'utenti che seguono'),
-          card('Rating', `${data.bi?.average_rating ?? 0}`, `${data.bi?.review_analytics?.reviews_count ?? 0} recensioni`),
-          card('Riempimento', `${Math.round(data.bi?.category_performance?.[0]?.fill_rate ?? 0)}%`, 'categoria migliore'),
-          card('Posti disponibili', `${data.available_places ?? 0}`, 'ancora vendibili'),
+          card('Eventi futuri', `${bi.future_events}`, 'pubblicati o sold out'),
+          card('Eventi conclusi', `${bi.completed_events}`, 'stato completed'),
+          card('Eventi non pubblicati', `${bi.unpublished_events}`, 'bozze e stati non pubblici'),
+          card('Prenotazioni valide', `${bi.bookings_received}`, 'confermate o completate'),
+          card('Partecipanti', `${bi.participants_total}`, 'persone in prenotazioni valide'),
+          card('Posti disponibili', `${bi.available_places}`, 'eventi operativi futuri'),
+          card('Posti occupati', `${bi.occupied_places}`, 'eventi operativi futuri'),
+          card('Follower', `${bi.followers_total}`, 'utenti che seguono'),
+          card('Visualizzazioni', `${bi.views_total}`, 'esperienze visualizzate'),
+          card('Rating medio', bi.average_rating === null ? '—' : `${bi.average_rating}`, bi.average_rating === null ? 'Nessuna recensione' : 'recensioni approvate'),
+          card('Numero recensioni', `${bi.review_analytics.reviews_count}`, 'recensioni approvate'),
         ]),
-        h('div', { class: 'section-title' }, [h('h2', 'Grafici business'), h('span', 'dati aggregati API')]),
-        h('div', { class: 'bar-chart' }, [40, 62, 48, 78, 91, 66].map((value) => h('span', { style: { height: `${value}%` } }))),
+        h('article', { class: 'wide-panel dashboard-state' }, [
+          h('strong', 'Andamento nel tempo'),
+          h('p', 'Serie temporale non disponibile.'),
+        ]),
       ];
     };
 

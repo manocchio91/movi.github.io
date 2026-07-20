@@ -893,22 +893,21 @@ button {
   display: block;
 }
 
-.bar-chart {
-  align-items: end;
-  background: white;
-  border: 1px solid #e9e2d5;
-  border-radius: 22px;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(6, 1fr);
-  height: 220px;
-  padding: 20px;
+.dashboard-state {
+  margin-top: 16px;
 }
 
-.bar-chart span {
-  background: linear-gradient(180deg, #0f766e, #e2aa43);
-  border-radius: 999px 999px 8px 8px;
-  min-height: 24px;
+.dashboard-state strong {
+  display: block;
+  font-size: 1.15rem;
+}
+
+.dashboard-error {
+  border-color: #ffd0ad;
+}
+
+.dashboard-forbidden {
+  border-color: #e7b2a7;
 }
 
 .review-feed {
