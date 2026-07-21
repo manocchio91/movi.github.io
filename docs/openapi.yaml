@@ -484,9 +484,73 @@ paths:
         "422": { description: Parametri di filtro o paginazione non validi }
     post:
       security: [{ bearerAuth: [] }]
-      summary: Crea evento con ticket type
+      summary: Crea una bozza evento con ticket type
+      description: Assegna automaticamente l'Organizer autenticato. Stato, disponibilità, prenotazioni e identificatori protetti non sono accettati dal client.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OrganizerEventWriteRequest" }
       responses:
-        "201": { description: Evento creato }
+        "201":
+          description: Bozza creata atomicamente con categorie e ticket
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrganizerEventResponse" }
+        "401": { description: Token assente o non valido }
+        "403": { description: Ruolo Organizer o profilo approvato richiesto }
+        "422": { description: Payload non valido o campo protetto presente }
+  /organizer/events/{event}:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Carica un proprio evento per la modifica
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string }, description: ULID evento }
+      responses:
+        "200":
+          description: Evento con categorie, comune e ticket; ogni ticket espone ULID e booked_quantity in sola lettura
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrganizerEventResponse" }
+        "401": { description: Token assente o non valido }
+        "403": { description: Evento appartenente a un altro Organizer }
+        "404": { description: Evento non trovato }
+    put:
+      security: [{ bearerAuth: [] }]
+      summary: Aggiorna un proprio evento modificabile preservando identità e prenotazioni dei ticket
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string }, description: ULID evento }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OrganizerEventWriteRequest" }
+      responses:
+        "200":
+          description: Evento e ticket aggiornati atomicamente
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrganizerEventResponse" }
+        "401": { description: Token assente o non valido }
+        "403": { description: Evento altrui o stato non modificabile }
+        "404": { description: Evento non trovato }
+        "422": { description: Payload non valido, quantità sotto le prenotazioni o rimozione di ticket prenotato }
+    patch:
+      security: [{ bearerAuth: [] }]
+      summary: Aggiorna un proprio evento usando lo stesso contratto completo della PUT
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string }, description: ULID evento }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OrganizerEventWriteRequest" }
+      responses:
+        "200": { description: Evento e ticket aggiornati atomicamente }
+        "401": { description: Token assente o non valido }
+        "403": { description: Evento altrui o stato non modificabile }
+        "404": { description: Evento non trovato }
+        "422": { description: Payload non valido o vincolo prenotazioni violato }
   /organizer/events/{event}/publish:
     post:
       security: [{ bearerAuth: [] }]
@@ -494,7 +558,15 @@ paths:
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
-        "200": { description: Evento pubblicato }
+        "200":
+          description: Evento portato da draft a published e notifiche generate
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrganizerEventResponse" }
+        "401": { description: Token assente o non valido }
+        "403": { description: Evento altrui o Organizer non approvato }
+        "404": { description: Evento non trovato }
+        "422": { description: Stato non pubblicabile o evento incompleto }
   /organizer/events/{event}/cancel:
     post:
       security: [{ bearerAuth: [] }]
@@ -813,6 +885,76 @@ components:
             total: { type: integer, minimum: 0 }
             from: { type: [integer, "null"], minimum: 1 }
             to: { type: [integer, "null"], minimum: 1 }
+    OrganizerEventTicketWrite:
+      type: object
+      required: [name, audience, price_cents, max_quantity]
+      properties:
+        ulid:
+          type: string
+          description: Presente soltanto per un ticket esistente durante l'update; deve appartenere all'evento.
+        name: { type: string, maxLength: 120 }
+        description: { type: [string, "null"], maxLength: 500 }
+        audience: { type: string, enum: [adult, child, generic] }
+        price_cents: { type: integer, minimum: 0 }
+        max_quantity: { type: integer, minimum: 1, maximum: 10000 }
+        is_active: { type: boolean, default: true }
+    OrganizerEventWriteRequest:
+      type: object
+      required: [title, summary, description, municipality_id, category_ids, starts_at, capacity_total, is_free, family_friendly, indoor_outdoor]
+      properties:
+        title: { type: string, maxLength: 180 }
+        summary: { type: string, maxLength: 280 }
+        description: { type: string, maxLength: 8000 }
+        municipality_id: { type: integer }
+        category_ids:
+          type: array
+          minItems: 1
+          items: { type: integer }
+        starts_at: { type: string, format: date-time, description: Deve essere futura. }
+        ends_at: { type: [string, "null"], format: date-time, description: Se presente deve essere successiva a starts_at. }
+        booking_closes_at: { type: [string, "null"], format: date-time }
+        capacity_total: { type: integer, minimum: 1, maximum: 10000 }
+        is_free: { type: boolean }
+        price_notes: { type: [string, "null"], maxLength: 500 }
+        family_friendly: { type: boolean }
+        indoor_outdoor: { type: string, enum: [indoor, outdoor, mixed] }
+        ticket_types:
+          type: array
+          minItems: 1
+          description: Se omesso in update, i ticket esistenti restano invariati. Un ticket omesso viene rimosso solo se booked_quantity è zero.
+          items: { $ref: "#/components/schemas/OrganizerEventTicketWrite" }
+    OrganizerEventTicket:
+      allOf:
+        - $ref: "#/components/schemas/OrganizerEventTicketWrite"
+        - type: object
+          required: [ulid, booked_quantity]
+          properties:
+            ulid: { type: string }
+            booked_quantity: { type: integer, minimum: 0, readOnly: true }
+    OrganizerEventResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [ulid, title, summary, description, status, starts_at, capacity_total, available_total, categories, ticket_types]
+          additionalProperties: true
+          properties:
+            ulid: { type: string }
+            title: { type: string }
+            summary: { type: string }
+            description: { type: string }
+            status: { type: string, enum: [draft, pending_review, published, sold_out, cancelled, completed, rejected, suspended, archived] }
+            starts_at: { type: string, format: date-time }
+            ends_at: { type: [string, "null"], format: date-time }
+            capacity_total: { type: integer, minimum: 1 }
+            available_total: { type: integer, minimum: 0 }
+            categories:
+              type: array
+              items: { type: object, additionalProperties: true }
+            ticket_types:
+              type: array
+              items: { $ref: "#/components/schemas/OrganizerEventTicket" }
     OrganizerDashboardResponse:
       type: object
       required: [data]

@@ -131,3 +131,15 @@ Contesto: la registrazione Organizer deve creare un profilo reale senza aggirare
 Decisione: creare `User` e `OrganizerProfile` in una sola transazione, inizializzare il profilo come `pending` e indirizzare l'utente a una schermata di attesa finché non diventa `verified`.
 
 Conseguenze: gli Organizer pending possono autenticarsi e fare logout, ma non inviano richieste alle route protette da `organizer.approved`.
+
+## ADR-012
+
+### Ciclo di vita esplicito degli eventi e ticket immutabili nelle vendite
+
+Stato: Accepted
+
+Contesto: creare eventi già pubblicati e ricreare i ticket durante ogni modifica rendeva incoerente la pubblicazione e poteva perdere identità e quantità prenotate.
+
+Decisione: ogni evento viene creato come `draft` e può diventare `published` soltanto tramite una transizione backend esplicita. I ticket esistenti vengono sincronizzati tramite ULID in transazione e con lock, preservando `booked_quantity`; un ticket prenotato non può essere rimosso e la sua quantità non può scendere sotto quella già prenotata.
+
+Conseguenze: creazione, modifica e pubblicazione restano operazioni distinte; le vendite già registrate non vengono alterate dai successivi aggiornamenti dell'evento.

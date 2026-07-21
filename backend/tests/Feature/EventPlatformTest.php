@@ -838,7 +838,7 @@ class EventPlatformTest extends TestCase
                 'ticket_types' => [['name' => 'Persona', 'audience' => 'generic', 'price_cents' => 2500, 'max_quantity' => 20]],
             ])
             ->assertCreated()
-            ->assertJsonPath('data.status', 'published');
+            ->assertJsonPath('data.status', 'draft');
 
         $this->actingAs($otherOrganizer, 'sanctum')
             ->putJson("/api/v1/organizer/events/{$event->ulid}", [

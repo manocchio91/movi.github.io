@@ -14,8 +14,114 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
+}
+
+.event-editor {
+  display: grid;
+  gap: 24px;
+}
+
+.event-form-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.event-form-field {
+  color: #34444a;
+  display: flex;
+  flex-direction: column;
+  font-size: 0.9rem;
+  font-weight: 850;
+  gap: 7px;
+}
+
+.event-form-field input,
+.event-form-field select,
+.event-form-field textarea {
+  background: #fff;
+  border: 1px solid #d9d4c9;
+  border-radius: 10px;
+  color: #172126;
+  min-height: 46px;
+  padding: 10px 12px;
+}
+
+.event-form-field textarea {
+  min-height: 130px;
+  resize: vertical;
+}
+
+.event-form-wide {
+  grid-column: 1 / -1;
+}
+
+.event-form-check {
+  align-items: center;
+  display: flex;
+  font-weight: 800;
+  gap: 9px;
+}
+
+.event-form-check input {
+  height: 20px;
+  width: 20px;
+}
+
+.ticket-section-heading,
+.ticket-editor-heading,
+.event-form-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.ticket-section-heading h3,
+.ticket-section-heading p {
+  margin: 0;
+}
+
+.ticket-editor-list {
+  display: grid;
+  gap: 14px;
+}
+
+.ticket-editor {
+  background: #f3f0e9;
+  border: 1px solid #e1dbcf;
+  border-radius: 14px;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.ticket-editor-heading small {
+  color: #65767c;
+  margin-right: auto;
+}
+
+.event-form-actions {
+  border-top: 1px solid #e1dbcf;
+  justify-content: flex-end;
+  padding-top: 18px;
+}
+
+.publish-button,
+.form-success {
+  background: #e3f3ed;
+  color: #096b59;
+}
+
+.form-success {
+  border: 1px solid #b6dfd2;
+  border-radius: 12px;
+  font-weight: 850;
+  padding: 12px 14px;
 }
 
 button {
@@ -1236,6 +1342,7 @@ button {
   .login-grid,
   .auth-tabs,
   .auth-form,
+  .event-form-grid,
   .metric-grid,
   .event-grid,
   .form-grid,

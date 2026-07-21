@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api\V1;
 use App\Actions\Events\CancelEvent;
 use App\Actions\Events\CreateEvent;
 use App\Actions\Events\PublishEvent;
+use App\Actions\Events\UpdateEvent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\IndexOrganizerEventRequest;
 use App\Http\Requests\StoreEventRequest;
+use App\Http\Requests\UpdateEventRequest;
 use App\Models\Event;
 use App\Services\BusinessIntelligence\OrganizerDashboardMetrics;
 use App\Services\OrganizerEventSummaryService;
@@ -60,23 +62,21 @@ class OrganizerEventController extends Controller
 
         $event = $createEvent->handle($profile, $request->validated());
 
-        return response()->json(['data' => $event->load('categories')], 201);
+        return response()->json(['data' => $event], 201);
     }
 
     public function show(Event $event): JsonResponse
     {
         $this->authorize('viewOrganizer', $event);
 
-        return response()->json(['data' => $event->load(['categories', 'ticketTypes', 'bookings.user', 'municipality', 'organizerProfile'])]);
+        return response()->json(['data' => $event->load(['categories', 'ticketTypes', 'municipality'])]);
     }
 
-    public function update(StoreEventRequest $request, Event $event, CreateEvent $createEvent): JsonResponse
+    public function update(UpdateEventRequest $request, Event $event, UpdateEvent $updateEvent): JsonResponse
     {
-        $this->authorize('update', $event);
+        $event = $updateEvent->handle($event, $request->validated());
 
-        $event = $createEvent->update($event, $request->validated());
-
-        return response()->json(['data' => $event->load('categories')]);
+        return response()->json(['data' => $event]);
     }
 
     public function publish(Event $event, PublishEvent $publishEvent): JsonResponse

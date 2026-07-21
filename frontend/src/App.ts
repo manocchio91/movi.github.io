@@ -13,6 +13,7 @@ type AppRoute =
   | '/organizer/pending'
   | '/organizer/events'
   | '/organizer/create-event'
+  | `/organizer/events/${string}/edit`
   | '/organizer/reviews'
   | '/organizer/opportunities'
   | '/admin/dashboard'
@@ -130,8 +131,56 @@ type OrganizerEventListResponse = {
   meta: OrganizerEventPaginationMeta;
 };
 
+type EventFormMode = 'create' | 'edit';
+
+type EventCategory = { id: number; name: string };
+type EventMunicipality = { id: number; name: string; province?: { code?: string } };
+type EventFormTicket = {
+  ulid?: string;
+  name: string;
+  audience: 'generic' | 'adult' | 'child';
+  price: string;
+  max_quantity: string;
+  booked_quantity: number;
+  is_active: boolean;
+};
+type OrganizerEventDetail = OrganizerEvent & {
+  summary: string;
+  description: string;
+  municipality_id: number;
+  municipality: EventMunicipality;
+  categories: EventCategory[];
+  ticket_types: Array<{
+    ulid: string;
+    name: string;
+    audience: 'generic' | 'adult' | 'child';
+    price_cents: number;
+    max_quantity: number;
+    booked_quantity: number;
+    is_active: boolean;
+  }>;
+  is_free: boolean;
+  family_friendly: boolean;
+  indoor_outdoor: 'indoor' | 'outdoor' | 'mixed';
+};
+type EventFormData = {
+  ulid: string | null;
+  status: OrganizerEventStatus;
+  title: string;
+  summary: string;
+  description: string;
+  municipality_id: string;
+  category_id: string;
+  starts_at: string;
+  ends_at: string;
+  capacity_total: string;
+  is_free: boolean;
+  family_friendly: boolean;
+  indoor_outdoor: 'indoor' | 'outdoor' | 'mixed';
+};
+
 class ApiError extends Error {
-  constructor(public readonly status: number, message: string) {
+  constructor(public readonly status: number, message: string, public readonly errors: Record<string, string[]> = {}) {
     super(message);
   }
 }
@@ -151,6 +200,49 @@ const organizerEventStatusLabels: Record<OrganizerEventStatus, string> = {
 };
 
 const sessionStorageKey = 'app-eventi.auth-token';
+
+const emptyEventForm = (): EventFormData => ({
+  ulid: null,
+  status: 'draft',
+  title: '',
+  summary: '',
+  description: '',
+  municipality_id: '',
+  category_id: '',
+  starts_at: '',
+  ends_at: '',
+  capacity_total: '',
+  is_free: false,
+  family_friendly: false,
+  indoor_outdoor: 'mixed',
+});
+
+const emptyEventTicket = (): EventFormTicket => ({
+  name: 'Ingresso',
+  audience: 'generic',
+  price: '0,00',
+  max_quantity: '',
+  booked_quantity: 0,
+  is_active: true,
+});
+
+const apiDateToLocalInput = (value: string | null) => {
+  if (!value) return '';
+  const date = new Date(value);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+};
+
+const localInputToApiDate = (value: string) => value ? new Date(value).toISOString() : null;
+
+const centsToEuroInput = (cents: number) => `${Math.floor(cents / 100)},${String(cents % 100).padStart(2, '0')}`;
+
+const euroInputToCents = (value: string) => {
+  const normalized = value.trim().replace(',', '.');
+  if (!/^\d+(\.\d{1,2})?$/.test(normalized)) return null;
+  const [euros, decimals = ''] = normalized.split('.');
+  return Number(euros) * 100 + Number(decimals.padEnd(2, '0'));
+};
 
 const demoUsers: DemoCredentials[] = [
   { role: 'customer', email: 'customer@example.test', password: 'password' },
@@ -309,6 +401,17 @@ export default defineComponent({
     const organizerEventsFilter = ref<OrganizerEventFilter>('future');
     const cancellingOrganizerEvent = ref<string | null>(null);
     const organizerEventsLoadedKey = ref('');
+    const eventFormMode = ref<EventFormMode>('create');
+    const eventFormData = ref<EventFormData>(emptyEventForm());
+    const eventFormLoading = ref(false);
+    const eventFormSubmitting = ref(false);
+    const eventFormErrors = ref<Record<string, string[]>>({});
+    const eventFormGeneralError = ref('');
+    const eventFormSuccess = ref('');
+    const categoriesLoading = ref(false);
+    const eventCategories = ref<EventCategory[]>([]);
+    const eventMunicipalities = ref<EventMunicipality[]>([]);
+    const tickets = ref<EventFormTicket[]>([emptyEventTicket()]);
     let organizerEventsRequestId = 0;
     const reviewEvents = ref<any[]>([]);
     const calendarDays = ref<any[]>([]);
@@ -347,8 +450,8 @@ export default defineComponent({
       });
 
       if (!response.ok) {
-        const errorPayload = await response.json().catch(() => null) as { message?: string } | null;
-        throw new ApiError(response.status, errorPayload?.message ?? `API ${path}: ${response.status}`);
+        const errorPayload = await response.json().catch(() => null) as { message?: string; errors?: Record<string, string[]> } | null;
+        throw new ApiError(response.status, errorPayload?.message ?? `API ${path}: ${response.status}`, errorPayload?.errors ?? {});
       }
 
       return response.status === 204 ? null : response.json() as Promise<T>;
@@ -364,6 +467,13 @@ export default defineComponent({
       organizerEventsMeta.value = null;
       organizerEventsLoadedKey.value = '';
       cancellingOrganizerEvent.value = null;
+      eventFormData.value = emptyEventForm();
+      tickets.value = [emptyEventTicket()];
+      eventFormErrors.value = {};
+      eventFormGeneralError.value = '';
+      eventFormSuccess.value = '';
+      eventCategories.value = [];
+      eventMunicipalities.value = [];
       reviewEvents.value = [];
       calendarDays.value = [];
       selectedDay.value = null;
@@ -458,6 +568,167 @@ export default defineComponent({
       }
     };
 
+    const applyEventDetailToForm = (event: OrganizerEventDetail) => {
+      eventFormData.value = {
+        ulid: event.ulid,
+        status: event.status,
+        title: event.title,
+        summary: event.summary,
+        description: event.description,
+        municipality_id: String(event.municipality_id),
+        category_id: String(event.categories[0]?.id ?? ''),
+        starts_at: apiDateToLocalInput(event.starts_at),
+        ends_at: apiDateToLocalInput(event.ends_at),
+        capacity_total: String(event.capacity_total),
+        is_free: event.is_free,
+        family_friendly: event.family_friendly,
+        indoor_outdoor: event.indoor_outdoor,
+      };
+      tickets.value = event.ticket_types.length > 0 ? event.ticket_types.map((ticket) => ({
+        ulid: ticket.ulid,
+        name: ticket.name,
+        audience: ticket.audience,
+        price: centsToEuroInput(ticket.price_cents),
+        max_quantity: String(ticket.max_quantity),
+        booked_quantity: ticket.booked_quantity,
+        is_active: ticket.is_active,
+      })) : [emptyEventTicket()];
+      if (event.municipality && !eventMunicipalities.value.some((item) => item.id === event.municipality.id)) {
+        eventMunicipalities.value.push(event.municipality);
+      }
+    };
+
+    const loadEventForm = async (eventUlid?: string) => {
+      if (role.value !== 'organizer' || !token.value) return;
+      eventFormMode.value = eventUlid ? 'edit' : 'create';
+      eventFormLoading.value = true;
+      categoriesLoading.value = true;
+      eventFormGeneralError.value = '';
+      eventFormSuccess.value = '';
+      eventFormErrors.value = {};
+      if (!eventUlid) {
+        eventFormData.value = emptyEventForm();
+        tickets.value = [emptyEventTicket()];
+      }
+
+      try {
+        const [categoryPayload, municipalityPayload, eventPayload] = await Promise.all([
+          api<{ data: EventCategory[] }>('/categories'),
+          api<{ data: EventMunicipality[] }>('/locations/search'),
+          eventUlid ? api<{ data: OrganizerEventDetail }>(`/organizer/events/${eventUlid}`) : Promise.resolve(null),
+        ]);
+        eventCategories.value = categoryPayload?.data ?? [];
+        eventMunicipalities.value = municipalityPayload?.data ?? [];
+        if (eventPayload?.data) applyEventDetailToForm(eventPayload.data);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) {
+          clearSession('Sessione scaduta o non valida. Accedi di nuovo.');
+          return;
+        }
+        if (error instanceof ApiError && error.status === 403) {
+          eventFormGeneralError.value = 'Non sei autorizzato ad accedere a questo evento.';
+        } else if (error instanceof ApiError && error.status === 404) {
+          eventFormGeneralError.value = 'Evento non trovato.';
+        } else {
+          eventFormGeneralError.value = 'Impossibile caricare il form evento. Riprova.';
+        }
+      } finally {
+        eventFormLoading.value = false;
+        categoriesLoading.value = false;
+      }
+    };
+
+    const eventPayload = () => {
+      const errors: Record<string, string[]> = {};
+      const ticketPayload = tickets.value.map((ticket, index) => {
+        const priceCents = eventFormData.value.is_free ? 0 : euroInputToCents(ticket.price);
+        const maxQuantity = Number(ticket.max_quantity);
+        if (priceCents === null) errors[`ticket_types.${index}.price_cents`] = ['Inserisci un prezzo valido con massimo due decimali.'];
+        if (!Number.isInteger(maxQuantity) || maxQuantity < 1) errors[`ticket_types.${index}.max_quantity`] = ['Inserisci una quantità valida.'];
+        if (maxQuantity < ticket.booked_quantity) errors[`ticket_types.${index}.max_quantity`] = [`La quantità non può essere inferiore a ${ticket.booked_quantity}.`];
+
+        return {
+          ...(ticket.ulid ? { ulid: ticket.ulid } : {}),
+          name: ticket.name,
+          audience: ticket.audience,
+          price_cents: priceCents,
+          max_quantity: maxQuantity,
+          is_active: ticket.is_active,
+        };
+      });
+
+      if (tickets.value.length === 0) errors.ticket_types = ['Aggiungi almeno un biglietto.'];
+      eventFormErrors.value = errors;
+      if (Object.keys(errors).length > 0) return null;
+
+      return {
+        title: eventFormData.value.title,
+        summary: eventFormData.value.summary,
+        description: eventFormData.value.description,
+        municipality_id: Number(eventFormData.value.municipality_id),
+        category_ids: [Number(eventFormData.value.category_id)],
+        starts_at: localInputToApiDate(eventFormData.value.starts_at),
+        ends_at: localInputToApiDate(eventFormData.value.ends_at),
+        capacity_total: Number(eventFormData.value.capacity_total),
+        is_free: eventFormData.value.is_free,
+        family_friendly: eventFormData.value.family_friendly,
+        indoor_outdoor: eventFormData.value.indoor_outdoor,
+        ticket_types: ticketPayload,
+      };
+    };
+
+    const submitEventForm = async (publish: boolean) => {
+      if (eventFormSubmitting.value) return;
+      eventFormGeneralError.value = '';
+      eventFormSuccess.value = '';
+      eventFormErrors.value = {};
+      const payload = eventPayload();
+      if (!payload) {
+        eventFormGeneralError.value = 'Correggi i campi evidenziati.';
+        return;
+      }
+
+      eventFormSubmitting.value = true;
+      try {
+        const isEdit = eventFormMode.value === 'edit' && eventFormData.value.ulid;
+        const saved = await api<{ data: OrganizerEventDetail }>(
+          isEdit ? `/organizer/events/${eventFormData.value.ulid}` : '/organizer/events',
+          { method: isEdit ? 'PUT' : 'POST', body: JSON.stringify(payload) },
+        );
+        if (!saved?.data) throw new Error('Risposta evento non valida.');
+
+        let finalEvent = saved.data;
+        if (publish) {
+          const published = await api<{ data: OrganizerEventDetail }>(`/organizer/events/${saved.data.ulid}/publish`, { method: 'POST' });
+          if (!published?.data) throw new Error('Risposta pubblicazione non valida.');
+          finalEvent = published.data;
+        }
+
+        eventFormMode.value = 'edit';
+        route.value = `/organizer/events/${finalEvent.ulid}/edit`;
+        applyEventDetailToForm(finalEvent);
+        eventFormSuccess.value = publish ? 'Evento pubblicato.' : 'Evento salvato.';
+        organizerEventsLoadedKey.value = '';
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) {
+          clearSession('Sessione scaduta o non valida. Accedi di nuovo.');
+          return;
+        }
+        if (error instanceof ApiError && error.status === 422) {
+          eventFormErrors.value = error.errors;
+          eventFormGeneralError.value = 'Correggi i campi evidenziati.';
+        } else if (error instanceof ApiError && error.status === 403) {
+          eventFormGeneralError.value = 'Non sei autorizzato a modificare questo evento.';
+        } else if (error instanceof ApiError && error.status === 404) {
+          eventFormGeneralError.value = 'Evento non trovato.';
+        } else {
+          eventFormGeneralError.value = 'Impossibile salvare l’evento. Riprova.';
+        }
+      } finally {
+        eventFormSubmitting.value = false;
+      }
+    };
+
     const loadOrganizerData = async () => {
       if (role.value !== 'organizer' || !token.value) return;
 
@@ -535,6 +806,10 @@ export default defineComponent({
       route.value = canAccess(role.value, nextRoute) ? nextRoute : '/unauthorized';
       if (route.value === '/organizer/dashboard') await loadOrganizerDashboard();
       else if (route.value === '/organizer/events') await loadOrganizerEvents();
+      else if (route.value === '/organizer/create-event') await loadEventForm();
+      else if (route.value.startsWith('/organizer/events/') && route.value.endsWith('/edit')) {
+        await loadEventForm(route.value.split('/')[3]);
+      }
       else if (route.value.startsWith('/organizer')) await loadOrganizerData();
       if (route.value.startsWith('/customer')) await loadCustomerData();
       if (route.value.startsWith('/admin')) await loadAdminData();
@@ -986,7 +1261,10 @@ export default defineComponent({
         onClick: () => { void selectOrganizerEventsFilter(filter); },
       }, filterLabels[filter]));
       const header = [
-        h('div', { class: 'section-title' }, [h('h2', 'I miei eventi'), h('span', 'dati reali, filtrati e paginati dal backend')]),
+        h('div', { class: 'section-title' }, [
+          h('div', [h('h2', 'I miei eventi'), h('span', 'dati reali, filtrati e paginati dal backend')]),
+          h('button', { type: 'button', onClick: () => { void go('/organizer/create-event'); } }, 'Crea evento'),
+        ]),
         h('div', { class: 'filter-strip organizer-event-filters' }, filters),
       ];
 
@@ -1016,6 +1294,8 @@ export default defineComponent({
         const eventEndsAt = item.event.ends_at ?? item.event.starts_at;
         const canCancel = !['cancelled', 'completed', 'archived'].includes(item.event.status)
           && new Date(eventEndsAt).getTime() > Date.now();
+        const canEdit = ['draft', 'published'].includes(item.event.status)
+          && new Date(item.event.starts_at).getTime() > Date.now();
 
         return h('article', { class: 'experience-card event-management-card' }, [
           h('span', { class: `status-badge status-${item.event.status}` }, organizerEventStatusLabels[item.event.status]),
@@ -1030,13 +1310,17 @@ export default defineComponent({
             item.event.status === 'completed' ? h('small', `Assenti: ${item.summary.no_show}`) : null,
             item.event.status === 'completed' && item.summary.reviews_count > 0 ? h('small', `Valutazione: ${item.summary.average_rating}`) : null,
           ]),
-          canCancel ? h('div', { class: 'action-row' }, [
-            h('button', {
+          canEdit || canCancel ? h('div', { class: 'action-row' }, [
+            canEdit ? h('button', {
+              type: 'button',
+              onClick: () => { void go(`/organizer/events/${item.event.ulid}/edit`); },
+            }, 'Modifica') : null,
+            canCancel ? h('button', {
               type: 'button',
               class: 'danger-button',
               disabled: cancellingOrganizerEvent.value !== null,
               onClick: () => { void cancelOrganizerEvent(item.event.ulid); },
-            }, cancellingOrganizerEvent.value === item.event.ulid ? 'Annullamento...' : 'Annulla evento'),
+            }, cancellingOrganizerEvent.value === item.event.ulid ? 'Annullamento...' : 'Annulla evento') : null,
           ]) : null,
         ]);
       }));
@@ -1059,27 +1343,136 @@ export default defineComponent({
       return [...header, cards, pagination];
     };
 
-    const renderCreateEvent = () => [
-      h('div', { class: 'section-title' }, [h('h2', 'Crea evento'), h('span', 'calendario DB con colori backend')]),
-      h('article', { class: 'wide-panel form-preview' }, [
-        h('strong', 'Descrizione completa esperienza'),
-        h('div', { class: 'form-grid' }, ['Descrizione breve', 'Descrizione completa', 'Programma', 'Incluso', 'Info importanti', 'Policy cancellazione', 'Allergie', 'Contatto'].map((field) => h('label', [field, h('input', { readonly: true })]))),
-      ]),
-      h('div', { class: 'legend-row' }, [
-        h('span', { class: 'legend green' }, 'Verde: nessun evento'),
-        h('span', { class: 'legend yellow' }, 'Giallo: un evento'),
-        h('span', { class: 'legend red' }, 'Rosso: piu eventi'),
-      ]),
-      calendarDays.value.length === 0 ? emptyState('Nessun dato calendario disponibile.') : h('div', { class: 'calendar-grid' }, calendarDays.value.map((day) => h('button', {
-        class: ['calendar-day', day.color, selectedDay.value?.date === day.date ? 'selected' : ''],
-        type: 'button',
-        onClick: () => { selectedDay.value = day; },
-      }, [h('strong', new Date(day.date).getDate().toString()), h('small', `${day.events_count} eventi`)]))),
-      selectedDay.value ? h('article', { class: 'wide-panel' }, [
-        h('strong', `Eventi pubblici del ${selectedDay.value.date}`),
-        ...(selectedDay.value.events ?? []).map((event: any) => h('p', `${event.time} - ${event.title} - ${event.category ?? 'categoria'} - ${event.municipality} - ${event.organizer}${event.sold_out ? ' - sold out' : ''}`)),
-      ]) : null,
-    ];
+    const eventFieldErrors = (name: string) => eventFormErrors.value[name]?.map((message) => h('small', { class: 'field-error' }, message)) ?? [];
+
+    const renderEventForm = () => {
+      const eventUlid = eventFormData.value.ulid ?? undefined;
+      const heading = eventFormMode.value === 'create' ? 'Crea evento' : 'Modifica evento';
+      const retry = () => { void loadEventForm(eventUlid); };
+
+      if (eventFormLoading.value) {
+        return [h('article', { class: 'wide-panel organizer-events-state' }, [h('strong', 'Caricamento evento…')])];
+      }
+
+      if (eventFormGeneralError.value && eventCategories.value.length === 0) {
+        return [h('article', { class: 'wide-panel dashboard-error' }, [
+          h('strong', 'Impossibile caricare l’evento'),
+          h('p', eventFormGeneralError.value),
+          h('button', { type: 'button', onClick: retry }, 'Riprova'),
+          h('button', { type: 'button', onClick: () => { void go('/organizer/events'); } }, 'Torna ai miei eventi'),
+        ])];
+      }
+
+      const input = (label: string, name: keyof EventFormData, type = 'text') => h('label', { class: 'event-form-field' }, [
+        h('span', label),
+        h('input', {
+          type,
+          value: String(eventFormData.value[name] ?? ''),
+          disabled: eventFormSubmitting.value,
+          onInput: (event: Event) => { (eventFormData.value[name] as string) = (event.target as HTMLInputElement).value; },
+        }),
+        ...eventFieldErrors(name),
+      ]);
+
+      const ticketCards = tickets.value.map((ticket, index) => h('article', { class: 'ticket-editor' }, [
+        h('div', { class: 'ticket-editor-heading' }, [
+          h('strong', `Biglietto ${index + 1}`),
+          ticket.ulid ? h('small', `Quantità prenotata: ${ticket.booked_quantity}`) : h('small', 'Nuovo biglietto'),
+          h('button', {
+            type: 'button',
+            disabled: eventFormSubmitting.value || ticket.booked_quantity > 0,
+            title: ticket.booked_quantity > 0 ? 'Un biglietto prenotato non può essere rimosso.' : '',
+            onClick: () => { tickets.value.splice(index, 1); },
+          }, 'Rimuovi'),
+        ]),
+        h('div', { class: 'event-form-grid' }, [
+          h('label', { class: 'event-form-field' }, [
+            h('span', 'Nome biglietto'),
+            h('input', { value: ticket.name, disabled: eventFormSubmitting.value, onInput: (event: Event) => { ticket.name = (event.target as HTMLInputElement).value; } }),
+            ...eventFieldErrors(`ticket_types.${index}.name`),
+          ]),
+          h('label', { class: 'event-form-field' }, [
+            h('span', 'Destinatari'),
+            h('select', { value: ticket.audience, disabled: eventFormSubmitting.value, onChange: (event: Event) => { ticket.audience = (event.target as HTMLSelectElement).value as EventFormTicket['audience']; } }, [
+              h('option', { value: 'generic' }, 'Tutti'),
+              h('option', { value: 'adult' }, 'Adulti'),
+              h('option', { value: 'child' }, 'Bambini'),
+            ]),
+          ]),
+          h('label', { class: 'event-form-field' }, [
+            h('span', 'Prezzo (€)'),
+            h('input', { value: eventFormData.value.is_free ? '0,00' : ticket.price, disabled: eventFormSubmitting.value || eventFormData.value.is_free, inputmode: 'decimal', onInput: (event: Event) => { ticket.price = (event.target as HTMLInputElement).value; } }),
+            ...eventFieldErrors(`ticket_types.${index}.price_cents`),
+          ]),
+          h('label', { class: 'event-form-field' }, [
+            h('span', 'Quantità disponibile'),
+            h('input', { type: 'number', min: Math.max(1, ticket.booked_quantity), value: ticket.max_quantity, disabled: eventFormSubmitting.value, onInput: (event: Event) => { ticket.max_quantity = (event.target as HTMLInputElement).value; } }),
+            ...eventFieldErrors(`ticket_types.${index}.max_quantity`),
+          ]),
+        ]),
+      ]));
+
+      return [
+        h('div', { class: 'section-title' }, [
+          h('div', [h('h2', heading), eventFormMode.value === 'edit' ? h('span', `Stato: ${organizerEventStatusLabels[eventFormData.value.status]}`) : h('span', 'Nuovo evento in bozza')]),
+          h('button', { type: 'button', disabled: eventFormSubmitting.value, onClick: () => { void go('/organizer/events'); } }, 'Torna ai miei eventi'),
+        ]),
+        eventFormSuccess.value ? h('p', { class: 'form-success', role: 'status' }, eventFormSuccess.value) : null,
+        eventFormGeneralError.value ? h('p', { class: 'api-error', role: 'alert' }, eventFormGeneralError.value) : null,
+        h('form', { class: 'wide-panel event-editor', onSubmit: (event: Event) => event.preventDefault() }, [
+          h('div', { class: 'event-form-grid' }, [
+            input('Titolo', 'title'),
+            input('Descrizione breve', 'summary'),
+            h('label', { class: 'event-form-field event-form-wide' }, [
+              h('span', 'Descrizione'),
+              h('textarea', { value: eventFormData.value.description, disabled: eventFormSubmitting.value, onInput: (event: Event) => { eventFormData.value.description = (event.target as HTMLTextAreaElement).value; } }),
+              ...eventFieldErrors('description'),
+            ]),
+            h('label', { class: 'event-form-field' }, [
+              h('span', 'Categoria'),
+              h('select', { value: eventFormData.value.category_id, disabled: categoriesLoading.value || eventFormSubmitting.value, onChange: (event: Event) => { eventFormData.value.category_id = (event.target as HTMLSelectElement).value; } }, [
+                h('option', { value: '' }, categoriesLoading.value ? 'Caricamento…' : 'Seleziona categoria'),
+                ...eventCategories.value.map((category) => h('option', { value: String(category.id) }, category.name)),
+              ]),
+              ...eventFieldErrors('category_ids'),
+              ...eventFieldErrors('category_ids.0'),
+            ]),
+            h('label', { class: 'event-form-field' }, [
+              h('span', 'Luogo'),
+              h('select', { value: eventFormData.value.municipality_id, disabled: eventFormSubmitting.value, onChange: (event: Event) => { eventFormData.value.municipality_id = (event.target as HTMLSelectElement).value; } }, [
+                h('option', { value: '' }, 'Seleziona comune'),
+                ...eventMunicipalities.value.map((municipality) => h('option', { value: String(municipality.id) }, `${municipality.name}${municipality.province?.code ? ` (${municipality.province.code})` : ''}`)),
+              ]),
+              ...eventFieldErrors('municipality_id'),
+            ]),
+            input('Data e ora di inizio', 'starts_at', 'datetime-local'),
+            input('Data e ora di fine', 'ends_at', 'datetime-local'),
+            input('Capienza generale', 'capacity_total', 'number'),
+            h('label', { class: 'event-form-field' }, [
+              h('span', 'Svolgimento'),
+              h('select', { value: eventFormData.value.indoor_outdoor, disabled: eventFormSubmitting.value, onChange: (event: Event) => { eventFormData.value.indoor_outdoor = (event.target as HTMLSelectElement).value as EventFormData['indoor_outdoor']; } }, [
+                h('option', { value: 'indoor' }, 'Al chiuso'),
+                h('option', { value: 'outdoor' }, 'All’aperto'),
+                h('option', { value: 'mixed' }, 'Misto'),
+              ]),
+            ]),
+            h('label', { class: 'event-form-check' }, [h('input', { type: 'checkbox', checked: eventFormData.value.is_free, disabled: eventFormSubmitting.value, onChange: (event: Event) => { eventFormData.value.is_free = (event.target as HTMLInputElement).checked; } }), 'Evento gratuito']),
+            h('label', { class: 'event-form-check' }, [h('input', { type: 'checkbox', checked: eventFormData.value.family_friendly, disabled: eventFormSubmitting.value, onChange: (event: Event) => { eventFormData.value.family_friendly = (event.target as HTMLInputElement).checked; } }), 'Adatto alle famiglie']),
+          ]),
+          h('div', { class: 'ticket-section-heading' }, [
+            h('div', [h('h3', 'Biglietti'), h('p', 'Le quantità prenotate sono protette dal backend.')]),
+            h('button', { type: 'button', disabled: eventFormSubmitting.value, onClick: () => { tickets.value.push(emptyEventTicket()); } }, 'Aggiungi biglietto'),
+          ]),
+          ...eventFieldErrors('ticket_types'),
+          h('div', { class: 'ticket-editor-list' }, ticketCards),
+          h('div', { class: 'event-form-actions' }, [
+            h('button', { type: 'button', disabled: eventFormSubmitting.value, onClick: () => { void go('/organizer/events'); } }, 'Annulla'),
+            h('button', { type: 'button', disabled: eventFormSubmitting.value, onClick: () => { void submitEventForm(false); } }, eventFormSubmitting.value ? 'Salvataggio…' : 'Salva bozza'),
+            eventFormData.value.status === 'draft' ? h('button', { class: 'publish-button', type: 'button', disabled: eventFormSubmitting.value, onClick: () => { void submitEventForm(true); } }, eventFormSubmitting.value ? 'Pubblicazione…' : 'Pubblica evento') : null,
+          ]),
+        ]),
+      ];
+    };
 
     const renderReviews = () => [
       h('div', { class: 'section-title' }, [h('h2', 'Recensioni per evento'), h('span', 'non lista unica')]),
@@ -1121,8 +1514,8 @@ export default defineComponent({
         apiError.value ? h('p', { class: 'api-error' }, apiError.value) : null,
         ...(route.value === '/organizer/events'
           ? renderOrganizerEvents()
-          : route.value === '/organizer/create-event'
-            ? renderCreateEvent()
+          : route.value === '/organizer/create-event' || (route.value.startsWith('/organizer/events/') && route.value.endsWith('/edit'))
+            ? renderEventForm()
             : route.value === '/organizer/reviews'
               ? renderReviews()
               : route.value === '/organizer/opportunities'

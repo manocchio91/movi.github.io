@@ -5,21 +5,53 @@ namespace App\Actions\Events;
 use App\Actions\Notifications\NotifyInterestedCustomers;
 use App\Enums\EventStatus;
 use App\Models\Event;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class PublishEvent
 {
     public function handle(Event $event): Event
     {
-        abort_unless($event->organizerProfile?->verification_status === 'verified', 403, 'Profilo organizzatore non approvato.');
-        abort_unless($event->status === EventStatus::Draft, 422, 'Evento non pubblicabile.');
+        $published = DB::transaction(function () use ($event): Event {
+            $lockedEvent = Event::query()
+                ->with(['categories', 'ticketTypes', 'organizerProfile'])
+                ->lockForUpdate()
+                ->findOrFail($event->id);
 
-        $event->forceFill([
-            'status' => EventStatus::Published,
-            'published_at' => now(),
-        ])->save();
+            abort_unless($lockedEvent->organizerProfile?->verification_status === 'verified', 403, 'Profilo organizzatore non approvato.');
 
-        app(NotifyInterestedCustomers::class)->handle($event->refresh());
+            if ($lockedEvent->status !== EventStatus::Draft) {
+                throw ValidationException::withMessages(['status' => ['Evento non pubblicabile dallo stato corrente.']]);
+            }
 
-        return $event->refresh();
+            $errors = [];
+            if ($lockedEvent->starts_at->isPast()) {
+                $errors['starts_at'][] = 'La data di inizio deve essere futura.';
+            }
+            if ($lockedEvent->categories->isEmpty()) {
+                $errors['category_ids'][] = 'Seleziona almeno una categoria.';
+            }
+            if ($lockedEvent->ticketTypes->isEmpty()) {
+                $errors['ticket_types'][] = 'Aggiungi almeno un biglietto.';
+            }
+            if (! $lockedEvent->ticketTypes->contains(fn ($ticket) => $ticket->is_active && $ticket->max_quantity > 0)) {
+                $errors['ticket_types'][] = 'È necessario almeno un biglietto attivo con quantità disponibile.';
+            }
+
+            if ($errors !== []) {
+                throw ValidationException::withMessages($errors);
+            }
+
+            $lockedEvent->forceFill([
+                'status' => EventStatus::Published,
+                'published_at' => now(),
+            ])->save();
+
+            return $lockedEvent->refresh()->load(['categories', 'ticketTypes', 'municipality']);
+        });
+
+        app(NotifyInterestedCustomers::class)->handle($published);
+
+        return $published;
     }
 }
