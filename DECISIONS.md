@@ -95,3 +95,39 @@ Contesto: filtrare o paginare nel browser una sola pagina produce elenchi incomp
 Decisione: applicare filtri, ordinamento e paginazione nell'endpoint backend; il frontend invia i parametri correnti e visualizza i metadati restituiti.
 
 Conseguenze: ogni cambio filtro genera una nuova richiesta, torna alla pagina 1 e non riutilizza dati appartenenti al filtro precedente.
+
+## ADR-009
+
+### Sessione web persistita e verificata dal backend
+
+Stato: Accepted
+
+Contesto: conservare il token soltanto in memoria interrompe la sessione a ogni refresh e non consente di verificarne validità e ruolo.
+
+Decisione: conservare il token Sanctum in `localStorage` e ripristinare la sessione esclusivamente dopo una risposta valida di `GET /api/v1/me`.
+
+Conseguenze: token invalidi o revocati vengono rimossi e l'utente torna al login con un messaggio leggibile.
+
+## ADR-010
+
+### Nessun accesso demo dopo un fallimento auth
+
+Stato: Accepted
+
+Contesto: i fallback demo dopo errori di rete o credenziali non valide simulavano un accesso riuscito e rendevano inaffidabile il collaudo.
+
+Decisione: nessun errore di login, validazione o rete può impostare un utente autenticato o aprire una dashboard; i dati demo possono soltanto precompilare il form.
+
+Conseguenze: tutte le sessioni web dichiarate reali dipendono da un token emesso e verificato dal backend.
+
+## ADR-011
+
+### Approvazione Organizer prima delle funzioni operative
+
+Stato: Accepted
+
+Contesto: la registrazione Organizer deve creare un profilo reale senza aggirare il processo di verifica esistente.
+
+Decisione: creare `User` e `OrganizerProfile` in una sola transazione, inizializzare il profilo come `pending` e indirizzare l'utente a una schermata di attesa finché non diventa `verified`.
+
+Conseguenze: gli Organizer pending possono autenticarsi e fare logout, ma non inviano richieste alle route protette da `organizer.approved`.

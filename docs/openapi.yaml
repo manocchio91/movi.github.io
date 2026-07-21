@@ -7,14 +7,52 @@ servers:
 paths:
   /auth/register:
     post:
-      summary: Registra customer o organizer
+      summary: Registra e autentica un customer o un organizer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RegisterRequest" }
       responses:
-        "201": { description: Utente creato }
+        "201":
+          description: Utente creato con token Sanctum; per organizer crea anche il profilo pending
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResponse" }
+        "422": { description: Payload non valido, conferma password errata o email duplicata }
   /auth/login:
     post:
       summary: Login e token Sanctum con role e redirect_to
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginRequest" }
       responses:
-        "200": { description: Token creato con user.role e redirect_to }
+        "200":
+          description: Token creato con ruolo, stato profilo Organizer e redirect_to
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResponse" }
+        "422": { description: Credenziali non valide }
+  /auth/logout:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Revoca il token Sanctum corrente
+      responses:
+        "200": { description: Logout eseguito }
+        "401": { description: Token assente o non valido }
+  /me:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Verifica e ripristina la sessione corrente
+      responses:
+        "200":
+          description: Utente corrente, stato profilo Organizer e redirect_to
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionResponse" }
+        "401": { description: Token assente, revocato o non valido }
   /categories:
     get:
       summary: Macroaree evento
@@ -687,6 +725,59 @@ paths:
         "204": { description: Recensione eliminata }
 components:
   schemas:
+    RegisterRequest:
+      type: object
+      required: [name, email, password, password_confirmation]
+      properties:
+        name: { type: string, maxLength: 120 }
+        email: { type: string, format: email, maxLength: 255 }
+        password: { type: string, format: password, minLength: 8 }
+        password_confirmation: { type: string, format: password, minLength: 8 }
+        role: { type: string, enum: [customer, organizer], default: customer }
+        organization_name:
+          type: string
+          maxLength: 180
+          description: Obbligatorio quando role e organizer.
+        organization_type:
+          type: string
+          maxLength: 80
+          description: Obbligatorio quando role e organizer.
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+    AuthUser:
+      type: object
+      required: [name, email, role, status, organizer_profile]
+      properties:
+        name: { type: string }
+        email: { type: string, format: email }
+        role: { type: string, enum: [customer, organizer, admin] }
+        status: { type: string, enum: [active, pending, suspended] }
+        organizer_profile:
+          oneOf:
+            - type: "null"
+            - type: object
+              required: [ulid, name, verification_status]
+              properties:
+                ulid: { type: string }
+                name: { type: string }
+                verification_status: { type: string, enum: [pending, verified, rejected] }
+    AuthResponse:
+      type: object
+      required: [user, token, redirect_to]
+      properties:
+        user: { $ref: "#/components/schemas/AuthUser" }
+        token: { type: string, description: Personal access token Sanctum opaco. }
+        redirect_to: { type: string, enum: [/customer/dashboard, /organizer/pending, /organizer/dashboard, /admin/dashboard] }
+    SessionResponse:
+      type: object
+      required: [user, redirect_to]
+      properties:
+        user: { $ref: "#/components/schemas/AuthUser" }
+        redirect_to: { type: string, enum: [/customer/dashboard, /organizer/pending, /organizer/dashboard, /admin/dashboard] }
     OrganizerEventListResponse:
       type: object
       required: [data, meta]

@@ -15,52 +15,48 @@ APP EVENTI è una piattaforma territoriale per scoprire, pubblicare, prenotare e
 | v0.3 | Completata | Autenticazione mobile collegata al backend reale |
 | v0.4 | Completata | Customer Home, categorie ed eventi collegati alle API reali |
 | v0.5 | Completata | Booking Customer reale, idempotenza, QR, lista/dettaglio e annullamento |
-| v0.6 | In corso | Dashboard e lista eventi Organizer con dati reali |
-| v0.7 | Pianificata, contenuto da definire | Evoluzione operativa Organizer |
-| v0.8 | Pianificata, contenuto da definire | Analytics, recensioni e strumenti di supporto Organizer |
-| v0.9 | Pianificata, contenuto da definire | Consolidamento Opportunity Engine e preparazione MVP |
+| v0.6 | Completata | Dashboard e lista eventi Organizer con dati reali |
+| v0.7 | Completata | Registrazione e autenticazione reale per Customer e Organizer |
+| v0.8 | Pianificata | Creazione e modifica evento Organizer |
+| v0.9 | Pianificata | Analytics, recensioni e strumenti Organizer |
 | v1.0 | Pianificata | MVP validato e pronto al rilascio secondo criteri da definire |
 
-## v0.6 — Dashboard Organizer
+## v0.6 — Dashboard e lista eventi Organizer
 
-Ordine iniziale previsto:
+Completati dashboard, KPI, lista eventi, classificazioni, filtri e paginazione reali. Creazione e modifica evento sono state spostate alla milestone successiva.
 
-1. Analisi dello stato reale dell'area Organizer. Completata.
-2. Collegamento della dashboard ai dati reali. Completato.
-3. KPI principali. Completati.
-4. Lista degli eventi dell'organizzatore. Completata.
-5. Distinzione tra eventi futuri, conclusi e non pubblicati. Completata.
-6. Creazione e modifica evento. Prossimo blocco.
-7. Gestione partecipanti.
-8. Check-in.
-9. Statistiche.
+## v0.7 — Registrazione e autenticazione reale
 
-Il backend espone già API Organizer, ma l'app Flutter usa ancora dati demo: ogni voce deve essere verificata end-to-end prima di essere considerata completata.
+Completata end-to-end sul frontend web:
+
+1. Registrazione Customer con sessione autenticata.
+2. Registrazione Organizer con profilo `pending` creato atomicamente.
+3. Login e logout reali con token Sanctum.
+4. Sessione persistita e verificata tramite `GET /api/v1/me`.
+5. Redirect per ruolo e schermata dedicata all'Organizer non approvato.
+6. Rimozione dei fallback demo dai flussi auth reali.
+7. Validazioni, errori uniformi, test backend, OpenAPI e Browser QA manuale completati.
+
+## Prossima milestone
+
+**CREAZIONE E MODIFICA EVENTO ORGANIZER**
+
+Il prossimo lavoro deve verificare e completare il contratto backend esistente prima di collegare i form web, senza includere prenotazioni, partecipanti o check-in.
 
 ## Attività future
 
 ### Organizer
 
-- Sostituire progressivamente `InMemoryDemoRepository` con repository API reali.
-- Validare dashboard, profilo, eventi, partecipanti e check-in.
-- Allineare autorizzazioni, stati evento e gestione degli errori con il backend.
+- Creazione, dettaglio e modifica evento con dati reali.
+- Prenotazioni ricevute, partecipanti e check-in.
+- Sostituzione progressiva di `InMemoryDemoRepository` nell'app Flutter.
+- Allineamento di autorizzazioni, stati evento ed errori tra tutti i client.
 
-### Analytics e statistiche
+### Analytics, recensioni e Opportunity Engine
 
 - Verificare e integrare gli endpoint Organizer già presenti.
 - Definire KPI comprensibili e coerenti con i dati reali.
-- Coprire i calcoli con test backend e test Flutter.
-
-### Recensioni
-
-- Verificare i flussi Customer, Organizer e moderazione già esposti dalle API.
-- Collegare le UI solo dopo aver confermato contratti, autorizzazioni e stati.
-
-### Opportunity Engine
-
-- Consolidare il motore deterministico presente nel backend.
-- Validare suggerimenti, sovrapposizioni e utilizzo delle opportunità nel flusso Organizer.
-- Non introdurre dipendenze AI esterne senza un requisito approvato.
+- Consolidare il motore deterministico senza dipendenze AI esterne non richieste.
 
 ### Preparazione MVP
 

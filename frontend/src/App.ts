@@ -1,6 +1,7 @@
-import { computed, defineComponent, h, ref } from 'vue';
+import { computed, defineComponent, h, onMounted, ref } from 'vue';
 
 type Role = 'guest' | 'customer' | 'organizer' | 'admin';
+type AuthMode = 'login' | 'register-customer' | 'register-organizer';
 type AppRoute =
   | '/login'
   | '/customer/dashboard'
@@ -9,6 +10,7 @@ type AppRoute =
   | '/customer/bookings'
   | '/customer/preferences'
   | '/organizer/dashboard'
+  | '/organizer/pending'
   | '/organizer/events'
   | '/organizer/create-event'
   | '/organizer/reviews'
@@ -27,12 +29,33 @@ type AppRoute =
   | '/admin/settings'
   | '/unauthorized';
 
-type DemoUser = {
+type OrganizerProfileSummary = {
+  ulid: string;
+  name: string;
+  verification_status: 'pending' | 'verified' | 'rejected';
+};
+
+type AuthUser = {
   role: Exclude<Role, 'guest'>;
   name: string;
   email: string;
-  password: string;
+  status: 'active' | 'pending' | 'suspended';
+  organizer_profile: OrganizerProfileSummary | null;
   redirect_to: AppRoute;
+};
+
+type AuthResponse = {
+  user: Omit<AuthUser, 'redirect_to'>;
+  token: string;
+  redirect_to: AppRoute;
+};
+
+type SessionResponse = Omit<AuthResponse, 'token'>;
+
+type DemoCredentials = {
+  role: Exclude<Role, 'guest'>;
+  email: string;
+  password: string;
 };
 
 type OrganizerReviewAnalytics = {
@@ -127,10 +150,12 @@ const organizerEventStatusLabels: Record<OrganizerEventStatus, string> = {
   archived: 'Archiviato',
 };
 
-const demoUsers: DemoUser[] = [
-  { role: 'customer', name: 'Cliente Demo', email: 'customer@example.test', password: 'password', redirect_to: '/customer/dashboard' },
-  { role: 'organizer', name: 'Organizer sviluppo locale', email: 'organizer@app-eventi.test', password: 'password', redirect_to: '/organizer/dashboard' },
-  { role: 'admin', name: 'Admin Molise', email: 'admin@example.test', password: 'password', redirect_to: '/admin/dashboard' },
+const sessionStorageKey = 'app-eventi.auth-token';
+
+const demoUsers: DemoCredentials[] = [
+  { role: 'customer', email: 'customer@example.test', password: 'password' },
+  { role: 'organizer', email: 'organizer@app-eventi.test', password: 'password' },
+  { role: 'admin', email: 'admin@example.test', password: 'password' },
 ];
 
 const customerMenu = [
@@ -167,6 +192,7 @@ const adminMenu = [
 const canAccess = (role: Role, route: AppRoute) => {
   if (route === '/login' || route === '/unauthorized') return true;
   if (route.startsWith('/customer')) return role === 'customer';
+  if (route === '/organizer/pending') return role === 'organizer';
   if (route.startsWith('/organizer')) return role === 'organizer';
   if (route.startsWith('/admin')) return role === 'admin';
 
@@ -243,9 +269,31 @@ export default defineComponent({
   name: 'App',
   setup() {
     const customerMobilePreview = window.location.pathname.includes('cliente-mobile') || window.location.search.includes('cliente=mobile');
-    const currentUser = ref<DemoUser | null>(customerMobilePreview ? demoUsers[0] : null);
+    const currentUser = ref<AuthUser | null>(customerMobilePreview ? {
+      role: 'customer',
+      name: 'Cliente Demo',
+      email: demoUsers[0].email,
+      status: 'active',
+      organizer_profile: null,
+      redirect_to: '/customer/dashboard',
+    } : null);
     const token = ref<string | null>(null);
     const route = ref<AppRoute>(customerMobilePreview ? '/customer/dashboard' : '/login');
+    const authMode = ref<AuthMode>('login');
+    const authLoading = ref(false);
+    const authRestoring = ref(!customerMobilePreview);
+    const authError = ref('');
+    const authFieldErrors = ref<Record<string, string[]>>({});
+    const loginForm = ref({ email: '', password: '' });
+    const customerRegistrationForm = ref({ name: '', email: '', password: '', password_confirmation: '' });
+    const organizerRegistrationForm = ref({
+      name: '',
+      email: '',
+      password: '',
+      password_confirmation: '',
+      organization_name: '',
+      organization_type: '',
+    });
     const loading = ref(false);
     const apiError = ref('');
     const organizerDashboard = ref<OrganizerDashboardData | null>(null);
@@ -338,6 +386,7 @@ export default defineComponent({
       } catch (error) {
         if (error instanceof ApiError && error.status === 401) {
           clearOrganizerData();
+          localStorage.removeItem(sessionStorageKey);
           token.value = null;
           currentUser.value = null;
           route.value = '/login';
@@ -389,6 +438,7 @@ export default defineComponent({
 
         if (error instanceof ApiError && error.status === 401) {
           clearOrganizerData();
+          localStorage.removeItem(sessionStorageKey);
           token.value = null;
           currentUser.value = null;
           route.value = '/login';
@@ -490,44 +540,12 @@ export default defineComponent({
       if (route.value.startsWith('/admin')) await loadAdminData();
     };
 
-    const login = async (user: DemoUser) => {
-      loading.value = true;
-      apiError.value = '';
-      try {
-        const response = await fetch(`${apiBase}/auth/login`, {
-          method: 'POST',
-          headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: user.email, password: user.password }),
-        });
-        if (!response.ok) throw new Error(`Login API: ${response.status}`);
-        const payload = await response.json();
-        token.value = payload.token;
-        currentUser.value = { ...user, role: payload.user.role, redirect_to: payload.redirect_to };
-        route.value = payload.redirect_to;
-        if (route.value === '/organizer/dashboard') await loadOrganizerDashboard(true);
-        else if (route.value.startsWith('/organizer')) await loadOrganizerData();
-        await loadCustomerData();
-        await loadAdminData();
-      } catch (error) {
-        if (user.role === 'organizer') {
-          currentUser.value = null;
-          token.value = null;
-          route.value = '/login';
-          apiError.value = error instanceof Error ? error.message : 'Accesso Organizer non disponibile.';
-        } else {
-          currentUser.value = user;
-          route.value = user.redirect_to;
-          apiError.value = error instanceof Error ? `${error.message}. Avvia il backend per vedere dati DB reali.` : 'Backend non disponibile.';
-        }
-      } finally {
-        loading.value = false;
-      }
-    };
-
-    const logout = () => {
+    const clearSession = (message = '') => {
+      localStorage.removeItem(sessionStorageKey);
       currentUser.value = null;
       token.value = null;
       route.value = '/login';
+      authError.value = message;
       apiError.value = '';
       dashboardError.value = '';
       dashboardForbidden.value = false;
@@ -543,6 +561,100 @@ export default defineComponent({
       adminEventRankings.value = [];
       adminOrganizerRankings.value = [];
     };
+
+    const completeAuth = async (payload: AuthResponse | SessionResponse, nextToken: string) => {
+      token.value = nextToken;
+      currentUser.value = { ...payload.user, redirect_to: payload.redirect_to };
+      localStorage.setItem(sessionStorageKey, nextToken);
+      route.value = payload.redirect_to;
+
+      if (route.value === '/organizer/pending') return;
+      if (route.value === '/organizer/dashboard') await loadOrganizerDashboard(true);
+      else if (route.value.startsWith('/organizer')) await loadOrganizerData();
+      else if (route.value.startsWith('/customer')) await loadCustomerData();
+      else if (route.value.startsWith('/admin')) await loadAdminData();
+    };
+
+    const submitAuth = async (path: '/auth/login' | '/auth/register', body: Record<string, string>) => {
+      authLoading.value = true;
+      authError.value = '';
+      authFieldErrors.value = {};
+      try {
+        const response = await fetch(`${apiBase}${path}`, {
+          method: 'POST',
+          headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const payload = await response.json().catch(() => null) as (AuthResponse & { message?: string; errors?: Record<string, string[]> }) | null;
+        if (!response.ok || !payload?.token) {
+          authFieldErrors.value = payload?.errors ?? {};
+          authError.value = payload?.message ?? (response.status === 401 || response.status === 422
+            ? 'I dati inseriti non sono validi.'
+            : 'Accesso non disponibile. Riprova.');
+          return;
+        }
+
+        await completeAuth(payload, payload.token);
+      } catch (error) {
+        authError.value = error instanceof Error
+          ? 'Impossibile contattare il servizio. Verifica la connessione e riprova.'
+          : 'Accesso non disponibile. Riprova.';
+      } finally {
+        authLoading.value = false;
+      }
+    };
+
+    const login = () => submitAuth('/auth/login', loginForm.value);
+
+    const registerCustomer = () => submitAuth('/auth/register', {
+      ...customerRegistrationForm.value,
+      role: 'customer',
+    });
+
+    const registerOrganizer = () => submitAuth('/auth/register', {
+      ...organizerRegistrationForm.value,
+      role: 'organizer',
+    });
+
+    const logout = async () => {
+      const activeToken = token.value;
+      if (activeToken) {
+        try {
+          await fetch(`${apiBase}/auth/logout`, {
+            method: 'POST',
+            headers: { Accept: 'application/json', Authorization: `Bearer ${activeToken}` },
+          });
+        } catch {
+          // La sessione locale viene comunque rimossa; il token server scadrà o potrà essere revocato al prossimo accesso.
+        }
+      }
+      clearSession();
+    };
+
+    onMounted(async () => {
+      if (customerMobilePreview) return;
+      const savedToken = localStorage.getItem(sessionStorageKey);
+      if (!savedToken) {
+        authRestoring.value = false;
+        return;
+      }
+
+      try {
+        const response = await fetch(`${apiBase}/me`, {
+          headers: { Accept: 'application/json', Authorization: `Bearer ${savedToken}` },
+        });
+        const payload = await response.json().catch(() => null) as SessionResponse | null;
+        if (!response.ok || !payload?.user || !payload.redirect_to) {
+          clearSession('La sessione salvata non è più valida. Accedi di nuovo.');
+          return;
+        }
+        await completeAuth(payload, savedToken);
+      } catch {
+        clearSession('Non è stato possibile verificare la sessione. Accedi di nuovo.');
+      } finally {
+        authRestoring.value = false;
+      }
+    });
 
     const useSuggestion = async (suggestionUlid: string, index: number) => {
       await api(`/organizer/opportunities/${suggestionUlid}/use`, {
@@ -575,6 +687,7 @@ export default defineComponent({
       } catch (error) {
         if (error instanceof ApiError && error.status === 401) {
           clearOrganizerData();
+          localStorage.removeItem(sessionStorageKey);
           token.value = null;
           currentUser.value = null;
           route.value = '/login';
@@ -624,20 +737,98 @@ export default defineComponent({
       apiError.value ? h('p', apiError.value) : null,
     ]);
 
+    const authInput = (
+      label: string,
+      name: string,
+      type: string,
+      value: string,
+      update: (value: string) => void,
+    ) => h('label', { class: 'auth-field' }, [
+      h('span', label),
+      h('input', {
+        name,
+        type,
+        value,
+        autocomplete: type === 'password' ? 'new-password' : undefined,
+        disabled: authLoading.value,
+        onInput: (event: Event) => update((event.target as HTMLInputElement).value),
+      }),
+      authFieldErrors.value[name]?.map((message) => h('small', { class: 'field-error' }, message)),
+    ]);
+
+    const setAuthMode = (mode: AuthMode) => {
+      authMode.value = mode;
+      authError.value = '';
+      authFieldErrors.value = {};
+    };
+
+    const renderLoginForm = () => h('form', {
+      class: 'auth-form',
+      onSubmit: (event: Event) => { event.preventDefault(); void login(); },
+    }, [
+      authInput('Email', 'email', 'email', loginForm.value.email, (value) => { loginForm.value.email = value; }),
+      authInput('Password', 'password', 'password', loginForm.value.password, (value) => { loginForm.value.password = value; }),
+      h('button', { class: 'auth-submit', type: 'submit', disabled: authLoading.value }, authLoading.value ? 'Accesso in corso…' : 'Accedi'),
+      h('div', { class: 'demo-fill' }, demoUsers.map((user) => h('button', {
+        type: 'button',
+        disabled: authLoading.value,
+        onClick: () => { loginForm.value = { email: user.email, password: user.password }; },
+      }, `Compila ${user.role}`))),
+    ]);
+
+    const renderCustomerRegistrationForm = () => h('form', {
+      class: 'auth-form',
+      onSubmit: (event: Event) => { event.preventDefault(); void registerCustomer(); },
+    }, [
+      authInput('Nome', 'name', 'text', customerRegistrationForm.value.name, (value) => { customerRegistrationForm.value.name = value; }),
+      authInput('Email', 'email', 'email', customerRegistrationForm.value.email, (value) => { customerRegistrationForm.value.email = value; }),
+      authInput('Password', 'password', 'password', customerRegistrationForm.value.password, (value) => { customerRegistrationForm.value.password = value; }),
+      authInput('Conferma password', 'password_confirmation', 'password', customerRegistrationForm.value.password_confirmation, (value) => { customerRegistrationForm.value.password_confirmation = value; }),
+      h('button', { class: 'auth-submit', type: 'submit', disabled: authLoading.value }, authLoading.value ? 'Registrazione in corso…' : 'Crea account Cliente'),
+    ]);
+
+    const renderOrganizerRegistrationForm = () => h('form', {
+      class: 'auth-form',
+      onSubmit: (event: Event) => { event.preventDefault(); void registerOrganizer(); },
+    }, [
+      authInput('Nome referente', 'name', 'text', organizerRegistrationForm.value.name, (value) => { organizerRegistrationForm.value.name = value; }),
+      authInput('Email', 'email', 'email', organizerRegistrationForm.value.email, (value) => { organizerRegistrationForm.value.email = value; }),
+      authInput('Password', 'password', 'password', organizerRegistrationForm.value.password, (value) => { organizerRegistrationForm.value.password = value; }),
+      authInput('Conferma password', 'password_confirmation', 'password', organizerRegistrationForm.value.password_confirmation, (value) => { organizerRegistrationForm.value.password_confirmation = value; }),
+      authInput('Nome organizzazione', 'organization_name', 'text', organizerRegistrationForm.value.organization_name, (value) => { organizerRegistrationForm.value.organization_name = value; }),
+      authInput('Tipo organizzazione', 'organization_type', 'text', organizerRegistrationForm.value.organization_type, (value) => { organizerRegistrationForm.value.organization_type = value; }),
+      h('button', { class: 'auth-submit', type: 'submit', disabled: authLoading.value }, authLoading.value ? 'Registrazione in corso…' : 'Crea account Organizer'),
+    ]);
+
     const renderLogin = () => h('section', { class: 'auth-screen' }, [
       h('div', { class: 'auth-panel' }, [
-        h('span', { class: 'eyebrow' }, 'Accesso ruolo'),
+        h('span', { class: 'eyebrow' }, 'Accesso sicuro'),
         h('h1', 'Eventi Locali'),
-        h('p', 'Il login prova le API reali e usa role + redirect_to restituiti dal backend.'),
-        apiError.value ? h('p', { class: 'api-error' }, apiError.value) : null,
-        h('div', { class: 'login-grid' }, demoUsers.map((user) => h('button', {
-          type: 'button',
-          onClick: () => { void login(user); },
-        }, [
-          h('strong', user.role),
-          h('span', user.email),
-          h('small', user.redirect_to),
-        ]))),
+        h('p', 'Accedi oppure crea un account reale. Le credenziali vengono sempre verificate dal backend.'),
+        h('div', { class: 'auth-tabs', role: 'tablist' }, [
+          h('button', { type: 'button', class: authMode.value === 'login' ? 'active' : '', onClick: () => setAuthMode('login') }, 'Accedi'),
+          h('button', { type: 'button', class: authMode.value === 'register-customer' ? 'active' : '', onClick: () => setAuthMode('register-customer') }, 'Registrati come Cliente'),
+          h('button', { type: 'button', class: authMode.value === 'register-organizer' ? 'active' : '', onClick: () => setAuthMode('register-organizer') }, 'Registrati come Organizer'),
+        ]),
+        authError.value ? h('p', { class: 'api-error', role: 'alert' }, authError.value) : null,
+        authRestoring.value
+          ? h('p', { class: 'auth-restoring' }, 'Verifica della sessione in corso…')
+          : authMode.value === 'login'
+            ? renderLoginForm()
+            : authMode.value === 'register-customer'
+              ? renderCustomerRegistrationForm()
+              : renderOrganizerRegistrationForm(),
+      ]),
+    ]);
+
+    const renderOrganizerPending = () => h('main', { class: 'auth-screen' }, [
+      h('section', { class: 'auth-panel pending-panel' }, [
+        h('span', { class: 'eyebrow' }, 'Profilo Organizer'),
+        h('h1', 'Account in attesa di approvazione'),
+        h('p', `Ciao ${currentUser.value?.name ?? ''}. Il profilo ${currentUser.value?.organizer_profile?.name ?? 'della tua organizzazione'} è stato ricevuto.`),
+        h('p', 'Dashboard, eventi e funzioni operative saranno disponibili dopo la verifica da parte dello staff.'),
+        h('strong', 'Stato: in revisione'),
+        h('button', { class: 'auth-submit', type: 'button', onClick: () => { void logout(); } }, 'Logout'),
       ]),
     ]);
 
@@ -1266,6 +1457,7 @@ export default defineComponent({
     return () => {
       if (route.value === '/unauthorized') return Unauthorized();
       if (role.value === 'customer') return CustomerLayout();
+      if (role.value === 'organizer' && route.value === '/organizer/pending') return renderOrganizerPending();
       if (role.value === 'organizer') return OrganizerLayout();
       if (role.value === 'admin') return AdminLayout();
 
