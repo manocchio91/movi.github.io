@@ -2,6 +2,8 @@
 
 > Queste regole e `PROJECT_STATE.md` devono essere aggiornati quando cambia il processo o lo stato reale del repository.
 
+Il processo operativo ottimizzato per le sessioni assistite da Codex è definito in [docs/ai/CODEX_WORKFLOW.md](docs/ai/CODEX_WORKFLOW.md), con i relativi [template di prompt](docs/ai/PROMPT_TEMPLATE.md), [template di milestone](docs/ai/MILESTONE_TEMPLATE.md) e [checklist Browser QA](docs/ai/CHECKLIST_QA.md).
+
 ## Strategia branch
 
 - Non lavorare direttamente su `main`.

@@ -1,5 +1,7 @@
 # Architettura
 
+Il workflow operativo per lo sviluppo assistito da Codex è documentato in [AI Development Workflow](ai/CODEX_WORKFLOW.md).
+
 ## Scelta frontend
 
 La prima versione usa Vue 3 + TypeScript + Vite come app separata nel monorepo. Laravel espone API REST versionate e resta indipendente dalla UI. Inertia sarebbe una scelta valida per ridurre il salto mentale full-stack, ma in questo prodotto la PWA avrà flussi pubblici, dashboard partecipante, dashboard organizzatore e pannello admin: una SPA Vue separata mantiene più chiara la frontiera API e facilita l'evoluzione futura senza introdurre microservizi.
