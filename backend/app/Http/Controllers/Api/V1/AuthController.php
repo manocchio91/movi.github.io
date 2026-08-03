@@ -27,12 +27,14 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request): JsonResponse
     {
-        if (! Auth::attempt($request->validated())) {
+        $guard = Auth::guard('web');
+
+        if (! $guard->attempt($request->validated())) {
             return response()->json(['message' => 'Credenziali non valide.'], 422);
         }
 
         /** @var User $user */
-        $user = Auth::user();
+        $user = $guard->user();
 
         return response()->json([
             'user' => $this->userPayload($user->load('organizerProfile')),
@@ -67,9 +69,13 @@ class AuthController extends Controller
     private function redirectPath(User $user): string
     {
         return match ($user->role) {
-            UserRole::Organizer => $user->organizerProfile?->verification_status === 'verified'
-                ? '/organizer/dashboard'
-                : '/organizer/pending',
+            UserRole::Organizer => match ($user->organizerProfile?->verification_status) {
+                'verified' => '/organizer/dashboard',
+                'pending' => '/organizer/pending',
+                'rejected' => '/organizer/rejected',
+                'suspended' => '/organizer/suspended',
+                default => '/organizer/onboarding',
+            },
             UserRole::Admin => '/admin/dashboard',
             default => '/customer/dashboard',
         };
@@ -87,6 +93,7 @@ class AuthController extends Controller
                 'ulid' => $user->organizerProfile->ulid,
                 'name' => $user->organizerProfile->name,
                 'verification_status' => $user->organizerProfile->verification_status,
+                'review_notes' => $user->organizerProfile->review_notes,
             ] : null,
         ];
     }

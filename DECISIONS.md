@@ -128,9 +128,9 @@ Stato: Accepted
 
 Contesto: la registrazione Organizer deve creare un profilo reale senza aggirare il processo di verifica esistente.
 
-Decisione: creare `User` e `OrganizerProfile` in una sola transazione, inizializzare il profilo come `pending` e indirizzare l'utente a una schermata di attesa finché non diventa `verified`.
+Decisione: creare `User` e `OrganizerProfile` in una sola transazione, inizializzare il profilo come `incomplete` e indirizzare l'utente all'onboarding fiscale. Soltanto l'invio completo porta il profilo a `pending`; `changes_requested` riapre l'onboarding, mentre `verified`, `rejected` e `suspended` hanno destinazioni dedicate.
 
-Conseguenze: gli Organizer pending possono autenticarsi e fare logout, ma non inviano richieste alle route protette da `organizer.approved`.
+Conseguenze: gli Organizer non verificati possono autenticarsi e fare logout, ma non inviano richieste alle route protette da `organizer.approved`; ogni redirect deriva dallo stato reale del profilo autenticato.
 
 ## ADR-012
 
@@ -143,3 +143,15 @@ Contesto: creare eventi già pubblicati e ricreare i ticket durante ogni modific
 Decisione: ogni evento viene creato come `draft` e può diventare `published` soltanto tramite una transizione backend esplicita. I ticket esistenti vengono sincronizzati tramite ULID in transazione e con lock, preservando `booked_quantity`; un ticket prenotato non può essere rimosso e la sua quantità non può scendere sotto quella già prenotata.
 
 Conseguenze: creazione, modifica e pubblicazione restano operazioni distinte; le vendite già registrate non vengono alterate dai successivi aggiornamenti dell'evento.
+
+## ADR-013
+
+### Riservatezza dei dati fiscali Organizer
+
+Stato: Accepted
+
+Contesto: Partita IVA, PEC, Codice SDI e indirizzo di fatturazione identificano fiscalmente l'Organizer e non appartengono al profilo pubblico.
+
+Decisione: i dati fiscali dell'Organizer sono riservati e possono essere visualizzati esclusivamente dall'Organizer proprietario e dagli Admin autorizzati. Non devono essere esposti nelle schermate o API pubbliche.
+
+Conseguenze: endpoint, serializer e interfacce pubbliche devono escludere questi campi; ogni nuova esposizione richiede autorizzazione esplicita e test dedicati.

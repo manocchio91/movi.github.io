@@ -131,7 +131,7 @@ class EventPlatformTest extends TestCase
         $this->postJson('/api/v1/auth/login', ['email' => $organizer->email, 'password' => 'password'])
             ->assertOk()
             ->assertJsonPath('user.role', 'organizer')
-            ->assertJsonPath('redirect_to', '/organizer/pending');
+            ->assertJsonPath('redirect_to', '/organizer/onboarding');
 
         $this->postJson('/api/v1/auth/login', ['email' => $admin->email, 'password' => 'password'])
             ->assertOk()

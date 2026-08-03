@@ -17,7 +17,8 @@ class CreateOrganizerProfile
             'name' => $data['organization_name'],
             'type' => $data['organization_type'],
             'email' => $user->email,
-            'verification_status' => 'pending',
+            'country' => 'Italia',
+            'verification_status' => 'incomplete',
         ]);
     }
 }

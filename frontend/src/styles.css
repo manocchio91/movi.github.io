@@ -1192,6 +1192,82 @@ button {
   max-width: 560px;
 }
 
+.auth-role-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.auth-role-grid button {
+  min-height: 52px;
+}
+
+.onboarding-screen {
+  align-items: flex-start;
+  padding: 32px 16px;
+}
+
+.onboarding-panel {
+  max-width: 1050px;
+  width: min(1050px, 100%);
+}
+
+.onboarding-form,
+.onboarding-form fieldset {
+  display: grid;
+  gap: 18px;
+}
+
+.onboarding-form fieldset {
+  border: 1px solid #dde8e5;
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.onboarding-form legend {
+  font-size: 1.1rem;
+  font-weight: 700;
+  padding: 0 8px;
+}
+
+.onboarding-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.onboarding-description {
+  grid-column: 1 / -1;
+}
+
+.onboarding-description textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.onboarding-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.review-reason {
+  background: #fff5dd;
+  border: 1px solid #ebcf8a;
+  border-radius: 10px;
+  margin: 12px 0;
+  padding: 12px;
+}
+
+.organizer-request-detail {
+  margin-top: 18px;
+}
+
+.organizer-request-detail .admin-detail-grid > div {
+  display: grid;
+  gap: 4px;
+}
+
 @media (max-width: 900px) {
   .admin-console {
     grid-template-columns: 1fr;
@@ -1341,12 +1417,14 @@ button {
 
   .login-grid,
   .auth-tabs,
+  .auth-role-grid,
   .auth-form,
   .event-form-grid,
   .metric-grid,
   .event-grid,
   .form-grid,
-  .calendar-grid {
+  .calendar-grid,
+  .onboarding-grid {
     grid-template-columns: 1fr;
   }
 }

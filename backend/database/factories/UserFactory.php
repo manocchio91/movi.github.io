@@ -18,6 +18,7 @@ class UserFactory extends Factory
             'password' => Hash::make('password'),
             'remember_token' => Str::random(10),
             'role' => UserRole::Customer,
+            'status' => 'active',
         ];
     }
 }

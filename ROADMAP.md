@@ -18,7 +18,8 @@ APP EVENTI è una piattaforma territoriale per scoprire, pubblicare, prenotare e
 | v0.6 | Completata | Dashboard e lista eventi Organizer con dati reali |
 | v0.7 | Completata | Registrazione e autenticazione reale per Customer e Organizer |
 | v0.8 | Completata | Creazione e modifica eventi Organizer con ticket sicuri |
-| v0.9 | Pianificata | Gestione prenotazioni e partecipanti Organizer |
+| v0.9 | Completata | Onboarding fiscale Organizer e approvazione Admin |
+| v0.10 | Pianificata | Gestione prenotazioni e partecipanti Organizer |
 | v1.0 | Pianificata | MVP validato e pronto al rilascio secondo criteri da definire |
 
 ## v0.8 — Organizer Event Creation and Editing
@@ -32,6 +33,17 @@ Completata end-to-end sul frontend web:
 5. Ticket esistenti aggiornati per ULID senza perdere identità o prenotazioni.
 6. Blocco della riduzione sotto `booked_quantity` e della rimozione di ticket prenotati.
 7. Transazioni, lock, autorizzazioni, OpenAPI, test automatici e Browser QA completati.
+
+## v0.9 - Organizer Fiscal Onboarding and Admin Approval
+
+Completata end-to-end sul frontend web:
+
+1. Raccolta e salvataggio progressivo dei dati fiscali Organizer.
+2. Invio alla revisione con stati e redirect coerenti.
+3. Coda e dettaglio Admin con approvazione, richiesta modifiche e rifiuto.
+4. Protezione delle funzioni operative fino all'approvazione.
+5. Sessione auth reale, logout completo e selezione ruolo senza accessi simulati.
+6. Test automatici e Browser QA finale completati.
 
 ## Prossima milestone
 

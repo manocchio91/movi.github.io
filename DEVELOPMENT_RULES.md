@@ -86,6 +86,10 @@ Una funzione è conclusa quando:
 - Verificare sempre valori prima e dopo una modifica dati.
 - Non introdurre un seeder permanente per una correzione locale occasionale se non necessario.
 
+## Dati fiscali Organizer
+
+- I dati fiscali dell'Organizer (Partita IVA, PEC, Codice SDI e indirizzo di fatturazione) sono dati riservati e possono essere visualizzati esclusivamente dall'Organizer proprietario e dagli Admin autorizzati. Non devono essere esposti nelle schermate o API pubbliche.
+
 ## Diagnosi e gestione degli errori
 
 - Non modificare dati o codice senza aver compreso la causa.

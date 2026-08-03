@@ -322,19 +322,29 @@ paths:
   /organizer/profile:
     get:
       security: [{ bearerAuth: [] }]
-      summary: Profilo locale
+      summary: Profilo fiscale e pubblico dell'Organizer autenticato
       responses:
         "200": { description: Profilo }
-    post:
+    patch:
       security: [{ bearerAuth: [] }]
-      summary: Crea profilo locale
-      responses:
-        "201": { description: Profilo creato }
-    put:
-      security: [{ bearerAuth: [] }]
-      summary: Aggiorna profilo locale
+      summary: Salva parzialmente il profilo Organizer modificabile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OrganizerProfileUpdate" }
       responses:
         "200": { description: Profilo aggiornato }
+        "409": { description: Profilo non modificabile nello stato corrente }
+        "422": { description: Dati non validi }
+  /organizer/profile/submit:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Invia il profilo fiscale completo all'approvazione Admin
+      responses:
+        "200": { description: Profilo passato allo stato pending con submitted_at valorizzato }
+        "409": { description: Transizione non valida }
+        "422": { description: Dati fiscali obbligatori incompleti o non validi }
   /organizer/dashboard:
     get:
       security: [{ bearerAuth: [] }]
@@ -693,16 +703,14 @@ paths:
   /admin/organizers:
     get:
       security: [{ bearerAuth: [] }]
-      summary: Lista organizzatori per moderazione admin
+      summary: Lista paginata delle richieste Organizer per moderazione Admin
+      parameters:
+        - { name: status, in: query, schema: { $ref: "#/components/schemas/OrganizerVerificationStatus" } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
       responses:
-        "200": { description: Lista organizzatori }
+        "200": { description: Lista paginata con pending_count }
         "403": { description: Solo admin }
-  /admin/organizers/pending:
-    get:
-      security: [{ bearerAuth: [] }]
-      summary: Organizzatori da verificare
-      responses:
-        "200": { description: Lista organizzatori }
   /admin/organizers/{organizer}/approve:
     post:
       security: [{ bearerAuth: [] }]
@@ -711,6 +719,37 @@ paths:
         - { name: organizer, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Organizzatore approvato }
+        "409": { description: Richiesta non in revisione }
+  /admin/organizers/{organizer}/request-changes:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Richiede integrazioni motivate all'Organizer
+      parameters:
+        - { name: organizer, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OrganizerReviewReason" }
+      responses:
+        "200": { description: Integrazione richiesta }
+        "409": { description: Richiesta non in revisione }
+        "422": { description: Motivazione mancante o non valida }
+  /admin/organizers/{organizer}/reject:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Rifiuta con motivazione la richiesta Organizer
+      parameters:
+        - { name: organizer, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OrganizerReviewReason" }
+      responses:
+        "200": { description: Richiesta rifiutata }
+        "409": { description: Richiesta non in revisione }
+        "422": { description: Motivazione mancante o non valida }
   /admin/organizers/{organizer}:
     get:
       security: [{ bearerAuth: [] }]
@@ -836,20 +875,52 @@ components:
               properties:
                 ulid: { type: string }
                 name: { type: string }
-                verification_status: { type: string, enum: [pending, verified, rejected] }
+                verification_status: { $ref: "#/components/schemas/OrganizerVerificationStatus" }
+                review_notes: { type: [string, "null"] }
     AuthResponse:
       type: object
       required: [user, token, redirect_to]
       properties:
         user: { $ref: "#/components/schemas/AuthUser" }
         token: { type: string, description: Personal access token Sanctum opaco. }
-        redirect_to: { type: string, enum: [/customer/dashboard, /organizer/pending, /organizer/dashboard, /admin/dashboard] }
+        redirect_to: { type: string, enum: [/customer/dashboard, /organizer/onboarding, /organizer/pending, /organizer/dashboard, /organizer/rejected, /organizer/suspended, /admin/dashboard] }
     SessionResponse:
       type: object
       required: [user, redirect_to]
       properties:
         user: { $ref: "#/components/schemas/AuthUser" }
-        redirect_to: { type: string, enum: [/customer/dashboard, /organizer/pending, /organizer/dashboard, /admin/dashboard] }
+        redirect_to: { type: string, enum: [/customer/dashboard, /organizer/onboarding, /organizer/pending, /organizer/dashboard, /organizer/rejected, /organizer/suspended, /admin/dashboard] }
+    OrganizerVerificationStatus:
+      type: string
+      enum: [incomplete, pending, changes_requested, verified, rejected, suspended]
+    OrganizerProfileUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        name: { type: [string, "null"], maxLength: 180 }
+        type: { type: [string, "null"], maxLength: 80 }
+        description: { type: [string, "null"], maxLength: 3000 }
+        municipality_id: { type: [integer, "null"] }
+        address: { type: [string, "null"], maxLength: 255 }
+        street_number: { type: [string, "null"], maxLength: 20 }
+        postal_code: { type: [string, "null"], pattern: "^[0-9]{5}$" }
+        province: { type: [string, "null"], pattern: "^[A-Z]{2}$" }
+        country: { type: [string, "null"], maxLength: 80 }
+        vat_number: { type: [string, "null"], pattern: "^(IT)?[0-9]{11}$" }
+        pec: { type: [string, "null"], format: email }
+        sdi_code: { type: [string, "null"], pattern: "^[A-Za-z0-9]{7}$" }
+        phone: { type: [string, "null"], maxLength: 40 }
+        public_email: { type: [string, "null"], format: email }
+        website_url: { type: [string, "null"], format: uri }
+        instagram_url: { type: [string, "null"], format: uri }
+        facebook_url: { type: [string, "null"], format: uri }
+        tiktok_url: { type: [string, "null"], format: uri }
+    OrganizerReviewReason:
+      type: object
+      additionalProperties: false
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 1, maxLength: 2000 }
     OrganizerEventListResponse:
       type: object
       required: [data, meta]

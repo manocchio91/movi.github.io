@@ -2,6 +2,7 @@ import { computed, defineComponent, h, onMounted, ref } from 'vue';
 
 type Role = 'guest' | 'customer' | 'organizer' | 'admin';
 type AuthMode = 'login' | 'register-customer' | 'register-organizer';
+type AuthAudience = Exclude<Role, 'guest'>;
 type AppRoute =
   | '/login'
   | '/customer/dashboard'
@@ -10,7 +11,10 @@ type AppRoute =
   | '/customer/bookings'
   | '/customer/preferences'
   | '/organizer/dashboard'
+  | '/organizer/onboarding'
   | '/organizer/pending'
+  | '/organizer/rejected'
+  | '/organizer/suspended'
   | '/organizer/events'
   | '/organizer/create-event'
   | `/organizer/events/${string}/edit`
@@ -33,7 +37,33 @@ type AppRoute =
 type OrganizerProfileSummary = {
   ulid: string;
   name: string;
-  verification_status: 'pending' | 'verified' | 'rejected';
+  verification_status: OrganizerVerificationStatus;
+  review_notes: string | null;
+};
+
+type OrganizerVerificationStatus = 'incomplete' | 'pending' | 'changes_requested' | 'verified' | 'rejected' | 'suspended';
+type OrganizerProfile = OrganizerProfileSummary & {
+  type: string;
+  description: string | null;
+  municipality_id: number | null;
+  municipality?: EventMunicipality | null;
+  address: string | null;
+  street_number: string | null;
+  postal_code: string | null;
+  province: string | null;
+  country: string;
+  vat_number: string | null;
+  pec: string | null;
+  sdi_code: string | null;
+  phone: string | null;
+  public_email: string | null;
+  website_url: string | null;
+  instagram_url: string | null;
+  facebook_url: string | null;
+  tiktok_url: string | null;
+  submitted_at?: string | null;
+  reviewed_at?: string | null;
+  owner?: { name: string; email: string };
 };
 
 type AuthUser = {
@@ -52,12 +82,6 @@ type AuthResponse = {
 };
 
 type SessionResponse = Omit<AuthResponse, 'token'>;
-
-type DemoCredentials = {
-  role: Exclude<Role, 'guest'>;
-  email: string;
-  password: string;
-};
 
 type OrganizerReviewAnalytics = {
   reviews_count: number;
@@ -217,6 +241,13 @@ const emptyEventForm = (): EventFormData => ({
   indoor_outdoor: 'mixed',
 });
 
+const emptyOrganizerProfile = (): OrganizerProfile => ({
+  ulid: '', name: '', type: '', description: '', municipality_id: null, address: '', street_number: '',
+  postal_code: '', province: '', country: 'Italia', vat_number: '', pec: '', sdi_code: '', phone: '',
+  public_email: '', website_url: '', instagram_url: '', facebook_url: '', tiktok_url: '',
+  verification_status: 'incomplete', review_notes: null,
+});
+
 const emptyEventTicket = (): EventFormTicket => ({
   name: 'Ingresso',
   audience: 'generic',
@@ -243,12 +274,6 @@ const euroInputToCents = (value: string) => {
   const [euros, decimals = ''] = normalized.split('.');
   return Number(euros) * 100 + Number(decimals.padEnd(2, '0'));
 };
-
-const demoUsers: DemoCredentials[] = [
-  { role: 'customer', email: 'customer@example.test', password: 'password' },
-  { role: 'organizer', email: 'organizer@app-eventi.test', password: 'password' },
-  { role: 'admin', email: 'admin@example.test', password: 'password' },
-];
 
 const customerMenu = [
   ['Home', '/customer/dashboard'],
@@ -361,19 +386,13 @@ export default defineComponent({
   name: 'App',
   setup() {
     const customerMobilePreview = window.location.pathname.includes('cliente-mobile') || window.location.search.includes('cliente=mobile');
-    const currentUser = ref<AuthUser | null>(customerMobilePreview ? {
-      role: 'customer',
-      name: 'Cliente Demo',
-      email: demoUsers[0].email,
-      status: 'active',
-      organizer_profile: null,
-      redirect_to: '/customer/dashboard',
-    } : null);
+    const currentUser = ref<AuthUser | null>(null);
     const token = ref<string | null>(null);
-    const route = ref<AppRoute>(customerMobilePreview ? '/customer/dashboard' : '/login');
+    const route = ref<AppRoute>('/login');
+    const authAudience = ref<AuthAudience | null>(null);
     const authMode = ref<AuthMode>('login');
     const authLoading = ref(false);
-    const authRestoring = ref(!customerMobilePreview);
+    const authRestoring = ref(true);
     const authError = ref('');
     const authFieldErrors = ref<Record<string, string[]>>({});
     const loginForm = ref({ email: '', password: '' });
@@ -389,6 +408,12 @@ export default defineComponent({
     const loading = ref(false);
     const apiError = ref('');
     const organizerDashboard = ref<OrganizerDashboardData | null>(null);
+    const organizerProfile = ref<OrganizerProfile>(emptyOrganizerProfile());
+    const organizerProfileLoading = ref(false);
+    const organizerProfileSaving = ref(false);
+    const organizerProfileError = ref('');
+    const organizerProfileSuccess = ref('');
+    const organizerProfileErrors = ref<Record<string, string[]>>({});
     const dashboardLoading = ref(false);
     const dashboardError = ref('');
     const dashboardForbidden = ref(false);
@@ -413,6 +438,7 @@ export default defineComponent({
     const eventMunicipalities = ref<EventMunicipality[]>([]);
     const tickets = ref<EventFormTicket[]>([emptyEventTicket()]);
     let organizerEventsRequestId = 0;
+    let sessionVersion = 0;
     const reviewEvents = ref<any[]>([]);
     const calendarDays = ref<any[]>([]);
     const selectedDay = ref<any | null>(null);
@@ -425,6 +451,14 @@ export default defineComponent({
     const adminEvents = ref<any[]>([]);
     const adminEventStats = ref<any>(null);
     const adminOrganizers = ref<any[]>([]);
+    const adminOrganizerFilter = ref<OrganizerVerificationStatus | ''>('pending');
+    const adminOrganizerPage = ref(1);
+    const adminOrganizerMeta = ref<OrganizerEventPaginationMeta | null>(null);
+    const adminOrganizerPendingCount = ref(0);
+    const adminOrganizerLoading = ref(false);
+    const adminOrganizerError = ref('');
+    const selectedAdminOrganizer = ref<OrganizerProfile | null>(null);
+    const adminOrganizerActionLoading = ref(false);
     const adminEventRankings = ref<any[]>([]);
     const adminOrganizerRankings = ref<any[]>([]);
 
@@ -438,16 +472,20 @@ export default defineComponent({
 
     const api = async <T = any>(path: string, options: RequestInit = {}): Promise<T | null> => {
       if (!token.value) return null;
+      const requestToken = token.value;
+      const requestSessionVersion = sessionVersion;
 
       const response = await fetch(`${apiBase}${path}`, {
         ...options,
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token.value}`,
+          Authorization: `Bearer ${requestToken}`,
           ...(options.headers ?? {}),
         },
       });
+
+      if (requestSessionVersion !== sessionVersion || token.value !== requestToken) return null;
 
       if (!response.ok) {
         const errorPayload = await response.json().catch(() => null) as { message?: string; errors?: Record<string, string[]> } | null;
@@ -459,6 +497,13 @@ export default defineComponent({
 
     const clearOrganizerData = () => {
       organizerDashboard.value = null;
+      dashboardLoading.value = false;
+      organizerProfile.value = emptyOrganizerProfile();
+      organizerProfileLoading.value = false;
+      organizerProfileSaving.value = false;
+      organizerProfileError.value = '';
+      organizerProfileSuccess.value = '';
+      organizerProfileErrors.value = {};
       organizerEvents.value = [];
       organizerEventsLoading.value = false;
       organizerEventsError.value = '';
@@ -472,6 +517,9 @@ export default defineComponent({
       eventFormErrors.value = {};
       eventFormGeneralError.value = '';
       eventFormSuccess.value = '';
+      eventFormLoading.value = false;
+      eventFormSubmitting.value = false;
+      categoriesLoading.value = false;
       eventCategories.value = [];
       eventMunicipalities.value = [];
       reviewEvents.value = [];
@@ -772,29 +820,137 @@ export default defineComponent({
       }
     };
 
+    const loadOrganizerProfile = async () => {
+      if (role.value !== 'organizer' || !token.value) return;
+      organizerProfileLoading.value = true;
+      organizerProfileError.value = '';
+      try {
+        const [profilePayload, municipalityPayload] = await Promise.all([
+          api<{ data: OrganizerProfile }>('/organizer/profile'),
+          api<{ data: EventMunicipality[] }>('/locations/search'),
+        ]);
+        if (profilePayload?.data) organizerProfile.value = profilePayload.data;
+        eventMunicipalities.value = municipalityPayload?.data ?? [];
+      } catch (error) {
+        organizerProfileError.value = error instanceof Error ? error.message : 'Impossibile caricare il profilo Organizer.';
+      } finally {
+        organizerProfileLoading.value = false;
+      }
+    };
+
+    const saveOrganizerProfile = async () => {
+      organizerProfileSaving.value = true;
+      organizerProfileError.value = '';
+      organizerProfileSuccess.value = '';
+      organizerProfileErrors.value = {};
+      try {
+        const payload = { ...organizerProfile.value, municipality_id: organizerProfile.value.municipality_id || null };
+        const response = await api<{ data: OrganizerProfile }>('/organizer/profile', { method: 'PATCH', body: JSON.stringify(payload) });
+        if (response?.data) organizerProfile.value = response.data;
+        organizerProfileSuccess.value = 'Profilo salvato. Puoi continuare più tardi.';
+      } catch (error) {
+        if (error instanceof ApiError) organizerProfileErrors.value = error.errors;
+        organizerProfileError.value = error instanceof Error ? error.message : 'Impossibile salvare il profilo.';
+      } finally {
+        organizerProfileSaving.value = false;
+      }
+    };
+
+    const submitOrganizerProfile = async () => {
+      await saveOrganizerProfile();
+      if (organizerProfileError.value) return;
+      organizerProfileSaving.value = true;
+      organizerProfileSuccess.value = '';
+      try {
+        const response = await api<{ data: OrganizerProfile }>('/organizer/profile/submit', { method: 'POST' });
+        if (!response?.data) return;
+        organizerProfile.value = response.data;
+        if (currentUser.value?.organizer_profile) currentUser.value.organizer_profile.verification_status = 'pending';
+        route.value = '/organizer/pending';
+      } catch (error) {
+        if (error instanceof ApiError) organizerProfileErrors.value = error.errors;
+        organizerProfileError.value = error instanceof Error ? error.message : 'Impossibile inviare la richiesta.';
+      } finally {
+        organizerProfileSaving.value = false;
+      }
+    };
+
+    const loadAdminOrganizerRequests = async () => {
+      if (role.value !== 'admin' || !token.value) return;
+      adminOrganizerLoading.value = true;
+      adminOrganizerError.value = '';
+      try {
+        const query = new URLSearchParams({ page: String(adminOrganizerPage.value), per_page: '15' });
+        if (adminOrganizerFilter.value) query.set('status', adminOrganizerFilter.value);
+        const response = await api<{ data: { data: OrganizerProfile[] } & OrganizerEventPaginationMeta; pending_count: number }>(`/admin/organizers?${query}`);
+        adminOrganizers.value = response?.data.data ?? [];
+        adminOrganizerMeta.value = response?.data ?? null;
+        adminOrganizerPendingCount.value = response?.pending_count ?? 0;
+      } catch (error) {
+        adminOrganizers.value = [];
+        adminOrganizerError.value = error instanceof Error ? error.message : 'Impossibile caricare le richieste Organizer.';
+      } finally {
+        adminOrganizerLoading.value = false;
+      }
+    };
+
+    const selectAdminOrganizer = async (organizer: OrganizerProfile) => {
+      selectedAdminOrganizer.value = null;
+      adminOrganizerError.value = '';
+      try {
+        const response = await api<{ data: OrganizerProfile }>(`/admin/organizers/${organizer.ulid}`);
+        selectedAdminOrganizer.value = response?.data ?? null;
+      } catch (error) {
+        adminOrganizerError.value = error instanceof Error ? error.message : 'Impossibile caricare il dettaglio.';
+      }
+    };
+
+    const reviewAdminOrganizer = async (decision: 'approve' | 'request-changes' | 'reject') => {
+      const organizer = selectedAdminOrganizer.value;
+      if (!organizer || adminOrganizerActionLoading.value) return;
+      let reason = '';
+      if (decision !== 'approve') {
+        reason = window.prompt(decision === 'reject' ? 'Motivazione del rifiuto' : 'Integrazioni richieste')?.trim() ?? '';
+        if (!reason) return;
+      }
+      const label = decision === 'approve' ? 'approvare' : decision === 'reject' ? 'rifiutare' : 'richiedere integrazioni per';
+      if (!window.confirm(`Confermi di ${label} ${organizer.name}?`)) return;
+      adminOrganizerActionLoading.value = true;
+      adminOrganizerError.value = '';
+      try {
+        const response = await api<{ data: OrganizerProfile }>(`/admin/organizers/${organizer.ulid}/${decision}`, {
+          method: 'POST', body: JSON.stringify(reason ? { reason } : {}),
+        });
+        selectedAdminOrganizer.value = response?.data ?? null;
+        await loadAdminOrganizerRequests();
+      } catch (error) {
+        adminOrganizerError.value = error instanceof Error ? error.message : 'Operazione non completata.';
+      } finally {
+        adminOrganizerActionLoading.value = false;
+      }
+    };
+
     const loadAdminData = async () => {
       if (role.value !== 'admin' || !token.value) return;
 
       loading.value = true;
       apiError.value = '';
       try {
-        const [dashboard, overview, events, organizers, eventRankings, organizerRankings] = await Promise.all([
+        const [dashboard, overview, events, eventRankings, organizerRankings] = await Promise.all([
           api('/admin/dashboard'),
           api('/admin/overview'),
           api('/admin/events'),
-          api('/admin/organizers'),
           api('/admin/rankings/events'),
           api('/admin/rankings/organizers'),
         ]);
         adminDashboard.value = dashboard?.data ?? null;
         adminOverview.value = overview?.data ?? null;
         const eventPayload = events;
-        const organizerPayload = organizers;
         adminEvents.value = adminOverview.value?.events ?? eventPayload?.data?.data ?? eventPayload?.data ?? [];
         adminEventStats.value = eventPayload?.stats ?? null;
-        adminOrganizers.value = adminOverview.value?.organizers ?? organizerPayload?.data ?? [];
         adminEventRankings.value = eventRankings?.data ?? [];
         adminOrganizerRankings.value = organizerRankings?.data ?? [];
+        await loadAdminOrganizerRequests();
       } catch (error) {
         apiError.value = error instanceof Error ? error.message : 'API admin non disponibile';
       } finally {
@@ -804,7 +960,8 @@ export default defineComponent({
 
     const go = async (nextRoute: AppRoute) => {
       route.value = canAccess(role.value, nextRoute) ? nextRoute : '/unauthorized';
-      if (route.value === '/organizer/dashboard') await loadOrganizerDashboard();
+      if (route.value === '/organizer/onboarding') await loadOrganizerProfile();
+      else if (route.value === '/organizer/dashboard') await loadOrganizerDashboard();
       else if (route.value === '/organizer/events') await loadOrganizerEvents();
       else if (route.value === '/organizer/create-event') await loadEventForm();
       else if (route.value.startsWith('/organizer/events/') && route.value.endsWith('/edit')) {
@@ -816,10 +973,12 @@ export default defineComponent({
     };
 
     const clearSession = (message = '') => {
-      localStorage.removeItem(sessionStorageKey);
+      sessionVersion += 1;
       currentUser.value = null;
       token.value = null;
       route.value = '/login';
+      authAudience.value = null;
+      loginForm.value = { email: '', password: '' };
       authError.value = message;
       apiError.value = '';
       dashboardError.value = '';
@@ -833,17 +992,28 @@ export default defineComponent({
       adminEvents.value = [];
       adminEventStats.value = null;
       adminOrganizers.value = [];
+      selectedAdminOrganizer.value = null;
       adminEventRankings.value = [];
       adminOrganizerRankings.value = [];
+      loading.value = false;
+      authLoading.value = false;
+
+      try {
+        localStorage.removeItem(sessionStorageKey);
+      } catch {
+        // La pulizia in memoria e il ritorno al login non dipendono dalla disponibilità dello storage.
+      }
     };
 
     const completeAuth = async (payload: AuthResponse | SessionResponse, nextToken: string) => {
+      clearSession();
       token.value = nextToken;
       currentUser.value = { ...payload.user, redirect_to: payload.redirect_to };
       localStorage.setItem(sessionStorageKey, nextToken);
       route.value = payload.redirect_to;
 
-      if (route.value === '/organizer/pending') return;
+      if (route.value === '/organizer/onboarding') await loadOrganizerProfile();
+      else if (route.value === '/organizer/pending' || route.value === '/organizer/rejected' || route.value === '/organizer/suspended') return;
       if (route.value === '/organizer/dashboard') await loadOrganizerDashboard(true);
       else if (route.value.startsWith('/organizer')) await loadOrganizerData();
       else if (route.value.startsWith('/customer')) await loadCustomerData();
@@ -851,6 +1021,7 @@ export default defineComponent({
     };
 
     const submitAuth = async (path: '/auth/login' | '/auth/register', body: Record<string, string>) => {
+      if (authLoading.value) return;
       authLoading.value = true;
       authError.value = '';
       authFieldErrors.value = {};
@@ -866,6 +1037,15 @@ export default defineComponent({
           authError.value = payload?.message ?? (response.status === 401 || response.status === 422
             ? 'I dati inseriti non sono validi.'
             : 'Accesso non disponibile. Riprova.');
+          return;
+        }
+
+        if (path === '/auth/login' && authAudience.value && payload.user.role !== authAudience.value) {
+          await fetch(`${apiBase}/auth/logout`, {
+            method: 'POST',
+            headers: { Accept: 'application/json', Authorization: `Bearer ${payload.token}` },
+          }).catch(() => undefined);
+          authError.value = `Questo account non appartiene all’area ${authAudience.value}.`;
           return;
         }
 
@@ -893,32 +1073,46 @@ export default defineComponent({
 
     const logout = async () => {
       const activeToken = token.value;
-      if (activeToken) {
-        try {
-          await fetch(`${apiBase}/auth/logout`, {
-            method: 'POST',
-            headers: { Accept: 'application/json', Authorization: `Bearer ${activeToken}` },
-          });
-        } catch {
-          // La sessione locale viene comunque rimossa; il token server scadrà o potrà essere revocato al prossimo accesso.
-        }
-      }
       clearSession();
+
+      if (!activeToken) return;
+
+      try {
+        const response = await fetch(`${apiBase}/auth/logout`, {
+          method: 'POST',
+          headers: { Accept: 'application/json', Authorization: `Bearer ${activeToken}` },
+        });
+        if (!response.ok) authError.value = 'Sessione locale chiusa; non è stato possibile confermare la revoca del token.';
+      } catch {
+        authError.value = 'Sessione locale chiusa; non è stato possibile contattare il servizio di logout.';
+      }
     };
 
     onMounted(async () => {
-      if (customerMobilePreview) return;
-      const savedToken = localStorage.getItem(sessionStorageKey);
+      let savedToken: string | null = null;
+      try {
+        savedToken = localStorage.getItem(sessionStorageKey);
+      } catch {
+        clearSession();
+      }
       if (!savedToken) {
         authRestoring.value = false;
         return;
       }
+      const restoreVersion = sessionVersion;
 
       try {
         const response = await fetch(`${apiBase}/me`, {
           headers: { Accept: 'application/json', Authorization: `Bearer ${savedToken}` },
         });
         const payload = await response.json().catch(() => null) as SessionResponse | null;
+        let tokenIsStillCurrent = false;
+        try {
+          tokenIsStillCurrent = localStorage.getItem(sessionStorageKey) === savedToken;
+        } catch {
+          tokenIsStillCurrent = false;
+        }
+        if (restoreVersion !== sessionVersion || !tokenIsStillCurrent) return;
         if (!response.ok || !payload?.user || !payload.redirect_to) {
           clearSession('La sessione salvata non è più valida. Accedi di nuovo.');
           return;
@@ -1037,6 +1231,28 @@ export default defineComponent({
       authFieldErrors.value = {};
     };
 
+    const selectAuthAudience = (audience: AuthAudience) => {
+      if (currentUser.value || token.value) return;
+      authAudience.value = audience;
+      authMode.value = 'login';
+      authError.value = '';
+      authFieldErrors.value = {};
+      route.value = '/login';
+    };
+
+    const renderRoleSelection = () => h('section', { class: 'auth-screen' }, [
+      h('div', { class: 'auth-panel' }, [
+        h('span', { class: 'eyebrow' }, 'Scegli la tua area'),
+        h('h1', 'Eventi Locali'),
+        h('p', 'La scelta apre soltanto l’autenticazione. Serve sempre una sessione backend valida per entrare.'),
+        h('div', { class: 'auth-role-grid' }, [
+          h('button', { type: 'button', onClick: () => selectAuthAudience('customer') }, 'Customer'),
+          h('button', { type: 'button', onClick: () => selectAuthAudience('organizer') }, 'Organizer'),
+          h('button', { type: 'button', onClick: () => selectAuthAudience('admin') }, 'Admin'),
+        ]),
+      ]),
+    ]);
+
     const renderLoginForm = () => h('form', {
       class: 'auth-form',
       onSubmit: (event: Event) => { event.preventDefault(); void login(); },
@@ -1044,11 +1260,6 @@ export default defineComponent({
       authInput('Email', 'email', 'email', loginForm.value.email, (value) => { loginForm.value.email = value; }),
       authInput('Password', 'password', 'password', loginForm.value.password, (value) => { loginForm.value.password = value; }),
       h('button', { class: 'auth-submit', type: 'submit', disabled: authLoading.value }, authLoading.value ? 'Accesso in corso…' : 'Accedi'),
-      h('div', { class: 'demo-fill' }, demoUsers.map((user) => h('button', {
-        type: 'button',
-        disabled: authLoading.value,
-        onClick: () => { loginForm.value = { email: user.email, password: user.password }; },
-      }, `Compila ${user.role}`))),
     ]);
 
     const renderCustomerRegistrationForm = () => h('form', {
@@ -1075,20 +1286,21 @@ export default defineComponent({
       h('button', { class: 'auth-submit', type: 'submit', disabled: authLoading.value }, authLoading.value ? 'Registrazione in corso…' : 'Crea account Organizer'),
     ]);
 
-    const renderLogin = () => h('section', { class: 'auth-screen' }, [
+    const renderLogin = () => authAudience.value === null ? renderRoleSelection() : h('section', { class: 'auth-screen' }, [
       h('div', { class: 'auth-panel' }, [
         h('span', { class: 'eyebrow' }, 'Accesso sicuro'),
-        h('h1', 'Eventi Locali'),
+        h('h1', `Area ${authAudience.value}`),
         h('p', 'Accedi oppure crea un account reale. Le credenziali vengono sempre verificate dal backend.'),
         h('div', { class: 'auth-tabs', role: 'tablist' }, [
           h('button', { type: 'button', class: authMode.value === 'login' ? 'active' : '', onClick: () => setAuthMode('login') }, 'Accedi'),
-          h('button', { type: 'button', class: authMode.value === 'register-customer' ? 'active' : '', onClick: () => setAuthMode('register-customer') }, 'Registrati come Cliente'),
-          h('button', { type: 'button', class: authMode.value === 'register-organizer' ? 'active' : '', onClick: () => setAuthMode('register-organizer') }, 'Registrati come Organizer'),
+          authAudience.value === 'customer' ? h('button', { type: 'button', class: authMode.value === 'register-customer' ? 'active' : '', onClick: () => setAuthMode('register-customer') }, 'Registrati come Customer') : null,
+          authAudience.value === 'organizer' ? h('button', { type: 'button', class: authMode.value === 'register-organizer' ? 'active' : '', onClick: () => setAuthMode('register-organizer') }, 'Registrati come Organizer') : null,
+          h('button', { type: 'button', onClick: () => { authAudience.value = null; authMode.value = 'login'; } }, 'Cambia area'),
         ]),
         authError.value ? h('p', { class: 'api-error', role: 'alert' }, authError.value) : null,
         authRestoring.value
           ? h('p', { class: 'auth-restoring' }, 'Verifica della sessione in corso…')
-          : authMode.value === 'login'
+          : authMode.value === 'login' || authAudience.value === 'admin'
             ? renderLoginForm()
             : authMode.value === 'register-customer'
               ? renderCustomerRegistrationForm()
@@ -1096,14 +1308,85 @@ export default defineComponent({
       ]),
     ]);
 
+    const profileInput = (label: string, name: keyof OrganizerProfile, type = 'text') => h('label', { class: 'auth-field' }, [
+      h('span', label),
+      h('input', {
+        name, type, value: String(organizerProfile.value[name] ?? ''), disabled: organizerProfileSaving.value,
+        onInput: (event: Event) => { (organizerProfile.value as any)[name] = (event.target as HTMLInputElement).value; },
+      }),
+      organizerProfileErrors.value[String(name)]?.map((message) => h('small', { class: 'field-error' }, message)),
+    ]);
+
+    const renderOrganizerOnboarding = () => h('main', { class: 'auth-screen onboarding-screen' }, [
+      h('section', { class: 'auth-panel onboarding-panel' }, [
+        h('span', { class: 'eyebrow' }, 'Profilo Organizer'),
+        h('h1', 'Completa il profilo Organizer'),
+        organizerProfile.value.verification_status === 'changes_requested' ? h('div', { class: 'review-reason' }, [
+          h('strong', 'Integrazione richiesta'), h('p', organizerProfile.value.review_notes ?? ''),
+        ]) : null,
+        organizerProfileLoading.value ? h('p', 'Caricamento profilo…') : h('form', {
+          class: 'onboarding-form',
+          onSubmit: (event: Event) => { event.preventDefault(); void submitOrganizerProfile(); },
+        }, [
+          h('fieldset', [
+            h('legend', 'Dati per la fatturazione'),
+            h('div', { class: 'onboarding-grid' }, [
+              profileInput('Denominazione o ragione sociale *', 'name'),
+              profileInput('Indirizzo *', 'address'),
+              profileInput('Numero civico *', 'street_number'),
+              profileInput('CAP *', 'postal_code'),
+              h('label', { class: 'auth-field' }, [h('span', 'Comune *'), h('select', {
+                value: organizerProfile.value.municipality_id ?? '',
+                onChange: (event: Event) => { organizerProfile.value.municipality_id = Number((event.target as HTMLSelectElement).value) || null; },
+              }, [h('option', { value: '' }, 'Seleziona il Comune'), ...eventMunicipalities.value.map((item) => h('option', { value: item.id }, item.name))]),
+              organizerProfileErrors.value.municipality_id?.map((message) => h('small', { class: 'field-error' }, message))]),
+              profileInput('Provincia *', 'province'),
+              profileInput('Nazione *', 'country'),
+              profileInput('Partita IVA *', 'vat_number'),
+              profileInput('PEC *', 'pec', 'email'),
+              profileInput('Codice SDI *', 'sdi_code'),
+            ]),
+          ]),
+          h('fieldset', [
+            h('legend', 'Dati pubblici facoltativi'),
+            h('div', { class: 'onboarding-grid' }, [
+              profileInput('Telefono', 'phone', 'tel'), profileInput('Email pubblica', 'public_email', 'email'),
+              profileInput('Sito web', 'website_url', 'url'), profileInput('Instagram', 'instagram_url', 'url'),
+              profileInput('Facebook', 'facebook_url', 'url'), profileInput('TikTok', 'tiktok_url', 'url'),
+              h('label', { class: 'auth-field onboarding-description' }, [h('span', 'Descrizione'), h('textarea', {
+                value: organizerProfile.value.description ?? '',
+                onInput: (event: Event) => { organizerProfile.value.description = (event.target as HTMLTextAreaElement).value; },
+              })]),
+            ]),
+          ]),
+          organizerProfileError.value ? h('p', { class: 'api-error' }, organizerProfileError.value) : null,
+          organizerProfileSuccess.value ? h('p', { class: 'form-success' }, organizerProfileSuccess.value) : null,
+          h('div', { class: 'onboarding-actions' }, [
+            h('button', { type: 'button', disabled: organizerProfileSaving.value, onClick: () => { void saveOrganizerProfile(); } }, 'Salva e continua più tardi'),
+            h('button', { class: 'auth-submit', type: 'submit', disabled: organizerProfileSaving.value }, organizerProfileSaving.value ? 'Salvataggio…' : 'Invia richiesta di approvazione'),
+            h('button', { type: 'button', onClick: () => { void logout(); } }, 'Esci'),
+          ]),
+        ]),
+      ]),
+    ]);
+
     const renderOrganizerPending = () => h('main', { class: 'auth-screen' }, [
       h('section', { class: 'auth-panel pending-panel' }, [
         h('span', { class: 'eyebrow' }, 'Profilo Organizer'),
         h('h1', 'Account in attesa di approvazione'),
-        h('p', `Ciao ${currentUser.value?.name ?? ''}. Il profilo ${currentUser.value?.organizer_profile?.name ?? 'della tua organizzazione'} è stato ricevuto.`),
-        h('p', 'Dashboard, eventi e funzioni operative saranno disponibili dopo la verifica da parte dello staff.'),
+        h('p', `Ciao ${currentUser.value?.name ?? ''}, abbiamo ricevuto la richiesta di registrazione di ${currentUser.value?.organizer_profile?.name ?? 'questa organizzazione'}.`),
+        h('p', 'Il nostro staff verificherà i dati dell’organizzazione. Potrai accedere alla dashboard e pubblicare eventi dopo l’approvazione.'),
         h('strong', 'Stato: in revisione'),
-        h('button', { class: 'auth-submit', type: 'button', onClick: () => { void logout(); } }, 'Logout'),
+        h('button', { class: 'auth-submit', type: 'button', onClick: () => { void logout(); } }, 'Esci'),
+      ]),
+    ]);
+
+    const renderOrganizerBlocked = (suspended = false) => h('main', { class: 'auth-screen' }, [
+      h('section', { class: 'auth-panel pending-panel' }, [
+        h('span', { class: 'eyebrow' }, 'Profilo Organizer'),
+        h('h1', suspended ? 'Account sospeso' : 'Richiesta rifiutata'),
+        h('p', currentUser.value?.organizer_profile?.review_notes ?? (suspended ? 'Contatta lo staff per maggiori informazioni.' : 'La richiesta non può essere approvata.')),
+        h('button', { class: 'auth-submit', type: 'button', onClick: () => { void logout(); } }, 'Esci'),
       ]),
     ]);
 
@@ -1112,7 +1395,7 @@ export default defineComponent({
         h('span', currentUser.value?.email ?? ''),
         h('strong', title),
       ]),
-      h('button', { type: 'button', onClick: logout }, 'Logout'),
+      h('button', { type: 'button', onClick: logout }, 'Esci'),
       h('nav', menu.map(([label, target]) => h('button', {
         class: route.value === target ? 'active' : '',
         type: 'button',
@@ -1656,28 +1939,70 @@ export default defineComponent({
       ]),
     ];
 
+    const verificationLabels: Record<OrganizerVerificationStatus, string> = {
+      incomplete: 'Incompleto', pending: 'In revisione', changes_requested: 'Integrazione richiesta',
+      verified: 'Approvato', rejected: 'Rifiutato', suspended: 'Sospeso',
+    };
+
+    const renderAdminOrganizerDetail = () => {
+      const organizer = selectedAdminOrganizer.value;
+      if (!organizer) return null;
+      const field = (label: string, value: unknown) => h('div', [h('small', label), h('strong', String(value ?? '-'))]);
+      return h('section', { class: 'admin-panel organizer-request-detail' }, [
+        h('div', { class: 'panel-heading' }, [h('h2', organizer.name), statusPill(verificationLabels[organizer.verification_status])]),
+        h('div', { class: 'admin-detail-grid' }, [
+          field('Referente', organizer.owner?.name), field('Email account', organizer.owner?.email),
+          field('Partita IVA', organizer.vat_number), field('PEC', organizer.pec), field('Codice SDI', organizer.sdi_code),
+          field('Indirizzo', `${organizer.address ?? ''} ${organizer.street_number ?? ''}, ${organizer.postal_code ?? ''}`),
+          field('Comune', organizer.municipality?.name), field('Provincia', organizer.province), field('Nazione', organizer.country),
+          field('Telefono', organizer.phone), field('Email pubblica', organizer.public_email), field('Sito web', organizer.website_url),
+          field('Instagram', organizer.instagram_url), field('Facebook', organizer.facebook_url), field('TikTok', organizer.tiktok_url),
+          field('Invio', organizer.submitted_at ? new Date(organizer.submitted_at).toLocaleString('it-IT') : '-'),
+          field('Revisione', organizer.reviewed_at ? new Date(organizer.reviewed_at).toLocaleString('it-IT') : '-'),
+        ]),
+        organizer.description ? h('p', organizer.description) : null,
+        organizer.review_notes ? h('div', { class: 'review-reason' }, [h('strong', 'Motivazione'), h('p', organizer.review_notes)]) : null,
+        organizer.verification_status === 'pending' ? h('div', { class: 'onboarding-actions' }, [
+          h('button', { disabled: adminOrganizerActionLoading.value, onClick: () => { void reviewAdminOrganizer('approve'); } }, 'Approva'),
+          h('button', { disabled: adminOrganizerActionLoading.value, onClick: () => { void reviewAdminOrganizer('request-changes'); } }, 'Richiedi integrazione'),
+          h('button', { disabled: adminOrganizerActionLoading.value, onClick: () => { void reviewAdminOrganizer('reject'); } }, 'Rifiuta'),
+        ]) : null,
+      ]);
+    };
+
     const renderAdminOrganizers = () => [
-      h('div', { class: 'page-heading' }, [h('h1', 'Organizzatori'), h('p', 'Prestazioni dei locali: eventi creati, prenotazioni, follower e rating.')]),
-      adminTable(
-        ['Logo', 'Nome attivita', 'Comune', 'Provincia', 'Creati', 'Futuri', 'Conclusi', 'Annullati', 'Prenotazioni', 'Media'],
-        adminOrganizers.value,
-        (organizer) => [
-          h('td', h('span', { class: 'logo-dot' }, String(organizer.name ?? 'O').slice(0, 1))),
-          h('td', h('strong', organizer.name)),
-          h('td', organizer.municipality ?? '-'),
-          h('td', organizer.province ?? '-'),
-          h('td', number(organizer.events_created ?? organizer.events_count)),
-          h('td', number(organizer.future_events)),
-          h('td', number(organizer.completed_events)),
-          h('td', number(organizer.cancelled_events)),
-          h('td', number(organizer.bookings_received)),
-          h('td', `${organizer.average_rating ?? 0}/5`),
-        ],
-      ),
-      h('section', { class: 'admin-chart-grid' }, [
-        renderHorizontalBars('Organizzatori per eventi creati', adminOrganizers.value.slice(0, 8).map((item) => ({ label: item.name, value: item.events_created ?? item.events_count ?? 0 }))),
-        renderHorizontalBars('Follower per organizzatore', adminOrganizers.value.slice(0, 8).map((item) => ({ label: item.name, value: item.followers ?? 0 }))),
+      h('div', { class: 'page-heading' }, [h('h1', 'Richieste Organizer'), h('p', 'Esamina i dati fiscali e gestisci l’abilitazione alle funzioni operative.')]),
+      h('div', { class: 'filter-strip' }, [
+        h('label', [h('span', 'Stato '), h('select', {
+          value: adminOrganizerFilter.value,
+          disabled: adminOrganizerLoading.value,
+          onChange: (event: Event) => {
+            adminOrganizerFilter.value = (event.target as HTMLSelectElement).value as OrganizerVerificationStatus | '';
+            adminOrganizerPage.value = 1; selectedAdminOrganizer.value = null; void loadAdminOrganizerRequests();
+          },
+        }, [h('option', { value: '' }, 'Tutti'), ...(Object.entries(verificationLabels).map(([value, label]) => h('option', { value }, label)))]),
+        ]),
+        h('strong', `${adminOrganizerPendingCount.value} in revisione`),
       ]),
+      adminOrganizerLoading.value ? h('article', { class: 'admin-panel' }, 'Caricamento richieste…') : null,
+      adminOrganizerError.value ? h('article', { class: 'admin-panel dashboard-error' }, [h('p', adminOrganizerError.value), h('button', { onClick: () => { void loadAdminOrganizerRequests(); } }, 'Riprova')]) : null,
+      !adminOrganizerLoading.value && !adminOrganizerError.value ? adminTable(
+        ['Denominazione', 'Referente', 'Email account', 'Partita IVA', 'PEC', 'Codice SDI', 'Stato', 'Invio', ''],
+        adminOrganizers.value,
+        (organizer: OrganizerProfile) => [
+          h('td', h('strong', organizer.name)), h('td', organizer.owner?.name ?? '-'), h('td', organizer.owner?.email ?? '-'),
+          h('td', organizer.vat_number ?? '-'), h('td', organizer.pec ?? '-'), h('td', organizer.sdi_code ?? '-'),
+          h('td', statusPill(verificationLabels[organizer.verification_status])),
+          h('td', organizer.submitted_at ? new Date(organizer.submitted_at).toLocaleDateString('it-IT') : '-'),
+          h('td', h('button', { onClick: () => { void selectAdminOrganizer(organizer); } }, 'Dettaglio')),
+        ],
+      ) : null,
+      adminOrganizerMeta.value && adminOrganizerMeta.value.last_page > 1 ? h('div', { class: 'organizer-events-pagination' }, [
+        h('button', { disabled: adminOrganizerPage.value <= 1, onClick: () => { adminOrganizerPage.value -= 1; void loadAdminOrganizerRequests(); } }, 'Precedente'),
+        h('span', `Pagina ${adminOrganizerPage.value} di ${adminOrganizerMeta.value.last_page}`),
+        h('button', { disabled: adminOrganizerPage.value >= adminOrganizerMeta.value.last_page, onClick: () => { adminOrganizerPage.value += 1; void loadAdminOrganizerRequests(); } }, 'Successiva'),
+      ]) : null,
+      renderAdminOrganizerDetail(),
     ];
 
     const renderCustomers = () => [
@@ -1825,8 +2150,8 @@ export default defineComponent({
           class: route.value === target ? 'active' : '',
           type: 'button',
           onClick: () => { void go(target); },
-        }, [h('i', adminIcon(label)), h('span', label)]))),
-        h('button', { class: 'admin-logout', type: 'button', onClick: logout }, 'Logout'),
+        }, [h('i', adminIcon(label)), h('span', label === 'Organizzatori' ? `Richieste Organizer (${adminOrganizerPendingCount.value})` : label)]))),
+        h('button', { class: 'admin-logout', type: 'button', onClick: logout }, 'Esci'),
       ]),
       h('section', { class: 'admin-main' }, [
         h('header', { class: 'admin-topbar' }, [
@@ -1850,7 +2175,10 @@ export default defineComponent({
     return () => {
       if (route.value === '/unauthorized') return Unauthorized();
       if (role.value === 'customer') return CustomerLayout();
+      if (role.value === 'organizer' && route.value === '/organizer/onboarding') return renderOrganizerOnboarding();
       if (role.value === 'organizer' && route.value === '/organizer/pending') return renderOrganizerPending();
+      if (role.value === 'organizer' && route.value === '/organizer/rejected') return renderOrganizerBlocked();
+      if (role.value === 'organizer' && route.value === '/organizer/suspended') return renderOrganizerBlocked(true);
       if (role.value === 'organizer') return OrganizerLayout();
       if (role.value === 'admin') return AdminLayout();
 

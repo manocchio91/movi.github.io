@@ -18,8 +18,10 @@ class OrganizerProfile extends Model
 {
     protected $fillable = [
         'ulid', 'owner_user_id', 'name', 'type', 'description', 'email', 'phone',
-        'website_url', 'municipality_id', 'address', 'logo_path', 'cover_path',
-        'social_links', 'gallery', 'verification_status', 'verified_at', 'suspended_at',
+        'website_url', 'municipality_id', 'address', 'street_number', 'postal_code',
+        'province', 'country', 'vat_number', 'pec', 'sdi_code', 'public_email',
+        'instagram_url', 'facebook_url', 'tiktok_url', 'logo_path', 'cover_path',
+        'social_links', 'gallery', 'verification_status',
     ];
 
     protected function casts(): array
@@ -27,6 +29,8 @@ class OrganizerProfile extends Model
         return [
             'verified_at' => 'datetime',
             'suspended_at' => 'datetime',
+            'submitted_at' => 'datetime',
+            'reviewed_at' => 'datetime',
             'social_links' => 'array',
             'gallery' => 'array',
         ];

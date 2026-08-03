@@ -77,8 +77,8 @@ Route::prefix('v1')->group(function (): void {
 
         Route::middleware('role:organizer')->group(function (): void {
             Route::get('/organizer/profile', [OrganizerProfileController::class, 'show']);
-            Route::post('/organizer/profile', [OrganizerProfileController::class, 'store']);
-            Route::put('/organizer/profile', [OrganizerProfileController::class, 'update']);
+            Route::patch('/organizer/profile', [OrganizerProfileController::class, 'update']);
+            Route::post('/organizer/profile/submit', [OrganizerProfileController::class, 'submit']);
 
             Route::middleware('organizer.approved')->group(function (): void {
                 Route::get('/organizer/dashboard', [OrganizerDashboardController::class, 'show']);
@@ -120,7 +120,6 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/admin/dashboard', [AdminDashboardController::class, 'show']);
             Route::get('/admin/overview', [AdminPlatformOverviewController::class, 'show']);
             Route::get('/admin/organizers', [OrganizerModerationController::class, 'index']);
-            Route::get('/admin/organizers/pending', [OrganizerModerationController::class, 'pending']);
             Route::get('/admin/events', [EventModerationController::class, 'index']);
             Route::get('/admin/events/{event:ulid}', [EventModerationController::class, 'show']);
             Route::post('/admin/events/{event:ulid}/suspend', [EventModerationController::class, 'suspend']);
@@ -134,6 +133,7 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/admin/rankings/organizers', [AdminRankingController::class, 'organizers']);
             Route::get('/admin/rankings/events/{event:ulid}/breakdown', [AdminRankingController::class, 'eventBreakdown']);
             Route::post('/admin/organizers/{organizer:ulid}/approve', [OrganizerModerationController::class, 'approve']);
+            Route::post('/admin/organizers/{organizer:ulid}/request-changes', [OrganizerModerationController::class, 'requestChanges']);
             Route::post('/admin/organizers/{organizer:ulid}/reject', [OrganizerModerationController::class, 'reject']);
             Route::post('/admin/reviews/{review:ulid}/approve', [ReviewModerationController::class, 'approve']);
             Route::post('/admin/reviews/{review:ulid}/hide', [ReviewModerationController::class, 'hide']);

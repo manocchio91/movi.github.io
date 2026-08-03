@@ -4,11 +4,11 @@
 
 ## Riferimenti correnti
 
-- Versione corrente: `v0.8 - Organizer Event Creation and Editing`
-- Ultimo aggiornamento: 21 luglio 2026
+- Versione corrente: `v0.9 - Organizer Fiscal Onboarding and Admin Approval`
+- Ultimo aggiornamento: 3 agosto 2026
 - Repository: `manocchio91/app-eventi`
-- Branch corrente: `feat/organizer-event-create-edit`
-- Commit milestone: da aggiornare dopo il commit `v0.8 - Complete Organizer event creation and editing`
+- Branch corrente: `feat/organizer-fiscal-onboarding-admin-approval`
+- Commit milestone: da aggiornare dopo il commit `v0.9 - Complete Organizer fiscal onboarding and Admin approval`
 - Ultimo tag: `v0.5-customer-booking-qr`, verificato localmente sul commit `c5e9605`
 
 ## Stato delle aree
@@ -16,6 +16,7 @@
 - Backend: API Laravel sotto `/api/v1`, autenticazione Sanctum, autorizzazioni per ruolo e contratto uniforme degli errori.
 - Autenticazione web: registrazione Customer e Organizer, login/logout reali e ripristino sessione tramite `GET /api/v1/me`.
 - Dashboard, lista, creazione e modifica eventi Organizer web: collegate esclusivamente alle API reali.
+- Onboarding fiscale Organizer e approvazione Admin: collegati alle API reali, con accesso operativo vincolato allo stato approvato.
 - Customer Flutter: integrazione reale completata per autenticazione, eventi, booking, QR e annullamento.
 - Organizer Flutter: schermate presenti, ma dati ancora forniti da `InMemoryDemoRepository`.
 
@@ -29,37 +30,32 @@
 - v0.6: dashboard e lista eventi Organizer web con dati reali
 - v0.7: registrazione e autenticazione web reali per Customer e Organizer
 - v0.8: creazione e modifica eventi Organizer con gestione ticket sicura
+- v0.9: onboarding fiscale Organizer, revisione Admin e correzione definitiva del flusso auth/logout
 
 ## Task corrente
 
-Milestone Organizer Event Creation and Editing completata e verificata.
+Milestone Organizer Fiscal Onboarding and Admin Approval completata e verificata.
 
 ## Funzionalità completate
 
-- Creazione evento reale assegnata automaticamente all'Organizer autenticato e approvato.
-- Salvataggio iniziale sempre in stato `draft`.
-- Pubblicazione tramite transizione backend esplicita `POST /organizer/events/{event}/publish`.
-- Validazione server-side della completezza e dello stato prima della pubblicazione.
-- Modifica reale dei soli eventi propri e negli stati ammessi dal dominio.
-- Categorie e comuni caricati dalle API reali.
-- Form web riutilizzabile per creazione e modifica, con date locali controllate, prezzi in euro e invio in centesimi.
-- Creazione, modifica e rimozione controllata dei ticket type.
-- ULID pubblico aggiunto ai ticket esistenti e nuovi; l'identità dei ticket viene mantenuta durante l'update.
-- Sincronizzazione ticket atomica con lock di riga.
-- `booked_quantity` non è accettato come input modificabile ed è sempre preservato.
-- La quantità di un ticket non può scendere sotto `booked_quantity`.
-- I ticket prenotati non possono essere rimossi; quelli senza prenotazioni possono essere rimossi.
-- La capienza generale non può scendere sotto i posti già prenotati e la disponibilità viene ricalcolata senza perdere vendite.
-- Customer, Organizer pending e Organizer non proprietari sono bloccati dalle autorizzazioni backend.
-- Errori `401`, `403`, `404` e `422` gestiti senza perdita dei dati inseriti.
+- Profilo fiscale Organizer salvabile parzialmente e inviabile alla revisione Admin.
+- Stati profilo gestiti: `incomplete`, `pending`, `changes_requested`, `verified`, `rejected`, `suspended`.
+- Redirect auth derivato dallo stato reale restituito dal backend.
+- Revisione Admin con approvazione, richiesta modifiche e rifiuto motivato.
+- Accesso alle funzioni operative consentito soltanto agli Organizer approvati.
+- Dati fiscali riservati all'Organizer proprietario e agli Admin autorizzati.
+- Logout resiliente agli errori di rete, pulizia completa della sessione locale e ritorno esplicito a `/login`.
+- Selezione del ruolo priva di effetti di autenticazione; accesso alla shell solo dopo login o ripristino `/me` validi.
+- Account QA `organizer@example.test` mantenuto approvato; i nuovi Organizer iniziano dall'onboarding fiscale.
 
 ## Verifiche
 
-- Test mirati eventi: 9 test e 57 asserzioni verdi.
-- Suite Laravel completa: 69 test e 396 asserzioni verdi.
+- Test mirati auth finali: 8 test e 84 asserzioni verdi.
+- Test mirati auth e onboarding: 14 test e 135 asserzioni verdi.
+- Suite Laravel completa: 75 test e 447 asserzioni verdi.
 - Pint, PHPStan, OpenAPI YAML 3.1, ESLint e build frontend verdi.
-- Migrazione ULID ticket eseguita correttamente nell'ambiente Docker locale.
-- Browser QA manuale completato dall'utente su tutti i 30 punti, inclusi ticket prenotati, autorizzazioni e viewport desktop/mobile.
+- Migrazione onboarding fiscale eseguita correttamente nell'ambiente Docker locale.
+- Browser QA finale auth, logout e onboarding confermato dall'utente.
 
 ## Prossimo task
 

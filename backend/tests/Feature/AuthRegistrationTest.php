@@ -61,7 +61,7 @@ class AuthRegistrationTest extends TestCase
             ->assertJsonValidationErrors('password');
     }
 
-    public function test_organizer_registration_atomically_creates_a_pending_profile(): void
+    public function test_organizer_registration_atomically_creates_an_incomplete_profile(): void
     {
         $response = $this->postJson('/api/v1/auth/register', [
             'name' => 'Referente Organizer',
@@ -74,8 +74,8 @@ class AuthRegistrationTest extends TestCase
         ])->assertCreated()
             ->assertJsonPath('user.role', 'organizer')
             ->assertJsonPath('user.organizer_profile.name', 'Cantina Reale')
-            ->assertJsonPath('user.organizer_profile.verification_status', 'pending')
-            ->assertJsonPath('redirect_to', '/organizer/pending')
+            ->assertJsonPath('user.organizer_profile.verification_status', 'incomplete')
+            ->assertJsonPath('redirect_to', '/organizer/onboarding')
             ->assertJsonStructure(['token']);
 
         $user = User::query()->where('email', 'nuovo.organizer@example.test')->firstOrFail();
@@ -83,7 +83,7 @@ class AuthRegistrationTest extends TestCase
         $this->assertDatabaseHas('organizer_profiles', [
             'owner_user_id' => $user->id,
             'name' => 'Cantina Reale',
-            'verification_status' => 'pending',
+            'verification_status' => 'incomplete',
         ]);
 
         $this->withToken($response->json('token'))
@@ -149,6 +149,75 @@ class AuthRegistrationTest extends TestCase
         $this->assertDatabaseCount('personal_access_tokens', 0);
         $this->app['auth']->forgetGuards();
         $this->withToken($token)->getJson('/api/v1/me')->assertUnauthorized();
+    }
+
+    public function test_logout_then_login_as_another_organizer_does_not_reuse_previous_identity_or_redirect(): void
+    {
+        $approved = User::factory()->create(['role' => UserRole::Organizer, 'email' => 'organizer@example.test']);
+        OrganizerProfile::query()->create([
+            'ulid' => (string) str()->ulid(), 'owner_user_id' => $approved->id, 'name' => 'Organizer QA approvato',
+            'type' => 'azienda', 'email' => $approved->email, 'verification_status' => 'verified', 'verified_at' => now(),
+        ]);
+        $incomplete = User::factory()->create(['role' => UserRole::Organizer, 'email' => 'secondo.organizer@example.test']);
+        OrganizerProfile::query()->create([
+            'ulid' => (string) str()->ulid(), 'owner_user_id' => $incomplete->id, 'name' => 'Nuovo Organizer',
+            'type' => 'azienda', 'email' => $incomplete->email, 'verification_status' => 'incomplete',
+        ]);
+
+        $firstLogin = $this->postJson('/api/v1/auth/login', ['email' => $approved->email, 'password' => 'password'])
+            ->assertOk()->assertJsonPath('redirect_to', '/organizer/dashboard');
+        $firstToken = $firstLogin->json('token');
+        $this->app['auth']->guard('web')->logout();
+        $this->app['auth']->forgetGuards();
+        $this->withToken($firstToken)->postJson('/api/v1/auth/logout')->assertOk();
+        $this->app['auth']->forgetGuards();
+        $this->withToken($firstToken)->getJson('/api/v1/me')->assertUnauthorized();
+        $this->app['auth']->forgetGuards();
+
+        $secondLogin = $this->postJson('/api/v1/auth/login', ['email' => $incomplete->email, 'password' => 'password'])
+            ->assertOk()
+            ->assertJsonPath('user.email', 'secondo.organizer@example.test')
+            ->assertJsonPath('user.organizer_profile.name', 'Nuovo Organizer')
+            ->assertJsonPath('redirect_to', '/organizer/onboarding');
+
+        $this->assertNotSame($firstToken, $secondLogin->json('token'));
+        $this->app['auth']->guard('web')->logout();
+        $this->app['auth']->forgetGuards();
+        $this->withToken($secondLogin->json('token'))->getJson('/api/v1/me')
+            ->assertOk()
+            ->assertJsonPath('user.email', 'secondo.organizer@example.test')
+            ->assertJsonPath('user.organizer_profile.name', 'Nuovo Organizer')
+            ->assertJsonPath('redirect_to', '/organizer/onboarding');
+    }
+
+    public function test_login_and_me_redirect_every_organizer_status_from_the_authenticated_profile(): void
+    {
+        $redirects = [
+            'incomplete' => '/organizer/onboarding',
+            'changes_requested' => '/organizer/onboarding',
+            'pending' => '/organizer/pending',
+            'verified' => '/organizer/dashboard',
+            'rejected' => '/organizer/rejected',
+            'suspended' => '/organizer/suspended',
+        ];
+
+        foreach ($redirects as $status => $redirect) {
+            $user = User::factory()->create(['role' => UserRole::Organizer]);
+            OrganizerProfile::query()->create([
+                'ulid' => (string) str()->ulid(), 'owner_user_id' => $user->id, 'name' => "Organizer {$status}",
+                'type' => 'azienda', 'email' => $user->email, 'verification_status' => $status,
+            ]);
+
+            $login = $this->postJson('/api/v1/auth/login', ['email' => $user->email, 'password' => 'password'])
+                ->assertOk()->assertJsonPath('redirect_to', $redirect);
+            $this->app['auth']->guard('web')->logout();
+            $this->app['auth']->forgetGuards();
+            $this->withToken($login->json('token'))->getJson('/api/v1/me')
+                ->assertOk()
+                ->assertJsonPath('user.organizer_profile.verification_status', $status)
+                ->assertJsonPath('redirect_to', $redirect);
+            $this->app['auth']->forgetGuards();
+        }
     }
 
     public function test_organizer_registration_rolls_back_user_when_profile_creation_fails(): void
