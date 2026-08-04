@@ -20,7 +20,7 @@ class OrganizerProfile extends Model
         'ulid', 'owner_user_id', 'name', 'type', 'description', 'email', 'phone',
         'website_url', 'municipality_id', 'address', 'street_number', 'postal_code',
         'province', 'country', 'vat_number', 'pec', 'sdi_code', 'public_email',
-        'instagram_url', 'facebook_url', 'tiktok_url', 'logo_path', 'cover_path',
+        'instagram_url', 'facebook_url', 'tiktok_url', 'youtube_url', 'logo_path', 'cover_path',
         'social_links', 'gallery', 'verification_status',
     ];
 

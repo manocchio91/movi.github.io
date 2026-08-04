@@ -48,6 +48,10 @@ class EventController extends Controller
         $event->makeHidden(['id', 'organizer_profile_id', 'municipality_id', 'venue_id', 'approved_by']);
         $event->ticketTypes->each->makeHidden(['id', 'event_id']);
         $event->organizerProfile?->makeHidden(['id', 'owner_user_id', 'municipality_id']);
+        if ($event->organizerProfile) {
+            $event->organizerProfile->setAttribute('logo_url', $event->organizerProfile->logo_path ? asset('storage/'.$event->organizerProfile->logo_path) : null);
+            $event->organizerProfile->setAttribute('cover_url', $event->organizerProfile->cover_path ? asset('storage/'.$event->organizerProfile->cover_path) : null);
+        }
 
         return $event;
     }

@@ -522,6 +522,8 @@ class EventPlatformTest extends TestCase
 
         $this->assertStringContainsString('Tutti gli Eventi', $app);
         $this->assertStringNotContainsString('Esplora eventi', $app);
+        $this->assertStringContainsString('Annulla prenotazione', $app);
+        $this->assertStringContainsString('booking.can_cancel ? h(\'button\'', $app);
     }
 
     public function test_customer_dashboard_returns_successful_events_section(): void

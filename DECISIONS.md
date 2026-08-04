@@ -155,3 +155,15 @@ Contesto: Partita IVA, PEC, Codice SDI e indirizzo di fatturazione identificano 
 Decisione: i dati fiscali dell'Organizer sono riservati e possono essere visualizzati esclusivamente dall'Organizer proprietario e dagli Admin autorizzati. Non devono essere esposti nelle schermate o API pubbliche.
 
 Conseguenze: endpoint, serializer e interfacce pubbliche devono escludere questi campi; ogni nuova esposizione richiede autorizzazione esplicita e test dedicati.
+
+## ADR-014
+
+### APP_KEY stabile e recupero controllato dei QR
+
+Stato: Accepted
+
+Contesto: rigenerare `APP_KEY` a ogni avvio locale rende indecifrabili i token QR già persistiti, pur lasciando valido soltanto il relativo hash one-way.
+
+Decisione: generare `APP_KEY` esclusivamente quando manca. Se un QR persistito non è più decifrabile, rigenerare sotto lock un token imprevedibile aggiornando atomicamente ciphertext e hash, senza modificare la prenotazione o creare un secondo flusso di check-in.
+
+Conseguenze: i riavvii non invalidano più i dati cifrati; i record già danneggiati vengono recuperati alla prima richiesta autorizzata e il frontend non espone errori crittografici.

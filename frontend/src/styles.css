@@ -1205,6 +1205,16 @@ button {
 .booking-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .booking-detail-grid > div { display: flex; flex-direction: column; gap: .25rem; padding: .9rem; background: #f7f9f7; border-radius: 10px; }
 .booking-detail-wide { grid-column: 1 / -1; }
+.subscription-section { display: grid; gap: 1rem; margin-bottom: 2rem; }
+.subscription-plan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 1rem; }
+.subscription-plan-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem; align-items: end; }
+.subscription-plan-form label { display: grid; gap: .35rem; color: #405047; font-size: .85rem; font-weight: 700; }
+.subscription-plan-form input,
+.subscription-plan-form select,
+.subscription-plan-form textarea { width: 100%; }
+.subscription-plan-form .full-row { grid-column: 1 / -1; }
+.subscription-plan-form .checkbox-row { display: flex; align-items: center; }
+.subscription-plan-form .checkbox-row input { width: auto; }
 .booking-qr { margin-top: 1rem; padding: 1rem; border: 2px dashed #234d35; border-radius: 12px; overflow-wrap: anywhere; font-family: monospace; }
 .customer-event-detail { display: grid; gap: 1rem; }
 .customer-ticket-list { display: grid; gap: .75rem; }
@@ -1216,6 +1226,8 @@ button {
 @media (max-width: 680px) {
   .booking-toolbar form { flex-direction: column; }
   .booking-detail-grid { grid-template-columns: 1fr; }
+  .subscription-plan-form { grid-template-columns: 1fr; }
+  .subscription-plan-form .full-row { grid-column: auto; }
   .booking-detail-wide { grid-column: auto; }
   .booking-table th:nth-child(3), .booking-table td:nth-child(3) { display: none; }
 }

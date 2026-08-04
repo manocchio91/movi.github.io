@@ -7,7 +7,7 @@ services:
     command: >
       sh -c "test -f .env || cp .env.example .env;
       composer install --no-interaction --prefer-dist;
-      php artisan key:generate --force;
+      grep -qE '^APP_KEY=base64:.+' .env || php artisan key:generate --force;
       php-fpm"
     volumes:
       - ./backend:/var/www/html

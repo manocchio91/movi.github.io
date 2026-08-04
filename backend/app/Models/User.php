@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 
 /**
@@ -21,9 +22,23 @@ class User extends Authenticatable
     use HasFactory;
     use Notifiable;
 
-    protected $fillable = ['name', 'email', 'password', 'role', 'status'];
+    protected $fillable = ['ulid', 'name', 'email', 'password', 'role', 'status'];
 
     protected $hidden = ['password', 'remember_token'];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $user): void {
+            if ($user->getAttribute('ulid') === null) {
+                $user->setAttribute('ulid', (string) Str::ulid());
+            }
+        });
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'ulid';
+    }
 
     protected function casts(): array
     {

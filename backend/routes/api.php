@@ -1,9 +1,11 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\AdminCommercialController;
 use App\Http\Controllers\Api\V1\Admin\AdminDashboardController;
 use App\Http\Controllers\Api\V1\Admin\AdminOrganizerInsightController;
 use App\Http\Controllers\Api\V1\Admin\AdminPlatformOverviewController;
 use App\Http\Controllers\Api\V1\Admin\AdminRankingController;
+use App\Http\Controllers\Api\V1\Admin\AdminSearchController;
 use App\Http\Controllers\Api\V1\Admin\EventModerationController;
 use App\Http\Controllers\Api\V1\Admin\OrganizerModerationController;
 use App\Http\Controllers\Api\V1\Admin\ReviewModerationController;
@@ -11,6 +13,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\CustomerDashboardController;
+use App\Http\Controllers\Api\V1\CustomerProfileController;
 use App\Http\Controllers\Api\V1\CustomerSuccessfulEventController;
 use App\Http\Controllers\Api\V1\EventController;
 use App\Http\Controllers\Api\V1\FavoriteController;
@@ -56,6 +59,9 @@ Route::prefix('v1')->group(function (): void {
 
         Route::middleware('role:customer')->group(function (): void {
             Route::get('/customer/dashboard', [CustomerDashboardController::class, 'show']);
+            Route::get('/me/profile', [CustomerProfileController::class, 'show']);
+            Route::patch('/me/profile', [CustomerProfileController::class, 'update']);
+            Route::put('/me/password', [CustomerProfileController::class, 'password']);
             Route::get('/customer/successful-events', [CustomerSuccessfulEventController::class, 'index']);
             Route::get('/customer/successful-events/{event:ulid}', [CustomerSuccessfulEventController::class, 'show']);
             Route::get('/customer/successful-events/{event:ulid}/next-editions', [CustomerSuccessfulEventController::class, 'nextEditionsEndpoint']);
@@ -85,6 +91,7 @@ Route::prefix('v1')->group(function (): void {
         Route::middleware('role:organizer')->group(function (): void {
             Route::get('/organizer/profile', [OrganizerProfileController::class, 'show']);
             Route::patch('/organizer/profile', [OrganizerProfileController::class, 'update']);
+            Route::post('/organizer/profile/images', [OrganizerProfileController::class, 'images']);
             Route::post('/organizer/profile/submit', [OrganizerProfileController::class, 'submit']);
 
             Route::middleware('organizer.approved')->group(function (): void {
@@ -125,6 +132,12 @@ Route::prefix('v1')->group(function (): void {
 
         Route::middleware('role:admin')->group(function (): void {
             Route::get('/admin/dashboard', [AdminDashboardController::class, 'show']);
+            Route::get('/admin/search', AdminSearchController::class);
+            Route::get('/admin/customers/{customer:ulid}', [AdminSearchController::class, 'customer']);
+            Route::get('/admin/plans', [AdminCommercialController::class, 'plans']);
+            Route::post('/admin/plans', [AdminCommercialController::class, 'storePlan']);
+            Route::patch('/admin/plans/{plan:ulid}', [AdminCommercialController::class, 'updatePlan']);
+            Route::put('/admin/organizers/{organizer:ulid}/plan', [AdminCommercialController::class, 'assign']);
             Route::get('/admin/overview', [AdminPlatformOverviewController::class, 'show']);
             Route::get('/admin/organizers', [OrganizerModerationController::class, 'index']);
             Route::get('/admin/events', [EventModerationController::class, 'index']);

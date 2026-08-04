@@ -11,6 +11,7 @@ class OrganizerSubscription extends Model
         'ulid', 'organizer_profile_id', 'subscription_plan_id', 'status',
         'trial_ends_at', 'current_period_starts_at', 'current_period_ends_at',
         'cancelled_at', 'external_subscription_id',
+        'agreement_starts_at', 'agreement_ends_at', 'agreement_notes',
     ];
 
     protected function casts(): array
@@ -20,6 +21,8 @@ class OrganizerSubscription extends Model
             'current_period_starts_at' => 'datetime',
             'current_period_ends_at' => 'datetime',
             'cancelled_at' => 'datetime',
+            'agreement_starts_at' => 'date',
+            'agreement_ends_at' => 'date',
         ];
     }
 

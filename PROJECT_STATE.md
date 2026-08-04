@@ -4,11 +4,11 @@
 
 ## Riferimenti correnti
 
-- Versione corrente: `v1.0 - Bookings, Participants and Check-in`
+- Versione corrente: `v1.1 - MVP Profiles, Commercial Plans and Operations`
 - Ultimo aggiornamento: 4 agosto 2026
 - Repository: `manocchio91/app-eventi`
 - Branch corrente: `feat/organizer-bookings-management`
-- Commit milestone: da aggiornare dopo il commit `v1.0 - Complete bookings, participants and check-in flows`
+- Commit milestone: da aggiornare dopo il commit `v1.1 - Complete MVP profiles, commercial plans and operations`
 - Ultimo tag: `v0.5-customer-booking-qr`, verificato localmente sul commit `c5e9605`
 
 ## Stato delle aree
@@ -19,6 +19,10 @@
 - Onboarding fiscale Organizer e approvazione Admin: collegati alle API reali, con accesso operativo vincolato allo stato approvato.
 - Onboarding fiscale Organizer: Comune e Provincia vengono derivati dall'anagrafica backend al completamento di un CAP italiano valido, con gestione dei CAP associati a più Comuni.
 - Customer Flutter: integrazione reale completata per autenticazione, eventi, booking, QR e annullamento.
+- Customer web: profilo e password, cronologia prenotazioni, QR recuperabile, annullamento, preferiti e recensioni collegati alle API reali.
+- Organizer web: profilo pubblico/privato, logo e copertina, dati fiscali riservati e pagina pubblica con storico eventi.
+- Admin web: ricerca globale reale, gestione catalogo piani e accordi commerciali Organizer senza pagamenti automatici.
+- Email operative: approvazione/revisione Organizer e conferma/annullamento booking tramite mailer configurabile e fake nei test.
 - Organizer Flutter: schermate presenti, ma dati ancora forniti da `InMemoryDemoRepository`.
 
 ## Milestone completate
@@ -32,10 +36,12 @@
 - v0.7: registrazione e autenticazione web reali per Customer e Organizer
 - v0.8: creazione e modifica eventi Organizer con gestione ticket sicura
 - v0.9: onboarding fiscale Organizer, revisione Admin e correzione definitiva del flusso auth/logout
+- v1.0: booking Customer, partecipanti, prenotazioni Organizer e check-in
+- v1.1: profili MVP, piani commerciali, ricerca Admin, email operative e regressioni Customer risolte
 
 ## Task corrente
 
-Blocco v1.0 prenotazioni, partecipanti e check-in completato nelle verifiche automatiche; Browser QA finale demandato al Product Owner.
+Macrofase v1.1 completata nelle verifiche automatiche e nel Browser QA confermato dal Product Owner.
 
 ## Funzionalità completate
 
@@ -54,22 +60,24 @@ Blocco v1.0 prenotazioni, partecipanti e check-in completato nelle verifiche aut
 - Identificatori pubblici di eventi e ticket uniformati su ULID nel flusso Customer.
 - Partecipanti Organizer per evento con ricerca, filtri, paginazione, conteggi ed esportazione CSV; ogni riga conserva la semantica reale della prenotazione e di `total_people`.
 - Check-in Organizer tramite token QR o codice prenotazione, con blocco dei riutilizzi, delle prenotazioni annullate e dei codici appartenenti ad altri eventi.
+- Recupero atomico dei QR cifrati con una precedente `APP_KEY`, senza esporre errori tecnici e preservando la validità one-time del check-in.
+- Piani `unlimited` e `pay_per_booking` con periodicità, importi in centesimi, stato, date e note dell'accordo gestiti dall'Admin.
 
 ## Verifiche
 
 - Test mirati auth finali: 8 test e 84 asserzioni verdi.
 - Test mirati auth e onboarding: 14 test e 135 asserzioni verdi.
-- Suite Laravel completa: 84 test e 541 asserzioni verdi.
+- Suite Laravel completa: 93 test e 619 asserzioni verdi.
 - Test mirati finali Customer dettaglio/booking e QR: 8 test e 55 asserzioni verdi.
-- Pint, PHPStan, OpenAPI YAML 3.1, ESLint e build frontend verdi.
+- Pint, PHPStan, ESLint, build frontend e `git diff --check` verdi; OpenAPI resta nel debito esplicito sotto.
 - Migrazione onboarding fiscale eseguita correttamente nell'ambiente Docker locale.
 - Browser QA finale auth, logout e onboarding confermato dall'utente.
 - Browser QA della compilazione automatica Comune/Provincia tramite CAP confermato dall'utente.
-- Browser QA finale del blocco v1.0 da eseguire con la checklist consegnata al Product Owner.
+- Browser QA finale v1.1 confermato, incluso annullamento prenotazione Customer dopo il riavvio del frontend Vite.
 
 ## Prossimo task
 
-Nessuna nuova milestone avviata.
+Preparazione MVP: hardening operativo, rimozione residui demo e allineamento completo OpenAPI.
 
 ## Debiti aperti
 
@@ -78,6 +86,7 @@ Nessuna nuova milestone avviata.
 - Test frontend automatizzati.
 - Upload immagini evento non incluso.
 - Redesign grafico generale non incluso.
+- OpenAPI corrente da riallineare e validare: il lint Redocly segnala errori strutturali preesistenti.
 
 ## Come riprendere il lavoro
 

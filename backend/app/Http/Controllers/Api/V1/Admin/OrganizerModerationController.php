@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\IndexAdminOrganizerRequest;
 use App\Http\Requests\ReviewOrganizerRequest;
 use App\Models\OrganizerProfile;
+use App\Services\OperationalEmailService;
 use Illuminate\Http\JsonResponse;
 
 class OrganizerModerationController extends Controller
@@ -30,27 +31,36 @@ class OrganizerModerationController extends Controller
     {
         $this->authorize('moderate', OrganizerProfile::class);
 
-        return response()->json(['data' => $organizer->load(['owner', 'municipality'])]);
+        return response()->json(['data' => $organizer->load(['owner', 'municipality', 'subscription.plan'])]);
     }
 
-    public function approve(OrganizerProfile $organizer, ReviewOrganizerProfile $review): JsonResponse
+    public function approve(OrganizerProfile $organizer, ReviewOrganizerProfile $review, OperationalEmailService $emails): JsonResponse
     {
         $this->authorize('moderate', OrganizerProfile::class);
 
-        return response()->json(['data' => $review->execute($organizer, request()->user(), 'approve')]);
+        $organizer = $review->execute($organizer, request()->user(), 'approve')->load('owner');
+        $emails->organizerReviewed($organizer);
+
+        return response()->json(['data' => $organizer]);
     }
 
-    public function requestChanges(ReviewOrganizerRequest $request, OrganizerProfile $organizer, ReviewOrganizerProfile $review): JsonResponse
+    public function requestChanges(ReviewOrganizerRequest $request, OrganizerProfile $organizer, ReviewOrganizerProfile $review, OperationalEmailService $emails): JsonResponse
     {
         $this->authorize('moderate', OrganizerProfile::class);
 
-        return response()->json(['data' => $review->execute($organizer, $request->user(), 'request_changes', $request->validated('reason'))]);
+        $organizer = $review->execute($organizer, $request->user(), 'request_changes', $request->validated('reason'))->load('owner');
+        $emails->organizerReviewed($organizer);
+
+        return response()->json(['data' => $organizer]);
     }
 
-    public function reject(ReviewOrganizerRequest $request, OrganizerProfile $organizer, ReviewOrganizerProfile $review): JsonResponse
+    public function reject(ReviewOrganizerRequest $request, OrganizerProfile $organizer, ReviewOrganizerProfile $review, OperationalEmailService $emails): JsonResponse
     {
         $this->authorize('moderate', OrganizerProfile::class);
 
-        return response()->json(['data' => $review->execute($organizer, $request->user(), 'reject', $request->validated('reason'))]);
+        $organizer = $review->execute($organizer, $request->user(), 'reject', $request->validated('reason'))->load('owner');
+        $emails->organizerReviewed($organizer);
+
+        return response()->json(['data' => $organizer]);
     }
 }

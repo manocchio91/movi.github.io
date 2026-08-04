@@ -105,6 +105,44 @@ class BookingQrTest extends TestCase
             ->assertJsonStructure(['message', 'errors', 'request_id']);
     }
 
+    public function test_qr_created_with_a_previous_key_is_regenerated_and_remains_valid_for_check_in(): void
+    {
+        [$customer, $event, $ticket] = $this->domain();
+        $created = $this->actingAs($customer, 'sanctum')
+            ->postJson('/api/v1/events/'.$event->ulid.'/bookings', $this->payload($ticket))
+            ->assertCreated();
+        $booking = $customer->bookings()->firstOrFail();
+        DB::table('bookings')->where('id', $booking->id)->update(['qr_token_encrypted' => 'ciphertext-from-another-key']);
+
+        $token = $this->actingAs($customer, 'sanctum')
+            ->getJson('/api/v1/me/bookings/'.$booking->ulid.'/qr')
+            ->assertOk()
+            ->assertJsonMissing(['message' => 'The MAC is invalid.'])
+            ->json('data.qr_token');
+
+        $this->assertIsString($token);
+        $this->assertTrue(Hash::check($token, $booking->refresh()->qr_token_hash));
+        $this->actingAs($event->organizerProfile->owner, 'sanctum')
+            ->postJson('/api/v1/organizer/events/'.$event->ulid.'/check-ins', ['qr_token' => $token])
+            ->assertCreated();
+    }
+
+    public function test_customer_booking_history_exposes_cancellation_availability(): void
+    {
+        [$customer, $event, $ticket] = $this->domain();
+        $created = $this->actingAs($customer, 'sanctum')
+            ->postJson('/api/v1/events/'.$event->ulid.'/bookings', $this->payload($ticket))
+            ->assertCreated();
+
+        $this->getJson('/api/v1/me/bookings')
+            ->assertOk()
+            ->assertJsonPath('data.0.ulid', $created->json('data.ulid'))
+            ->assertJsonPath('data.0.can_cancel', true);
+
+        $this->postJson('/api/v1/me/bookings/'.$created->json('data.ulid').'/cancel')->assertOk();
+        $this->getJson('/api/v1/me/bookings')->assertJsonPath('data.0.can_cancel', false);
+    }
+
     public function test_idempotent_retry_returns_same_booking_and_token_without_double_decrement(): void
     {
         [$customer, $event, $ticket] = $this->domain(capacity: 3);

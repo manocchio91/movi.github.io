@@ -52,6 +52,7 @@ class UpdateOrganizerProfileRequest extends FormRequest
             'instagram_url' => ['sometimes', ...$safeUrl],
             'facebook_url' => ['sometimes', ...$safeUrl],
             'tiktok_url' => ['sometimes', ...$safeUrl],
+            'youtube_url' => ['sometimes', ...$safeUrl],
         ];
     }
 }
