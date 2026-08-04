@@ -64,6 +64,28 @@ class OrganizerBookingManagementTest extends TestCase
             ->assertUnprocessable()->assertJsonValidationErrors(['filter', 'sort_by', 'per_page']);
     }
 
+    public function test_event_participants_are_paginated_counted_filtered_and_support_manual_check_in(): void
+    {
+        [$organizer, $event, $ticket] = $this->domain('Evento partecipanti');
+        $pending = $this->booking($event, $ticket, 'confirmed', 'Mario Partecipante', 'mario.part@example.test', 3);
+        $cancelled = $this->booking($event, $ticket, 'cancelled_by_customer', 'Cliente Annullato', 'cancelled@example.test', 4);
+
+        $this->actingAs($organizer, 'sanctum')->getJson("/api/v1/organizer/events/{$event->ulid}/participants?search=Mario&filter=pending&per_page=1")
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.booking_ulid', $pending->ulid)
+            ->assertJsonPath('summary.bookings_total', 1)->assertJsonPath('summary.people_total', 3)
+            ->assertJsonPath('summary.checked_in_total', 0)->assertJsonMissing(['booking_ulid' => $cancelled->ulid]);
+
+        $this->postJson("/api/v1/organizer/events/{$event->ulid}/check-ins", ['booking_code' => $pending->booking_code])
+            ->assertCreated()->assertJsonPath('data.booking_status', 'checked_in');
+        $this->postJson("/api/v1/organizer/events/{$event->ulid}/check-ins", ['booking_code' => $pending->booking_code])->assertConflict();
+        $this->postJson("/api/v1/organizer/events/{$event->ulid}/check-ins", ['booking_code' => $cancelled->booking_code])->assertConflict();
+
+        $this->getJson("/api/v1/organizer/events/{$event->ulid}/participants?filter=checked_in")
+            ->assertOk()->assertJsonPath('summary.checked_in_total', 3)->assertJsonPath('data.0.checked_in', true);
+        $this->get("/api/v1/organizer/events/{$event->ulid}/participants?format=csv")
+            ->assertOk()->assertHeader('content-type', 'text/csv; charset=UTF-8');
+    }
+
     /** @return array{User, Event, TicketType} */
     private function domain(string $title): array
     {

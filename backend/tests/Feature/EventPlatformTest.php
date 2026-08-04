@@ -658,7 +658,7 @@ class EventPlatformTest extends TestCase
         $payload = [
             'adults_count' => 2,
             'children_count' => 0,
-            'items' => [['ticket_type_id' => $ticket->id, 'quantity' => 2]],
+            'items' => [['ticket_type_ulid' => $ticket->ulid, 'quantity' => 2]],
         ];
 
         $this->actingAs($customer, 'sanctum')

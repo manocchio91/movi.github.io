@@ -20,7 +20,7 @@ APP EVENTI è una piattaforma territoriale per scoprire, pubblicare, prenotare e
 | v0.8 | Completata | Creazione e modifica eventi Organizer con ticket sicuri |
 | v0.9 | Completata | Onboarding fiscale Organizer e approvazione Admin |
 | v1.0-A | Completata | Gestione prenotazioni ricevute Organizer e ripristino booking Customer web |
-| v1.0 | Pianificata | MVP validato e pronto al rilascio secondo criteri da definire |
+| v1.0 | In collaudo | Booking Customer, gestione prenotazioni/partecipanti e check-in Organizer completi; Browser QA finale richiesto |
 
 ## v0.8 — Organizer Event Creation and Editing
 
@@ -58,13 +58,12 @@ Completata end-to-end sul frontend web:
 
 ## Prossima milestone
 
-Nessuna nuova milestone avviata.
+Preparazione MVP: criteri di rilascio, hardening operativo e rimozione dei residui demo.
 
 ## Attività future
 
 ### Organizer
 
-- Check-in web.
 - Sostituzione progressiva di `InMemoryDemoRepository` nell'app Flutter.
 - Statistiche e strumenti operativi avanzati.
 

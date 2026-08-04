@@ -245,6 +245,25 @@ paths:
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
         - { name: Idempotency-Key, in: header, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [adults_count, items]
+              properties:
+                adults_count: { type: integer, minimum: 0, maximum: 50 }
+                children_count: { type: integer, minimum: 0, maximum: 50 }
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [ticket_type_ulid, quantity]
+                    properties:
+                      ticket_type_ulid: { type: string, minLength: 26, maxLength: 26 }
+                      quantity: { type: integer, minimum: 1, maximum: 50 }
       responses:
         "201": { description: Prenotazione confermata; include qr_token, anche nei retry idempotenti }
         "401": { description: Autenticazione richiesta }
@@ -623,7 +642,7 @@ paths:
   /organizer/events/{event}/check-ins:
     post:
       security: [{ bearerAuth: [] }]
-      summary: Valida una sola volta il QR di una prenotazione dell'evento
+      summary: Registra una sola volta il check-in tramite QR o codice prenotazione
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
       requestBody:
@@ -632,9 +651,12 @@ paths:
           application/json:
             schema:
               type: object
-              required: [qr_token]
+              anyOf:
+                - required: [qr_token]
+                - required: [booking_code]
               properties:
                 qr_token: { type: string, minLength: 32 }
+                booking_code: { type: string, maxLength: 40 }
       responses:
         "201":
           description: Check-in registrato
@@ -667,8 +689,13 @@ paths:
       summary: Partecipanti del proprio evento
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
+        - { name: search, in: query, schema: { type: string, maxLength: 120 } }
+        - { name: filter, in: query, schema: { type: string, enum: [all, pending, checked_in], default: all } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 15 } }
+        - { name: format, in: query, schema: { type: string, enum: [json, csv], default: json } }
       responses:
-        "200": { description: Partecipanti e stato check-in }
+        "200": { description: Prenotazioni-partecipanti paginate, conteggi e stato check-in oppure esportazione CSV }
   /organizer/events/{event}/reviews:
     get:
       security: [{ bearerAuth: [] }]

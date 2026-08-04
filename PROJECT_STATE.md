@@ -4,11 +4,11 @@
 
 ## Riferimenti correnti
 
-- Versione corrente: `v1.0-A - Organizer Bookings Management`
+- Versione corrente: `v1.0 - Bookings, Participants and Check-in`
 - Ultimo aggiornamento: 4 agosto 2026
 - Repository: `manocchio91/app-eventi`
 - Branch corrente: `feat/organizer-bookings-management`
-- Commit milestone: da aggiornare dopo il commit `v1.0-A - Complete Organizer bookings management`
+- Commit milestone: da aggiornare dopo il commit `v1.0 - Complete bookings, participants and check-in flows`
 - Ultimo tag: `v0.5-customer-booking-qr`, verificato localmente sul commit `c5e9605`
 
 ## Stato delle aree
@@ -35,7 +35,7 @@
 
 ## Task corrente
 
-Milestone v1.0-A Organizer Bookings Management completata e verificata.
+Blocco v1.0 prenotazioni, partecipanti e check-in completato nelle verifiche automatiche; Browser QA finale demandato al Product Owner.
 
 ## Funzionalità completate
 
@@ -51,6 +51,9 @@ Milestone v1.0-A Organizer Bookings Management completata e verificata.
 - Ricerca Comune/Provincia per CAP eseguita esclusivamente sull'anagrafica Comuni backend, senza servizi esterni o dataset frontend.
 - Lista e dettaglio Prenotazioni Organizer in sola lettura, con ricerca, filtri, ordinamento, paginazione e isolamento per proprietario evento.
 - Flusso Customer web ripristinato dalla lista pubblica al dettaglio evento, scelta ticket, prenotazione idempotente e QR.
+- Identificatori pubblici di eventi e ticket uniformati su ULID nel flusso Customer.
+- Partecipanti Organizer per evento con ricerca, filtri, paginazione, conteggi ed esportazione CSV; ogni riga conserva la semantica reale della prenotazione e di `total_people`.
+- Check-in Organizer tramite token QR o codice prenotazione, con blocco dei riutilizzi, delle prenotazioni annullate e dei codici appartenenti ad altri eventi.
 
 ## Verifiche
 
@@ -62,7 +65,7 @@ Milestone v1.0-A Organizer Bookings Management completata e verificata.
 - Migrazione onboarding fiscale eseguita correttamente nell'ambiente Docker locale.
 - Browser QA finale auth, logout e onboarding confermato dall'utente.
 - Browser QA della compilazione automatica Comune/Provincia tramite CAP confermato dall'utente.
-- Browser QA finale Prenotazioni Organizer e flusso Customer dettaglio/booking confermato dall'utente.
+- Browser QA finale del blocco v1.0 da eseguire con la checklist consegnata al Product Owner.
 
 ## Prossimo task
 
@@ -70,7 +73,6 @@ Nessuna nuova milestone avviata.
 
 ## Debiti aperti
 
-- Check-in web Organizer.
 - Statistiche avanzate.
 - Organizer Flutter ancora basato su dati demo.
 - Test frontend automatizzati.

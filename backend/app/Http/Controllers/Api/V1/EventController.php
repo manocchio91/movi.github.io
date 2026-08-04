@@ -29,6 +29,8 @@ class EventController extends Controller
             ->orderBy('starts_at')
             ->paginate(15);
 
+        $events->through(fn (Event $event) => $this->publicEvent($event));
+
         return response()->json($events);
     }
 
@@ -37,7 +39,16 @@ class EventController extends Controller
         abort_unless($event->status === EventStatus::Published, 404);
 
         return response()->json([
-            'data' => $event->load(['categories', 'municipality', 'organizerProfile', 'ticketTypes']),
+            'data' => $this->publicEvent($event->load(['categories', 'municipality', 'organizerProfile', 'ticketTypes'])),
         ]);
+    }
+
+    private function publicEvent(Event $event): Event
+    {
+        $event->makeHidden(['id', 'organizer_profile_id', 'municipality_id', 'venue_id', 'approved_by']);
+        $event->ticketTypes->each->makeHidden(['id', 'event_id']);
+        $event->organizerProfile?->makeHidden(['id', 'owner_user_id', 'municipality_id']);
+
+        return $event;
     }
 }

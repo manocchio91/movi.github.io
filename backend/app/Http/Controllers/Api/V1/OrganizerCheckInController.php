@@ -21,6 +21,7 @@ class OrganizerCheckInController extends Controller
             $request->user(),
             $event,
             $request->validated('qr_token'),
+            $request->validated('booking_code'),
         );
 
         return response()->json([

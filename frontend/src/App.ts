@@ -21,6 +21,7 @@ type AppRoute =
   | `/organizer/bookings/${string}`
   | '/organizer/create-event'
   | `/organizer/events/${string}/edit`
+  | `/organizer/events/${string}/participants`
   | '/organizer/reviews'
   | '/organizer/opportunities'
   | '/admin/dashboard'
@@ -166,8 +167,10 @@ type OrganizerBooking = {
   qr_token?: string | null; notes?: string | null;
 };
 type OrganizerBookingListResponse = { data: OrganizerBooking[]; meta: OrganizerEventPaginationMeta };
+type OrganizerParticipant = { booking_ulid: string; booking_code: string; name: string; email: string; people: number; status: string; checked_in: boolean; checked_in_at: string | null };
+type OrganizerParticipantsResponse = { data: OrganizerParticipant[]; summary: { bookings_total: number; people_total: number; checked_in_total: number }; meta: OrganizerEventPaginationMeta };
 
-type CustomerTicket = { id: number; name: string; audience: 'generic' | 'adult' | 'child'; price_cents: number; max_quantity: number | null; booked_quantity: number; is_active: boolean };
+type CustomerTicket = { ulid: string; name: string; audience: 'generic' | 'adult' | 'child'; price_cents: number; max_quantity: number | null; booked_quantity: number; is_active: boolean };
 type CustomerEvent = {
   ulid: string; title: string; summary: string; description: string; status: 'published'; starts_at: string;
   available_total: number; is_free: boolean; municipality?: { name: string }; categories?: EventCategory[];
@@ -464,6 +467,18 @@ export default defineComponent({
     const organizerBookingsSort = ref('booked_at:desc');
     const selectedOrganizerBooking = ref<OrganizerBooking | null>(null);
     const organizerQrVisible = ref(false);
+    const organizerParticipants = ref<OrganizerParticipant[]>([]);
+    const organizerParticipantsMeta = ref<OrganizerEventPaginationMeta | null>(null);
+    const organizerParticipantsSummary = ref({ bookings_total: 0, people_total: 0, checked_in_total: 0 });
+    const organizerParticipantsLoading = ref(false);
+    const organizerParticipantsError = ref('');
+    const organizerParticipantsSearch = ref('');
+    const organizerParticipantsFilter = ref('all');
+    const organizerParticipantsPage = ref(1);
+    const checkInValue = ref('');
+    const checkInMode = ref<'qr_token' | 'booking_code'>('qr_token');
+    const checkInMessage = ref('');
+    const checkInLoading = ref(false);
     const eventFormMode = ref<EventFormMode>('create');
     const eventFormData = ref<EventFormData>(emptyEventForm());
     const eventFormLoading = ref(false);
@@ -487,7 +502,7 @@ export default defineComponent({
     const selectedCustomerEvent = ref<CustomerEvent | null>(null);
     const customerEventLoading = ref(false);
     const customerEventError = ref('');
-    const customerTicketQuantities = ref<Record<number, number>>({});
+    const customerTicketQuantities = ref<Record<string, number>>({});
     const customerBookingLoading = ref(false);
     const customerBookingError = ref('');
     const customerBookingResult = ref<CustomerBookingResult | null>(null);
@@ -874,7 +889,7 @@ export default defineComponent({
       try {
         const response = await api<{ data: CustomerEvent }>(`/events/${ulid}`);
         selectedCustomerEvent.value = response?.data ?? null;
-        customerTicketQuantities.value = Object.fromEntries((response?.data.ticket_types ?? []).filter((ticket) => ticket.is_active).map((ticket) => [ticket.id, 0]));
+        customerTicketQuantities.value = Object.fromEntries((response?.data.ticket_types ?? []).filter((ticket) => ticket.is_active).map((ticket) => [ticket.ulid, 0]));
       } catch (error) {
         customerEventError.value = error instanceof Error ? error.message : 'Impossibile caricare il dettaglio evento.';
       } finally {
@@ -886,7 +901,7 @@ export default defineComponent({
       const event = selectedCustomerEvent.value;
       if (!event || customerBookingLoading.value) return;
       const items = event.ticket_types
-        .map((ticket) => ({ ticket, quantity: customerTicketQuantities.value[ticket.id] ?? 0 }))
+        .map((ticket) => ({ ticket, quantity: customerTicketQuantities.value[ticket.ulid] ?? 0 }))
         .filter((item) => item.quantity > 0);
       const adultsCount = items.filter(({ ticket }) => ticket.audience !== 'child').reduce((total, item) => total + item.quantity, 0);
       const childrenCount = items.filter(({ ticket }) => ticket.audience === 'child').reduce((total, item) => total + item.quantity, 0);
@@ -900,7 +915,7 @@ export default defineComponent({
         const response = await api<{ data: CustomerBookingResult }>(`/events/${event.ulid}/bookings`, {
           method: 'POST',
           headers: { 'Idempotency-Key': crypto.randomUUID() },
-          body: JSON.stringify({ adults_count: adultsCount, children_count: childrenCount, items: items.map(({ ticket, quantity }) => ({ ticket_type_id: ticket.id, quantity })) }),
+          body: JSON.stringify({ adults_count: adultsCount, children_count: childrenCount, items: items.map(({ ticket, quantity }) => ({ ticket_type_ulid: ticket.ulid, quantity })) }),
         });
         customerBookingResult.value = response?.data ?? null;
         if (customerBookingResult.value) event.available_total = Math.max(0, event.available_total - customerBookingResult.value.total_people);
@@ -941,6 +956,38 @@ export default defineComponent({
       } finally {
         organizerBookingsLoading.value = false;
       }
+    };
+
+    const loadOrganizerParticipants = async (eventUlid: string) => {
+      organizerParticipantsLoading.value = true; organizerParticipantsError.value = ''; checkInMessage.value = '';
+      try {
+        const query = new URLSearchParams({ page: String(organizerParticipantsPage.value), per_page: '15', filter: organizerParticipantsFilter.value });
+        if (organizerParticipantsSearch.value.trim()) query.set('search', organizerParticipantsSearch.value.trim());
+        const response = await api<OrganizerParticipantsResponse>(`/organizer/events/${eventUlid}/participants?${query}`);
+        organizerParticipants.value = response?.data ?? []; organizerParticipantsMeta.value = response?.meta ?? null;
+        organizerParticipantsSummary.value = response?.summary ?? { bookings_total: 0, people_total: 0, checked_in_total: 0 };
+      } catch (error) { organizerParticipants.value = []; organizerParticipantsError.value = error instanceof Error ? error.message : 'Impossibile caricare i partecipanti.'; }
+      finally { organizerParticipantsLoading.value = false; }
+    };
+
+    const submitCheckIn = async (eventUlid: string) => {
+      if (!checkInValue.value.trim()) return;
+      checkInLoading.value = true; checkInMessage.value = '';
+      try {
+        await api(`/organizer/events/${eventUlid}/check-ins`, { method: 'POST', body: JSON.stringify({ [checkInMode.value]: checkInValue.value.trim() }) });
+        checkInMessage.value = 'Check-in registrato correttamente.'; checkInValue.value = '';
+        await loadOrganizerParticipants(eventUlid);
+      } catch (error) { checkInMessage.value = error instanceof Error ? error.message : 'Check-in non riuscito.'; }
+      finally { checkInLoading.value = false; }
+    };
+
+    const exportParticipantsCsv = async (eventUlid: string) => {
+      if (!token.value) return;
+      const query = new URLSearchParams({ format: 'csv', filter: organizerParticipantsFilter.value });
+      if (organizerParticipantsSearch.value.trim()) query.set('search', organizerParticipantsSearch.value.trim());
+      const response = await fetch(`${apiBase}/organizer/events/${eventUlid}/participants?${query}`, { headers: { Accept: 'text/csv', Authorization: `Bearer ${token.value}` } });
+      if (!response.ok) { organizerParticipantsError.value = 'Esportazione CSV non riuscita.'; return; }
+      const url = URL.createObjectURL(await response.blob()); const link = document.createElement('a'); link.href = url; link.download = `partecipanti-${eventUlid}.csv`; link.click(); URL.revokeObjectURL(url);
     };
 
     const loadOrganizerProfile = async () => {
@@ -1147,6 +1194,7 @@ export default defineComponent({
       else if (route.value === '/organizer/bookings') await loadOrganizerBookings();
       else if (route.value.startsWith('/organizer/bookings/')) await loadOrganizerBookingDetail(route.value.split('/')[3]);
       else if (route.value === '/organizer/events') await loadOrganizerEvents();
+      else if (route.value.startsWith('/organizer/events/') && route.value.endsWith('/participants')) await loadOrganizerParticipants(route.value.split('/')[3]);
       else if (route.value === '/organizer/create-event') await loadEventForm();
       else if (route.value.startsWith('/organizer/events/') && route.value.endsWith('/edit')) {
         await loadEventForm(route.value.split('/')[3]);
@@ -1618,7 +1666,7 @@ export default defineComponent({
           h('h3', 'Scegli i ticket'),
           activeTickets.length === 0 ? h('p', 'Nessun ticket disponibile.') : h('div', { class: 'customer-ticket-list' }, activeTickets.map((ticket) => h('label', { class: 'customer-ticket-row' }, [
             h('span', [h('strong', ticket.name), h('small', event.is_free ? 'Gratuito' : `${(ticket.price_cents / 100).toLocaleString('it-IT', { style: 'currency', currency: 'EUR' })}`)]),
-            h('input', { type: 'number', min: 0, max: Math.min(event.available_total, ticket.max_quantity === null ? event.available_total : Math.max(0, ticket.max_quantity - ticket.booked_quantity)), value: customerTicketQuantities.value[ticket.id] ?? 0, disabled: customerBookingLoading.value || customerBookingResult.value !== null, 'aria-label': `Quantità ${ticket.name}`, onInput: (inputEvent: Event) => { customerTicketQuantities.value[ticket.id] = Math.max(0, Number((inputEvent.target as HTMLInputElement).value) || 0); } }),
+            h('input', { type: 'number', min: 0, max: Math.min(event.available_total, ticket.max_quantity === null ? event.available_total : Math.max(0, ticket.max_quantity - ticket.booked_quantity)), value: customerTicketQuantities.value[ticket.ulid] ?? 0, disabled: customerBookingLoading.value || customerBookingResult.value !== null, 'aria-label': `Quantità ${ticket.name}`, onInput: (inputEvent: Event) => { customerTicketQuantities.value[ticket.ulid] = Math.max(0, Number((inputEvent.target as HTMLInputElement).value) || 0); } }),
           ]))),
           customerBookingError.value ? h('p', { class: 'api-error', role: 'alert' }, customerBookingError.value) : null,
           customerBookingResult.value ? h('div', { class: 'booking-confirmation', role: 'status' }, [h('strong', 'Prenotazione confermata'), h('p', `Codice: ${customerBookingResult.value.booking_code}`), h('div', { class: 'booking-qr' }, customerBookingResult.value.qr_token)]) : null,
@@ -1811,7 +1859,8 @@ export default defineComponent({
             item.event.status === 'completed' ? h('small', `Assenti: ${item.summary.no_show}`) : null,
             item.event.status === 'completed' && item.summary.reviews_count > 0 ? h('small', `Valutazione: ${item.summary.average_rating}`) : null,
           ]),
-          canEdit || canCancel ? h('div', { class: 'action-row' }, [
+          h('div', { class: 'action-row' }, [
+            h('button', { type: 'button', onClick: () => { void go(`/organizer/events/${item.event.ulid}/participants`); } }, 'Partecipanti e check-in'),
             canEdit ? h('button', {
               type: 'button',
               onClick: () => { void go(`/organizer/events/${item.event.ulid}/edit`); },
@@ -1822,7 +1871,7 @@ export default defineComponent({
               disabled: cancellingOrganizerEvent.value !== null,
               onClick: () => { void cancelOrganizerEvent(item.event.ulid); },
             }, cancellingOrganizerEvent.value === item.event.ulid ? 'Annullamento...' : 'Annulla evento') : null,
-          ]) : null,
+          ]),
         ]);
       }));
 
@@ -2017,6 +2066,8 @@ export default defineComponent({
           ? renderOrganizerBookings()
           : route.value.startsWith('/organizer/bookings/')
             ? renderOrganizerBookingDetail()
+            : route.value.startsWith('/organizer/events/') && route.value.endsWith('/participants')
+              ? renderOrganizerParticipants()
             : route.value === '/organizer/events'
           ? renderOrganizerEvents()
           : route.value === '/organizer/create-event' || (route.value.startsWith('/organizer/events/') && route.value.endsWith('/edit'))
@@ -2210,10 +2261,25 @@ export default defineComponent({
             h('div', [h('small', 'Stato'), h('strong', bookingStatusLabel(booking.status))]), h('div', [h('small', 'Check-in'), h('strong', booking.checked_in_at ? new Date(booking.checked_in_at).toLocaleString('it-IT') : 'Non effettuato')]),
             h('div', { class: 'booking-detail-wide' }, [h('small', 'Note'), h('p', booking.notes || 'Nessuna nota')]),
           ]),
-          h('div', { class: 'action-row' }, [h('button', { disabled: !booking.qr_token, onClick: () => { organizerQrVisible.value = !organizerQrVisible.value; } }, organizerQrVisible.value ? 'Nascondi QR' : 'Visualizza QR'), h('button', { onClick: () => { void go(`/organizer/events/${booking.event.ulid}/edit`); } }, 'Apri Evento')]),
+          h('div', { class: 'action-row' }, [h('button', { disabled: !booking.qr_token, onClick: () => { organizerQrVisible.value = !organizerQrVisible.value; } }, organizerQrVisible.value ? 'Nascondi QR' : 'Visualizza QR'), h('button', { onClick: () => { void go(`/organizer/events/${booking.event.ulid}/edit`); } }, 'Apri Evento'), h('button', { onClick: () => { void go(`/organizer/events/${booking.event.ulid}/participants`); } }, 'Partecipanti e check-in')]),
           organizerQrVisible.value ? h('div', { class: 'booking-qr', role: 'img', 'aria-label': 'Token QR della prenotazione' }, booking.qr_token ?? 'QR non disponibile') : null,
         ]),
       ];
+    };
+
+    const renderOrganizerParticipants = () => {
+      const eventUlid = route.value.split('/')[3]; const meta = organizerParticipantsMeta.value; const summary = organizerParticipantsSummary.value;
+      const controls = h('div', { class: 'booking-toolbar' }, [
+        h('form', { onSubmit: (event: Event) => { event.preventDefault(); organizerParticipantsPage.value = 1; void loadOrganizerParticipants(eventUlid); } }, [h('input', { value: organizerParticipantsSearch.value, placeholder: 'Nome, email o codice prenotazione', onInput: (event: Event) => { organizerParticipantsSearch.value = (event.target as HTMLInputElement).value; } }), h('button', { type: 'submit' }, 'Cerca')]),
+        h('select', { value: organizerParticipantsFilter.value, onChange: (event: Event) => { organizerParticipantsFilter.value = (event.target as HTMLSelectElement).value; organizerParticipantsPage.value = 1; void loadOrganizerParticipants(eventUlid); } }, [h('option', { value: 'all' }, 'Tutti'), h('option', { value: 'pending' }, 'Da registrare'), h('option', { value: 'checked_in' }, 'Check-in effettuato')]),
+        h('button', { onClick: () => { void exportParticipantsCsv(eventUlid); } }, 'Esporta CSV'), h('button', { onClick: () => { void go('/organizer/events'); } }, 'Torna agli eventi'),
+      ]);
+      const checkIn = h('article', { class: 'wide-panel booking-detail' }, [h('h3', 'Check-in'), h('p', 'Inserisci il contenuto del QR oppure il codice prenotazione.'), h('form', { class: 'booking-toolbar', onSubmit: (event: Event) => { event.preventDefault(); void submitCheckIn(eventUlid); } }, [h('select', { value: checkInMode.value, onChange: (event: Event) => { checkInMode.value = (event.target as HTMLSelectElement).value as 'qr_token' | 'booking_code'; } }, [h('option', { value: 'qr_token' }, 'Token QR'), h('option', { value: 'booking_code' }, 'Codice prenotazione')]), h('input', { value: checkInValue.value, placeholder: checkInMode.value === 'qr_token' ? 'Incolla il token QR' : 'Es. EVT-XXXXXXXX', onInput: (event: Event) => { checkInValue.value = (event.target as HTMLInputElement).value; } }), h('button', { disabled: checkInLoading.value || !checkInValue.value.trim(), type: 'submit' }, checkInLoading.value ? 'Verifica…' : 'Registra check-in')]), checkInMessage.value ? h('p', { role: 'status', class: checkInMessage.value.includes('correttamente') ? '' : 'api-error' }, checkInMessage.value) : null]);
+      const heading = [h('div', { class: 'section-title' }, [h('h2', 'Partecipanti evento'), h('span', 'Ogni riga rappresenta una prenotazione e il relativo numero di persone')]), h('div', { class: 'metric-grid' }, [card('Prenotazioni', String(summary.bookings_total), 'valide'), card('Persone', String(summary.people_total), 'nelle prenotazioni valide'), card('Check-in', String(summary.checked_in_total), 'persone registrate')]), controls, checkIn];
+      if (organizerParticipantsLoading.value) return [...heading, h('article', { class: 'wide-panel' }, 'Caricamento partecipanti…')];
+      if (organizerParticipantsError.value) return [...heading, h('article', { class: 'wide-panel dashboard-error' }, [h('p', organizerParticipantsError.value), h('button', { onClick: () => { void loadOrganizerParticipants(eventUlid); } }, 'Riprova')])];
+      if (!organizerParticipants.value.length) return [...heading, emptyState('Nessuna prenotazione valida trovata.')];
+      return [...heading, h('div', { class: 'booking-table-wrap' }, h('table', { class: 'booking-table' }, [h('thead', h('tr', ['Codice', 'Cliente', 'Persone', 'Stato', 'Check-in'].map((label) => h('th', label)))), h('tbody', organizerParticipants.value.map((participant) => h('tr', { tabindex: 0, onClick: () => { void go(`/organizer/bookings/${participant.booking_ulid}`); }, onKeydown: (event: KeyboardEvent) => { if (event.key === 'Enter') void go(`/organizer/bookings/${participant.booking_ulid}`); } }, [h('td', participant.booking_code), h('td', [h('strong', participant.name), h('small', participant.email)]), h('td', String(participant.people)), h('td', bookingStatusLabel(participant.status)), h('td', participant.checked_in_at ? new Date(participant.checked_in_at).toLocaleString('it-IT') : 'Da effettuare')])))])), meta ? h('nav', { class: 'organizer-events-pagination' }, [h('button', { disabled: meta.current_page <= 1, onClick: () => { organizerParticipantsPage.value--; void loadOrganizerParticipants(eventUlid); } }, 'Precedente'), h('span', `Pagina ${meta.current_page} di ${meta.last_page}`), h('button', { disabled: meta.current_page >= meta.last_page, onClick: () => { organizerParticipantsPage.value++; void loadOrganizerParticipants(eventUlid); } }, 'Successiva')]) : null];
     };
 
     const renderAdminOrganizerDetail = () => {

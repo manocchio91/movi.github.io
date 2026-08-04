@@ -16,7 +16,7 @@ class StoreBookingRequest extends FormRequest
             'accessibility_needs' => ['nullable', 'string', 'max:1000'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.ticket_type_id' => ['required', 'integer', 'exists:ticket_types,id'],
+            'items.*.ticket_type_ulid' => ['required', 'string', 'size:26', 'exists:ticket_types,ulid'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:50'],
         ];
     }

@@ -57,7 +57,7 @@ class CreateBooking
                     /** @var TicketType $ticket */
                     $ticket = TicketType::query()
                         ->where('event_id', $lockedEvent->id)
-                        ->whereKey($item['ticket_type_id'])
+                        ->where('ulid', $item['ticket_type_ulid'])
                         ->lockForUpdate()
                         ->firstOrFail();
 
@@ -93,7 +93,7 @@ class CreateBooking
                 ]);
 
                 foreach ($ticketItems as $item) {
-                    $ticket = TicketType::query()->findOrFail($item['ticket_type_id']);
+                    $ticket = TicketType::query()->where('ulid', $item['ticket_type_ulid'])->firstOrFail();
                     $booking->items()->create([
                         'ticket_type_id' => $ticket->id,
                         'quantity' => (int) $item['quantity'],

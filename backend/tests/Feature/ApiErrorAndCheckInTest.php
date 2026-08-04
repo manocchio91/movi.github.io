@@ -44,7 +44,7 @@ class ApiErrorAndCheckInTest extends TestCase
             ->postJson("/api/v1/events/{$event->ulid}/bookings", [
                 'adults_count' => 1,
                 'children_count' => 0,
-                'items' => [['ticket_type_id' => $ticket->id, 'quantity' => 1]],
+                'items' => [['ticket_type_ulid' => $ticket->ulid, 'quantity' => 1]],
             ])
             ->assertCreated()
             ->assertJsonMissingPath('data.qr_token_hash');

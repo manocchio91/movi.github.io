@@ -211,7 +211,7 @@ class BookingQrTest extends TestCase
         return [
             'adults_count' => $quantity,
             'children_count' => 0,
-            'items' => [['ticket_type_id' => $ticket->id, 'quantity' => $quantity]],
+            'items' => [['ticket_type_ulid' => $ticket->ulid, 'quantity' => $quantity]],
         ];
     }
 }

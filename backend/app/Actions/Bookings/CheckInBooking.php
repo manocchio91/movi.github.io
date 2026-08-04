@@ -11,18 +11,22 @@ use Illuminate\Support\Facades\Hash;
 
 class CheckInBooking
 {
-    public function handle(User $operator, Event $event, string $token): CheckIn
+    public function handle(User $operator, Event $event, ?string $token, ?string $bookingCode = null): CheckIn
     {
-        return DB::transaction(function () use ($operator, $event, $token): CheckIn {
-            $booking = Booking::query()
+        return DB::transaction(function () use ($operator, $event, $token, $bookingCode): CheckIn {
+            $candidates = Booking::query()
                 ->where('event_id', $event->id)
-                ->whereIn('status', ['confirmed', 'checked_in'])
                 ->lockForUpdate()
-                ->get()
-                ->first(fn (Booking $candidate): bool => Hash::check($token, $candidate->qr_token_hash));
+                ->when($bookingCode !== null, fn ($query) => $query->where('booking_code', $bookingCode))
+                ->get();
 
-            abort_unless($booking !== null, 404, 'QR code non valido.');
-            abort_if($booking->checkIns()->exists(), 409, 'QR code già utilizzato.');
+            $booking = $bookingCode !== null
+                ? $candidates->first()
+                : $candidates->first(fn (Booking $candidate): bool => $token !== null && Hash::check($token, $candidate->qr_token_hash));
+
+            abort_unless($booking !== null, 404, 'Codice non valido per questo evento.');
+            abort_unless(in_array($booking->status, ['confirmed', 'checked_in'], true), 409, 'Prenotazione non valida per il check-in.');
+            abort_if($booking->checkIns()->exists(), 409, 'Check-in già effettuato.');
 
             $checkIn = CheckIn::query()->create([
                 'booking_id' => $booking->id,

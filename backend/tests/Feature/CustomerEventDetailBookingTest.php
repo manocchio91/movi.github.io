@@ -24,7 +24,7 @@ class CustomerEventDetailBookingTest extends TestCase
         $created = $this->actingAs($organizer, 'sanctum')->postJson('/api/v1/organizer/events', $this->eventPayload($municipality, $category, 'Evento creato Organizer'))
             ->assertCreated();
         $ulid = $created->json('data.ulid');
-        $ticketId = $created->json('data.ticket_types.0.id');
+        $ticketUlid = $created->json('data.ticket_types.0.ulid');
         $this->postJson("/api/v1/organizer/events/{$ulid}/publish")->assertOk();
 
         $list = $this->actingAs($customer, 'sanctum')->getJson('/api/v1/events?available=1')
@@ -34,11 +34,12 @@ class CustomerEventDetailBookingTest extends TestCase
 
         $this->getJson("/api/v1/events/{$ulid}")
             ->assertOk()->assertJsonPath('data.ulid', $ulid)
-            ->assertJsonPath('data.ticket_types.0.id', $ticketId)
+            ->assertJsonPath('data.ticket_types.0.ulid', $ticketUlid)
+            ->assertJsonMissingPath('data.ticket_types.0.id')
             ->assertJsonPath('data.ticket_types.0.name', 'Ingresso');
 
         $booking = $this->withHeader('Idempotency-Key', 'customer-web-detail-booking')
-            ->postJson("/api/v1/events/{$ulid}/bookings", ['adults_count' => 1, 'children_count' => 0, 'items' => [['ticket_type_id' => $ticketId, 'quantity' => 1]]])
+            ->postJson("/api/v1/events/{$ulid}/bookings", ['adults_count' => 1, 'children_count' => 0, 'items' => [['ticket_type_ulid' => $ticketUlid, 'quantity' => 1]]])
             ->assertCreated()->assertJsonPath('data.event.ulid', $ulid);
 
         $bookingUlid = $booking->json('data.ulid');
