@@ -159,6 +159,7 @@ type EventFormMode = 'create' | 'edit';
 
 type EventCategory = { id: number; name: string };
 type EventMunicipality = { id: number; name: string; province?: { code?: string } };
+type PostalMunicipality = { id: number; name: string; province: string; postal_code: string };
 type EventFormTicket = {
   ulid?: string;
   name: string;
@@ -414,6 +415,12 @@ export default defineComponent({
     const organizerProfileError = ref('');
     const organizerProfileSuccess = ref('');
     const organizerProfileErrors = ref<Record<string, string[]>>({});
+    const postalMunicipalities = ref<PostalMunicipality[]>([]);
+    const postalCodeLoading = ref(false);
+    const postalCodeError = ref('');
+    const loadedProfilePostalCode = ref('');
+    const lastPostalCodeLookup = ref('');
+    let postalCodeRequestId = 0;
     const dashboardLoading = ref(false);
     const dashboardError = ref('');
     const dashboardForbidden = ref(false);
@@ -825,17 +832,76 @@ export default defineComponent({
       organizerProfileLoading.value = true;
       organizerProfileError.value = '';
       try {
-        const [profilePayload, municipalityPayload] = await Promise.all([
-          api<{ data: OrganizerProfile }>('/organizer/profile'),
-          api<{ data: EventMunicipality[] }>('/locations/search'),
-        ]);
-        if (profilePayload?.data) organizerProfile.value = profilePayload.data;
-        eventMunicipalities.value = municipalityPayload?.data ?? [];
+        const profilePayload = await api<{ data: OrganizerProfile }>('/organizer/profile');
+        if (profilePayload?.data) {
+          organizerProfile.value = profilePayload.data;
+          loadedProfilePostalCode.value = profilePayload.data.postal_code ?? '';
+          postalMunicipalities.value = profilePayload.data.municipality ? [{
+            id: profilePayload.data.municipality.id,
+            name: profilePayload.data.municipality.name,
+            province: profilePayload.data.province ?? '',
+            postal_code: profilePayload.data.postal_code ?? '',
+          }] : [];
+        }
       } catch (error) {
         organizerProfileError.value = error instanceof Error ? error.message : 'Impossibile caricare il profilo Organizer.';
       } finally {
         organizerProfileLoading.value = false;
       }
+    };
+
+    const lookupMunicipalitiesByPostalCode = async (postalCode: string) => {
+      if (postalCode === lastPostalCodeLookup.value || !/^\d{5}$/.test(postalCode)) return;
+      const requestId = ++postalCodeRequestId;
+      lastPostalCodeLookup.value = postalCode;
+      postalCodeLoading.value = true;
+      postalCodeError.value = '';
+      try {
+        const response = await api<{ data: PostalMunicipality[] }>(`/locations/municipalities?postal_code=${encodeURIComponent(postalCode)}`);
+        if (requestId !== postalCodeRequestId || organizerProfile.value.postal_code !== postalCode) return;
+        postalMunicipalities.value = response?.data ?? [];
+        if (postalMunicipalities.value.length === 0) {
+          postalCodeError.value = 'Nessun Comune trovato per questo CAP';
+          return;
+        }
+        if (postalMunicipalities.value.length === 1) {
+          organizerProfile.value.municipality_id = postalMunicipalities.value[0].id;
+          organizerProfile.value.province = postalMunicipalities.value[0].province;
+        }
+      } catch (error) {
+        if (requestId === postalCodeRequestId) postalCodeError.value = error instanceof Error ? error.message : 'Impossibile cercare il Comune.';
+      } finally {
+        if (requestId === postalCodeRequestId) postalCodeLoading.value = false;
+      }
+    };
+
+    const changeOrganizerPostalCode = (value: string) => {
+      organizerProfile.value.postal_code = value.slice(0, 5);
+      if (organizerProfile.value.postal_code === loadedProfilePostalCode.value) {
+        const municipality = organizerProfile.value.municipality;
+        if (municipality) {
+          postalMunicipalities.value = [{ id: municipality.id, name: municipality.name, province: organizerProfile.value.province ?? '', postal_code: loadedProfilePostalCode.value }];
+          organizerProfile.value.municipality_id = municipality.id;
+        }
+        return;
+      }
+      postalCodeRequestId++;
+      postalCodeLoading.value = false;
+      postalCodeError.value = '';
+      postalMunicipalities.value = [];
+      organizerProfile.value.municipality_id = null;
+      organizerProfile.value.province = '';
+      lastPostalCodeLookup.value = '';
+      if (organizerProfile.value.postal_code.length === 5) {
+        if (!/^\d{5}$/.test(organizerProfile.value.postal_code)) postalCodeError.value = 'Nessun Comune trovato per questo CAP';
+        else void lookupMunicipalitiesByPostalCode(organizerProfile.value.postal_code);
+      }
+    };
+
+    const selectPostalMunicipality = (id: number) => {
+      const municipality = postalMunicipalities.value.find((item) => item.id === id);
+      organizerProfile.value.municipality_id = municipality?.id ?? null;
+      organizerProfile.value.province = municipality?.province ?? '';
     };
 
     const saveOrganizerProfile = async () => {
@@ -1334,13 +1400,21 @@ export default defineComponent({
               profileInput('Denominazione o ragione sociale *', 'name'),
               profileInput('Indirizzo *', 'address'),
               profileInput('Numero civico *', 'street_number'),
-              profileInput('CAP *', 'postal_code'),
-              h('label', { class: 'auth-field' }, [h('span', 'Comune *'), h('select', {
-                value: organizerProfile.value.municipality_id ?? '',
-                onChange: (event: Event) => { organizerProfile.value.municipality_id = Number((event.target as HTMLSelectElement).value) || null; },
-              }, [h('option', { value: '' }, 'Seleziona il Comune'), ...eventMunicipalities.value.map((item) => h('option', { value: item.id }, item.name))]),
-              organizerProfileErrors.value.municipality_id?.map((message) => h('small', { class: 'field-error' }, message))]),
-              profileInput('Provincia *', 'province'),
+              h('label', { class: 'auth-field' }, [
+                h('span', 'CAP *'),
+                h('input', { name: 'postal_code', inputmode: 'numeric', maxlength: 5, value: organizerProfile.value.postal_code ?? '', disabled: organizerProfileSaving.value, onInput: (event: Event) => { changeOrganizerPostalCode((event.target as HTMLInputElement).value); } }),
+                postalCodeLoading.value ? h('small', 'Ricerca Comune…') : null,
+                postalCodeError.value ? h('small', { class: 'field-error', role: 'alert' }, postalCodeError.value) : null,
+                organizerProfileErrors.value.postal_code?.map((message) => h('small', { class: 'field-error' }, message)),
+              ]),
+              h('label', { class: 'auth-field' }, [
+                h('span', 'Comune *'),
+                postalMunicipalities.value.length > 1
+                  ? h('select', { value: organizerProfile.value.municipality_id ?? '', disabled: organizerProfileSaving.value, onChange: (event: Event) => { selectPostalMunicipality(Number((event.target as HTMLSelectElement).value)); } }, [h('option', { value: '' }, 'Seleziona il Comune'), ...postalMunicipalities.value.map((item) => h('option', { value: item.id }, item.name))])
+                  : h('input', { value: postalMunicipalities.value[0]?.name ?? organizerProfile.value.municipality?.name ?? '', readonly: true, disabled: organizerProfileSaving.value, placeholder: 'Compilato automaticamente dal CAP' }),
+                organizerProfileErrors.value.municipality_id?.map((message) => h('small', { class: 'field-error' }, message)),
+              ]),
+              h('label', { class: 'auth-field' }, [h('span', 'Provincia *'), h('input', { value: organizerProfile.value.province ?? '', readonly: true, disabled: organizerProfileSaving.value, placeholder: 'Compilata automaticamente' }), organizerProfileErrors.value.province?.map((message) => h('small', { class: 'field-error' }, message))]),
               profileInput('Nazione *', 'country'),
               profileInput('Partita IVA *', 'vat_number'),
               profileInput('PEC *', 'pec', 'email'),

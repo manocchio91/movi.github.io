@@ -5,7 +5,7 @@
 ## Riferimenti correnti
 
 - Versione corrente: `v0.9 - Organizer Fiscal Onboarding and Admin Approval`
-- Ultimo aggiornamento: 3 agosto 2026
+- Ultimo aggiornamento: 4 agosto 2026
 - Repository: `manocchio91/app-eventi`
 - Branch corrente: `feat/organizer-fiscal-onboarding-admin-approval`
 - Commit milestone: da aggiornare dopo il commit `v0.9 - Complete Organizer fiscal onboarding and Admin approval`
@@ -17,6 +17,7 @@
 - Autenticazione web: registrazione Customer e Organizer, login/logout reali e ripristino sessione tramite `GET /api/v1/me`.
 - Dashboard, lista, creazione e modifica eventi Organizer web: collegate esclusivamente alle API reali.
 - Onboarding fiscale Organizer e approvazione Admin: collegati alle API reali, con accesso operativo vincolato allo stato approvato.
+- Onboarding fiscale Organizer: Comune e Provincia vengono derivati dall'anagrafica backend al completamento di un CAP italiano valido, con gestione dei CAP associati a più Comuni.
 - Customer Flutter: integrazione reale completata per autenticazione, eventi, booking, QR e annullamento.
 - Organizer Flutter: schermate presenti, ma dati ancora forniti da `InMemoryDemoRepository`.
 
@@ -34,7 +35,7 @@
 
 ## Task corrente
 
-Milestone Organizer Fiscal Onboarding and Admin Approval completata e verificata.
+Milestone v1.0-A Organizer Bookings Management in sviluppo; miglioria CAP dell'onboarding completata e verificata separatamente.
 
 ## Funzionalità completate
 
@@ -47,6 +48,7 @@ Milestone Organizer Fiscal Onboarding and Admin Approval completata e verificata
 - Logout resiliente agli errori di rete, pulizia completa della sessione locale e ritorno esplicito a `/login`.
 - Selezione del ruolo priva di effetti di autenticazione; accesso alla shell solo dopo login o ripristino `/me` validi.
 - Account QA `organizer@example.test` mantenuto approvato; i nuovi Organizer iniziano dall'onboarding fiscale.
+- Ricerca Comune/Provincia per CAP eseguita esclusivamente sull'anagrafica Comuni backend, senza servizi esterni o dataset frontend.
 
 ## Verifiche
 
@@ -56,6 +58,7 @@ Milestone Organizer Fiscal Onboarding and Admin Approval completata e verificata
 - Pint, PHPStan, OpenAPI YAML 3.1, ESLint e build frontend verdi.
 - Migrazione onboarding fiscale eseguita correttamente nell'ambiente Docker locale.
 - Browser QA finale auth, logout e onboarding confermato dall'utente.
+- Browser QA della compilazione automatica Comune/Provincia tramite CAP confermato dall'utente.
 
 ## Prossimo task
 

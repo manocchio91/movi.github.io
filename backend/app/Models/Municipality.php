@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Municipality extends Model
 {
-    protected $fillable = ['province_id', 'name', 'istat_code', 'latitude', 'longitude'];
+    protected $fillable = ['province_id', 'name', 'istat_code', 'postal_code', 'latitude', 'longitude'];
 
     /** @return BelongsTo<Province, $this> */
     public function province(): BelongsTo

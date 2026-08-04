@@ -44,6 +44,7 @@ Completata end-to-end sul frontend web:
 4. Protezione delle funzioni operative fino all'approvazione.
 5. Sessione auth reale, logout completo e selezione ruolo senza accessi simulati.
 6. Test automatici e Browser QA finale completati.
+7. Compilazione automatica di Comune e Provincia dal CAP tramite anagrafica backend, inclusi CAP condivisi da più Comuni.
 
 ## Prossima milestone
 

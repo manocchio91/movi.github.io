@@ -57,11 +57,11 @@ class DatabaseSeeder extends Seeder
         $isernia = Province::query()->create(['region_id' => $molise->id, 'name' => 'Isernia', 'code' => 'IS']);
 
         foreach ([
-            ['province_id' => $campobasso->id, 'name' => 'Campobasso', 'istat_code' => '070006'],
-            ['province_id' => $campobasso->id, 'name' => 'Termoli', 'istat_code' => '070078'],
-            ['province_id' => $campobasso->id, 'name' => 'Bojano', 'istat_code' => '070003'],
-            ['province_id' => $isernia->id, 'name' => 'Isernia', 'istat_code' => '094023'],
-            ['province_id' => $isernia->id, 'name' => 'Agnone', 'istat_code' => '094002'],
+            ['province_id' => $campobasso->id, 'name' => 'Campobasso', 'istat_code' => '070006', 'postal_code' => '86100'],
+            ['province_id' => $campobasso->id, 'name' => 'Termoli', 'istat_code' => '070078', 'postal_code' => '86039'],
+            ['province_id' => $campobasso->id, 'name' => 'Bojano', 'istat_code' => '070003', 'postal_code' => '86021'],
+            ['province_id' => $isernia->id, 'name' => 'Isernia', 'istat_code' => '094023', 'postal_code' => '86170'],
+            ['province_id' => $isernia->id, 'name' => 'Agnone', 'istat_code' => '094002', 'postal_code' => '86081'],
         ] as $municipality) {
             Municipality::query()->create($municipality);
         }

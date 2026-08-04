@@ -40,6 +40,7 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/events/{event:ulid}/reviews', [ReviewController::class, 'index']);
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::get('/locations/search', [LocationController::class, 'search']);
+    Route::get('/locations/municipalities', [LocationController::class, 'municipalities']);
     Route::get('/subscription-plans', [SubscriptionPlanController::class, 'index']);
     Route::get('/organizers/{organizer:ulid}', [OrganizerPublicController::class, 'show']);
 
