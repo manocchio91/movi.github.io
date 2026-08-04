@@ -593,6 +593,33 @@ paths:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Lista prenotazioni }
+  /organizer/bookings:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Elenco paginato delle prenotazioni ricevute dall'Organizer
+      parameters:
+        - { name: search, in: query, schema: { type: string, maxLength: 120 } }
+        - { name: filter, in: query, schema: { type: string, enum: [all, confirmed, checked_in, completed, cancelled], default: all } }
+        - { name: sort_by, in: query, schema: { type: string, enum: [booked_at, event, customer, people, status], default: booked_at } }
+        - { name: sort, in: query, schema: { type: string, enum: [asc, desc], default: desc } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 15 } }
+      responses:
+        "200": { description: Prenotazioni visibili all'Organizer, con metadati di paginazione }
+        "401": { description: Token assente o non valido }
+        "403": { description: Ruolo non consentito o profilo Organizer non approvato }
+        "422": { description: Parametri di ricerca, filtro o ordinamento non validi }
+  /organizer/bookings/{booking}:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Dettaglio in sola lettura di una prenotazione ricevuta
+      parameters:
+        - { name: booking, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Cliente, evento, ticket, persone, stato, QR, note, date e check-in }
+        "401": { description: Token assente o non valido }
+        "403": { description: Prenotazione di un altro Organizer o ruolo non consentito }
+        "404": { description: Prenotazione non trovata }
   /organizer/events/{event}/check-ins:
     post:
       security: [{ bearerAuth: [] }]

@@ -1192,6 +1192,34 @@ button {
   max-width: 560px;
 }
 
+.booking-toolbar { display: grid; gap: 1rem; margin-bottom: 1rem; }
+.booking-toolbar form { display: flex; gap: .6rem; }
+.booking-toolbar input, .booking-toolbar select { min-height: 42px; padding: .7rem .8rem; border: 1px solid #d8ddd9; border-radius: 10px; background: #fff; }
+.booking-toolbar input { flex: 1; }
+.booking-table-wrap { overflow-x: auto; background: #fff; border-radius: 16px; box-shadow: 0 8px 25px rgba(20, 44, 30, .07); }
+.booking-table { width: 100%; border-collapse: collapse; }
+.booking-table th, .booking-table td { padding: 1rem; text-align: left; border-bottom: 1px solid #edf0ed; }
+.booking-table tbody tr { cursor: pointer; }
+.booking-table tbody tr:hover, .booking-table tbody tr:focus { background: #f4faf6; outline: none; }
+.booking-table td strong, .booking-table td small { display: block; }
+.booking-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.booking-detail-grid > div { display: flex; flex-direction: column; gap: .25rem; padding: .9rem; background: #f7f9f7; border-radius: 10px; }
+.booking-detail-wide { grid-column: 1 / -1; }
+.booking-qr { margin-top: 1rem; padding: 1rem; border: 2px dashed #234d35; border-radius: 12px; overflow-wrap: anywhere; font-family: monospace; }
+.customer-event-detail { display: grid; gap: 1rem; }
+.customer-ticket-list { display: grid; gap: .75rem; }
+.customer-ticket-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .9rem; border: 1px solid #dfe7e1; border-radius: 10px; }
+.customer-ticket-row span, .customer-ticket-row small { display: block; }
+.customer-ticket-row input { width: 80px; padding: .6rem; }
+.booking-confirmation { padding: 1rem; border-radius: 12px; background: #ecf8f0; }
+
+@media (max-width: 680px) {
+  .booking-toolbar form { flex-direction: column; }
+  .booking-detail-grid { grid-template-columns: 1fr; }
+  .booking-detail-wide { grid-column: auto; }
+  .booking-table th:nth-child(3), .booking-table td:nth-child(3) { display: none; }
+}
+
 .auth-role-grid {
   display: grid;
   gap: 12px;

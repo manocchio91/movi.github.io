@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\NotificationPreferenceController;
 use App\Http\Controllers\Api\V1\OrganizerAnalyticsController;
+use App\Http\Controllers\Api\V1\OrganizerBookingController;
 use App\Http\Controllers\Api\V1\OrganizerCheckInController;
 use App\Http\Controllers\Api\V1\OrganizerDashboardController;
 use App\Http\Controllers\Api\V1\OrganizerEventController;
@@ -47,6 +48,11 @@ Route::prefix('v1')->group(function (): void {
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
+
+        Route::middleware('role:organizer,admin')->group(function (): void {
+            Route::get('/organizer/bookings', [OrganizerBookingController::class, 'index']);
+            Route::get('/organizer/bookings/{booking:ulid}', [OrganizerBookingController::class, 'show']);
+        });
 
         Route::middleware('role:customer')->group(function (): void {
             Route::get('/customer/dashboard', [CustomerDashboardController::class, 'show']);

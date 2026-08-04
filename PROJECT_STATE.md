@@ -4,11 +4,11 @@
 
 ## Riferimenti correnti
 
-- Versione corrente: `v0.9 - Organizer Fiscal Onboarding and Admin Approval`
+- Versione corrente: `v1.0-A - Organizer Bookings Management`
 - Ultimo aggiornamento: 4 agosto 2026
 - Repository: `manocchio91/app-eventi`
-- Branch corrente: `feat/organizer-fiscal-onboarding-admin-approval`
-- Commit milestone: da aggiornare dopo il commit `v0.9 - Complete Organizer fiscal onboarding and Admin approval`
+- Branch corrente: `feat/organizer-bookings-management`
+- Commit milestone: da aggiornare dopo il commit `v1.0-A - Complete Organizer bookings management`
 - Ultimo tag: `v0.5-customer-booking-qr`, verificato localmente sul commit `c5e9605`
 
 ## Stato delle aree
@@ -35,7 +35,7 @@
 
 ## Task corrente
 
-Milestone v1.0-A Organizer Bookings Management in sviluppo; miglioria CAP dell'onboarding completata e verificata separatamente.
+Milestone v1.0-A Organizer Bookings Management completata e verificata.
 
 ## Funzionalità completate
 
@@ -49,24 +49,27 @@ Milestone v1.0-A Organizer Bookings Management in sviluppo; miglioria CAP dell'o
 - Selezione del ruolo priva di effetti di autenticazione; accesso alla shell solo dopo login o ripristino `/me` validi.
 - Account QA `organizer@example.test` mantenuto approvato; i nuovi Organizer iniziano dall'onboarding fiscale.
 - Ricerca Comune/Provincia per CAP eseguita esclusivamente sull'anagrafica Comuni backend, senza servizi esterni o dataset frontend.
+- Lista e dettaglio Prenotazioni Organizer in sola lettura, con ricerca, filtri, ordinamento, paginazione e isolamento per proprietario evento.
+- Flusso Customer web ripristinato dalla lista pubblica al dettaglio evento, scelta ticket, prenotazione idempotente e QR.
 
 ## Verifiche
 
 - Test mirati auth finali: 8 test e 84 asserzioni verdi.
 - Test mirati auth e onboarding: 14 test e 135 asserzioni verdi.
-- Suite Laravel completa: 75 test e 447 asserzioni verdi.
+- Suite Laravel completa: 84 test e 541 asserzioni verdi.
+- Test mirati finali Customer dettaglio/booking e QR: 8 test e 55 asserzioni verdi.
 - Pint, PHPStan, OpenAPI YAML 3.1, ESLint e build frontend verdi.
 - Migrazione onboarding fiscale eseguita correttamente nell'ambiente Docker locale.
 - Browser QA finale auth, logout e onboarding confermato dall'utente.
 - Browser QA della compilazione automatica Comune/Provincia tramite CAP confermato dall'utente.
+- Browser QA finale Prenotazioni Organizer e flusso Customer dettaglio/booking confermato dall'utente.
 
 ## Prossimo task
 
-**GESTIONE PRENOTAZIONI E PARTECIPANTI ORGANIZER**
+Nessuna nuova milestone avviata.
 
 ## Debiti aperti
 
-- Dettaglio prenotazioni ricevute e gestione partecipanti Organizer.
 - Check-in web Organizer.
 - Statistiche avanzate.
 - Organizer Flutter ancora basato su dati demo.

@@ -109,10 +109,14 @@ Eventi simili:
 - `POST /organizer/events/{event}/close-bookings`
 - `POST /organizer/events/{event}/cancel`
 - `GET /organizer/events/{event}/bookings`
+- `GET /organizer/bookings`
+- `GET /organizer/bookings/{booking}`
 - `GET /organizer/reviews/events`
 - `GET /organizer/reviews/events/{event}`
 
 `GET/POST/PUT /organizer/profile` richiede `role:organizer`; le altre route organizzatore richiedono anche `organizer.approved`. Un organizzatore pending puo vedere/aggiornare lo stato del profilo, ma non puo creare, pubblicare o gestire eventi. Il flusso evento e `draft -> published`: un organizzatore verificato pubblica direttamente, senza approvazione preventiva admin.
+
+`GET /organizer/bookings` offre ricerca per cliente, email, evento e codice, filtri di stato, ordinamento e paginazione server-side. Lista e dettaglio sono in sola lettura: l'Organizer vede esclusivamente prenotazioni dei propri eventi; l'Admin mantiene visibilita completa. Il QR viene restituito soltanto nel dettaglio autorizzato.
 
 `POST /organizer/events/{event}/cancel` richiede `reason_code` e `reason`. L'annullamento e transazionale: aggiorna evento, prenotazioni attive, notifiche cliente, audit log e `event_cancellations`.
 

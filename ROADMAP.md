@@ -19,7 +19,7 @@ APP EVENTI è una piattaforma territoriale per scoprire, pubblicare, prenotare e
 | v0.7 | Completata | Registrazione e autenticazione reale per Customer e Organizer |
 | v0.8 | Completata | Creazione e modifica eventi Organizer con ticket sicuri |
 | v0.9 | Completata | Onboarding fiscale Organizer e approvazione Admin |
-| v0.10 | Pianificata | Gestione prenotazioni e partecipanti Organizer |
+| v1.0-A | Completata | Gestione prenotazioni ricevute Organizer e ripristino booking Customer web |
 | v1.0 | Pianificata | MVP validato e pronto al rilascio secondo criteri da definire |
 
 ## v0.8 — Organizer Event Creation and Editing
@@ -46,17 +46,24 @@ Completata end-to-end sul frontend web:
 6. Test automatici e Browser QA finale completati.
 7. Compilazione automatica di Comune e Provincia dal CAP tramite anagrafica backend, inclusi CAP condivisi da più Comuni.
 
+## v1.0-A - Organizer Bookings Management
+
+Completata end-to-end sul frontend web:
+
+1. Lista prenotazioni Organizer con ricerca, filtri, ordinamento e paginazione server-side.
+2. Dettaglio in sola lettura con cliente, evento, ticket, persone, stato, note, QR e check-in.
+3. Isolamento delle prenotazioni per Organizer proprietario e visibilità completa Admin.
+4. Ripristino del flusso Customer lista evento, dettaglio, scelta ticket, booking e QR.
+5. Test automatici, OpenAPI e Browser QA finale completati.
+
 ## Prossima milestone
 
-**GESTIONE PRENOTAZIONI E PARTECIPANTI ORGANIZER**
-
-Il prossimo lavoro deve verificare gli endpoint backend esistenti per lista e dettaglio delle prenotazioni ricevute, protezione dei dati personali e gestione partecipanti, senza includere statistiche avanzate o Flutter.
+Nessuna nuova milestone avviata.
 
 ## Attività future
 
 ### Organizer
 
-- Gestione prenotazioni ricevute e partecipanti.
 - Check-in web.
 - Sostituzione progressiva di `InMemoryDemoRepository` nell'app Flutter.
 - Statistiche e strumenti operativi avanzati.
