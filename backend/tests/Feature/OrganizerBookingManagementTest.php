@@ -46,6 +46,7 @@ class OrganizerBookingManagementTest extends TestCase
 
         $this->actingAs($organizer, 'sanctum')->getJson("/api/v1/organizer/bookings/{$booking->ulid}")
             ->assertOk()->assertJsonPath('data.customer.email', 'luca@example.test')
+            ->assertJsonPath('data.customer.phone', '+393331234567')
             ->assertJsonPath('data.event.title', 'Laboratorio')->assertJsonPath('data.tickets.0.name', 'Ingresso')
             ->assertJsonPath('data.notes', 'Arrivo alle 18')->assertJsonPath('data.qr_token', 'qr-secret');
 
@@ -53,7 +54,8 @@ class OrganizerBookingManagementTest extends TestCase
         $customer = User::factory()->create(['role' => UserRole::Customer]);
         $this->actingAs($customer, 'sanctum')->getJson("/api/v1/organizer/bookings/{$booking->ulid}")->assertForbidden();
         $admin = User::factory()->create(['role' => UserRole::Admin]);
-        $this->actingAs($admin, 'sanctum')->getJson("/api/v1/organizer/bookings/{$booking->ulid}")->assertOk();
+        $this->actingAs($admin, 'sanctum')->getJson("/api/v1/organizer/bookings/{$booking->ulid}")
+            ->assertOk()->assertJsonPath('data.customer.phone', '+393331234567');
     }
 
     public function test_validation_and_authentication_are_enforced(): void
@@ -72,6 +74,7 @@ class OrganizerBookingManagementTest extends TestCase
 
         $this->actingAs($organizer, 'sanctum')->getJson("/api/v1/organizer/events/{$event->ulid}/participants?search=Mario&filter=pending&per_page=1")
             ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.booking_ulid', $pending->ulid)
+            ->assertJsonPath('data.0.phone', '+393331234567')
             ->assertJsonPath('summary.bookings_total', 1)->assertJsonPath('summary.people_total', 3)
             ->assertJsonPath('summary.checked_in_total', 0)->assertJsonMissing(['booking_ulid' => $cancelled->ulid]);
 
@@ -82,8 +85,10 @@ class OrganizerBookingManagementTest extends TestCase
 
         $this->getJson("/api/v1/organizer/events/{$event->ulid}/participants?filter=checked_in")
             ->assertOk()->assertJsonPath('summary.checked_in_total', 3)->assertJsonPath('data.0.checked_in', true);
-        $this->get("/api/v1/organizer/events/{$event->ulid}/participants?format=csv")
+        $csv = $this->get("/api/v1/organizer/events/{$event->ulid}/participants?format=csv")
             ->assertOk()->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $this->assertStringContainsString('Telefono', $csv->streamedContent());
+        $this->assertStringContainsString('+393331234567', $csv->streamedContent());
     }
 
     /** @return array{User, Event, TicketType} */
@@ -103,7 +108,7 @@ class OrganizerBookingManagementTest extends TestCase
     private function booking(Event $event, TicketType $ticket, string $status, string $name, string $email, int $people = 1, ?string $notes = null): Booking
     {
         $customer = User::factory()->create(['name' => $name, 'email' => $email, 'role' => UserRole::Customer]);
-        $booking = Booking::query()->create(['ulid' => (string) Str::ulid(), 'user_id' => $customer->id, 'event_id' => $event->id, 'status' => $status, 'total_people' => $people, 'adults_count' => $people, 'booking_code' => 'BK-'.Str::upper(Str::random(8)), 'qr_token_hash' => Hash::make('qr-secret'.Str::random()), 'qr_token_encrypted' => 'qr-secret', 'booked_at' => now(), 'notes' => $notes]);
+        $booking = Booking::query()->create(['ulid' => (string) Str::ulid(), 'user_id' => $customer->id, 'event_id' => $event->id, 'status' => $status, 'total_people' => $people, 'adults_count' => $people, 'booking_code' => 'BK-'.Str::upper(Str::random(8)), 'contact_phone' => '+393331234567', 'qr_token_hash' => Hash::make('qr-secret'.Str::random()), 'qr_token_encrypted' => 'qr-secret', 'booked_at' => now(), 'notes' => $notes]);
         BookingItem::query()->create(['booking_id' => $booking->id, 'ticket_type_id' => $ticket->id, 'quantity' => $people]);
 
         return $booking;

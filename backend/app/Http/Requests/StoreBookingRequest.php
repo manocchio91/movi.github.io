@@ -2,10 +2,16 @@
 
 namespace App\Http\Requests;
 
+use App\Support\PhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreBookingRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $this->merge(['phone' => PhoneNumber::normalize($this->input('phone'))]);
+    }
+
     public function rules(): array
     {
         return [
@@ -15,9 +21,18 @@ class StoreBookingRequest extends FormRequest
             'dietary_needs' => ['nullable', 'string', 'max:1000'],
             'accessibility_needs' => ['nullable', 'string', 'max:1000'],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'phone' => ['required', 'string', 'regex:/^\+?[0-9]{7,15}$/'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.ticket_type_ulid' => ['required', 'string', 'size:26', 'exists:ticket_types,ulid'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:50'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'phone.required' => 'Il telefono è obbligatorio.',
+            'phone.regex' => 'Inserisci un numero di telefono valido, italiano o internazionale.',
         ];
     }
 }

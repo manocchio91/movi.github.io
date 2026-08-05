@@ -182,7 +182,7 @@ type OrganizerBooking = {
   qr_token?: string | null; notes?: string | null;
 };
 type OrganizerBookingListResponse = { data: OrganizerBooking[]; meta: OrganizerEventPaginationMeta };
-type OrganizerParticipant = { booking_ulid: string; booking_code: string; name: string; email: string; people: number; status: string; checked_in: boolean; checked_in_at: string | null };
+type OrganizerParticipant = { booking_ulid: string; booking_code: string; name: string; email: string; phone: string; people: number; status: string; checked_in: boolean; checked_in_at: string | null };
 type OrganizerParticipantsResponse = { data: OrganizerParticipant[]; summary: { bookings_total: number; people_total: number; checked_in_total: number }; meta: OrganizerEventPaginationMeta };
 
 type CustomerTicket = { ulid: string; name: string; audience: 'generic' | 'adult' | 'child'; price_cents: number; max_quantity: number | null; booked_quantity: number; is_active: boolean };
@@ -193,7 +193,7 @@ type CustomerEvent = {
 };
 type CustomerBookingResult = { ulid: string; booking_code: string; total_people: number; qr_token: string };
 type CustomerBooking = {
-  ulid: string; booking_code: string; total_people: number; status: string; can_cancel: boolean;
+  ulid: string; booking_code: string; contact_phone: string; total_people: number; status: string; can_cancel: boolean;
   event: { ulid: string; title: string; starts_at: string };
 };
 
@@ -459,8 +459,10 @@ export default defineComponent({
     const customerTicketQuantities = ref<Record<string, number>>({});
     const customerBookingLoading = ref(false);
     const customerBookingError = ref('');
+    const customerBookingFieldErrors = ref<Record<string, string[]>>({});
+    const customerBookingPhone = ref('');
     const customerBookingResult = ref<CustomerBookingResult | null>(null);
-    const customerProfile = ref({ name: '', email: '', created_at: '' });
+    const customerProfile = ref({ name: '', email: '', phone: null as string | null, created_at: '' });
     const customerPassword = ref({ current_password: '', password: '', password_confirmation: '' });
     const customerBookings = ref<CustomerBooking[]>([]);
     const cancellingCustomerBooking = ref<string | null>(null);
@@ -846,12 +848,18 @@ export default defineComponent({
       customerEventLoading.value = true;
       customerEventError.value = '';
       customerBookingError.value = '';
+      customerBookingFieldErrors.value = {};
       customerBookingResult.value = null;
       selectedCustomerEvent.value = null;
       try {
-        const response = await api<{ data: CustomerEvent }>(`/events/${ulid}`);
-        selectedCustomerEvent.value = response?.data ?? null;
-        customerTicketQuantities.value = Object.fromEntries((response?.data.ticket_types ?? []).filter((ticket) => ticket.is_active).map((ticket) => [ticket.ulid, 0]));
+        const [eventResponse, profileResponse] = await Promise.all([
+          api<{ data: CustomerEvent }>(`/events/${ulid}`),
+          api<{ data: typeof customerProfile.value }>('/me/profile'),
+        ]);
+        selectedCustomerEvent.value = eventResponse?.data ?? null;
+        if (profileResponse?.data) customerProfile.value = profileResponse.data;
+        customerBookingPhone.value = profileResponse?.data.phone ?? '';
+        customerTicketQuantities.value = Object.fromEntries((eventResponse?.data.ticket_types ?? []).filter((ticket) => ticket.is_active).map((ticket) => [ticket.ulid, 0]));
       } catch (error) {
         customerEventError.value = error instanceof Error ? error.message : 'Impossibile caricare il dettaglio evento.';
       } finally {
@@ -871,7 +879,7 @@ export default defineComponent({
 
     const saveCustomerProfile = async () => {
       customerSectionLoading.value = true; customerSectionMessage.value = '';
-      try { customerProfile.value = (await api<any>('/me/profile', { method: 'PATCH', body: JSON.stringify({ name: customerProfile.value.name, email: customerProfile.value.email }) }))?.data ?? customerProfile.value; customerSectionMessage.value = 'Profilo aggiornato.'; }
+      try { customerProfile.value = (await api<any>('/me/profile', { method: 'PATCH', body: JSON.stringify({ name: customerProfile.value.name, email: customerProfile.value.email, phone: customerProfile.value.phone }) }))?.data ?? customerProfile.value; customerSectionMessage.value = 'Profilo aggiornato.'; }
       catch (error) { customerSectionMessage.value = error instanceof Error ? error.message : 'Salvataggio non riuscito.'; }
       finally { customerSectionLoading.value = false; }
     };
@@ -941,16 +949,22 @@ export default defineComponent({
       }
       customerBookingLoading.value = true;
       customerBookingError.value = '';
+      customerBookingFieldErrors.value = {};
       try {
         const response = await api<{ data: CustomerBookingResult }>(`/events/${event.ulid}/bookings`, {
           method: 'POST',
           headers: { 'Idempotency-Key': crypto.randomUUID() },
-          body: JSON.stringify({ adults_count: adultsCount, children_count: childrenCount, items: items.map(({ ticket, quantity }) => ({ ticket_type_ulid: ticket.ulid, quantity })) }),
+          body: JSON.stringify({ phone: customerBookingPhone.value, adults_count: adultsCount, children_count: childrenCount, items: items.map(({ ticket, quantity }) => ({ ticket_type_ulid: ticket.ulid, quantity })) }),
         });
         customerBookingResult.value = response?.data ?? null;
         if (customerBookingResult.value) event.available_total = Math.max(0, event.available_total - customerBookingResult.value.total_people);
       } catch (error) {
-        customerBookingError.value = error instanceof Error ? error.message : 'Prenotazione non completata.';
+        if (error instanceof ApiError && error.status === 422) {
+          customerBookingFieldErrors.value = error.errors;
+          customerBookingError.value = 'Correggi i campi evidenziati.';
+        } else {
+          customerBookingError.value = error instanceof Error ? error.message : 'Prenotazione non completata.';
+        }
       } finally {
         customerBookingLoading.value = false;
       }
@@ -1736,6 +1750,11 @@ export default defineComponent({
             h('span', [h('strong', ticket.name), h('small', event.is_free ? 'Gratuito' : `${(ticket.price_cents / 100).toLocaleString('it-IT', { style: 'currency', currency: 'EUR' })}`)]),
             h('input', { type: 'number', min: 0, max: Math.min(event.available_total, ticket.max_quantity === null ? event.available_total : Math.max(0, ticket.max_quantity - ticket.booked_quantity)), value: customerTicketQuantities.value[ticket.ulid] ?? 0, disabled: customerBookingLoading.value || customerBookingResult.value !== null, 'aria-label': `Quantità ${ticket.name}`, onInput: (inputEvent: Event) => { customerTicketQuantities.value[ticket.ulid] = Math.max(0, Number((inputEvent.target as HTMLInputElement).value) || 0); } }),
           ]))),
+          h('label', { class: 'auth-field' }, [
+            h('span', 'Telefono'),
+            h('input', { type: 'tel', required: true, autocomplete: 'tel', value: customerBookingPhone.value, disabled: customerBookingLoading.value || customerBookingResult.value !== null, 'aria-invalid': customerBookingFieldErrors.value.phone ? 'true' : 'false', onInput: (inputEvent: Event) => { customerBookingPhone.value = (inputEvent.target as HTMLInputElement).value; delete customerBookingFieldErrors.value.phone; } }),
+            customerBookingFieldErrors.value.phone ? h('small', { class: 'api-error' }, customerBookingFieldErrors.value.phone[0]) : null,
+          ]),
           customerBookingError.value ? h('p', { class: 'api-error', role: 'alert' }, customerBookingError.value) : null,
           customerBookingResult.value ? h('div', { class: 'booking-confirmation', role: 'status' }, [h('strong', 'Prenotazione confermata'), h('p', `Codice: ${customerBookingResult.value.booking_code}`), h('div', { class: 'booking-qr' }, customerBookingResult.value.qr_token)]) : null,
           !customerBookingResult.value ? h('button', { type: 'button', disabled: customerBookingLoading.value || activeTickets.length === 0 || event.available_total < 1, onClick: () => { void submitCustomerBooking(); } }, customerBookingLoading.value ? 'Prenotazione in corso…' : 'Conferma prenotazione') : null,
@@ -1793,6 +1812,7 @@ export default defineComponent({
       h('form', { class: 'wide-panel booking-detail', onSubmit: (event: Event) => { event.preventDefault(); void saveCustomerProfile(); } }, [
         h('label', { class: 'auth-field' }, [h('span', 'Nome'), h('input', { value: customerProfile.value.name, onInput: (event: Event) => { customerProfile.value.name = (event.target as HTMLInputElement).value; } })]),
         h('label', { class: 'auth-field' }, [h('span', 'Email'), h('input', { type: 'email', value: customerProfile.value.email, onInput: (event: Event) => { customerProfile.value.email = (event.target as HTMLInputElement).value; } })]),
+        h('label', { class: 'auth-field' }, [h('span', 'Telefono'), h('input', { type: 'tel', autocomplete: 'tel', value: customerProfile.value.phone ?? '', onInput: (event: Event) => { customerProfile.value.phone = (event.target as HTMLInputElement).value; } })]),
         h('button', { disabled: customerSectionLoading.value, type: 'submit' }, 'Salva modifiche'),
       ]),
       h('form', { class: 'wide-panel booking-detail', onSubmit: (event: Event) => { event.preventDefault(); void saveCustomerPassword(); } }, [
@@ -1813,7 +1833,7 @@ export default defineComponent({
       customerBookings.value.length === 0 ? emptyState('Nessuna prenotazione.') : h('div', { class: 'event-grid' }, customerBookings.value.map((booking) => h('article', { class: 'experience-card' }, [
         h('span', bookingStatusLabel(booking.status)),
         h('h3', booking.event.title),
-        h('p', booking.booking_code+' · '+booking.total_people+' persone'),
+        h('p', booking.booking_code+' · '+booking.total_people+' persone · '+booking.contact_phone),
         h('div', { class: 'action-row' }, [
           h('button', { type: 'button', onClick: () => { void loadCustomerQrSafe(booking.ulid); } }, customerQrTokens.value[booking.ulid] ? 'Aggiorna QR' : 'Mostra QR'),
           booking.can_cancel ? h('button', { type: 'button', class: 'danger-button', disabled: cancellingCustomerBooking.value !== null, onClick: () => { void cancelCustomerBooking(booking); } }, cancellingCustomerBooking.value === booking.ulid ? 'Annullamento…' : 'Annulla prenotazione') : null,
@@ -2377,7 +2397,7 @@ export default defineComponent({
       if (organizerParticipantsLoading.value) return [...heading, h('article', { class: 'wide-panel' }, 'Caricamento partecipanti…')];
       if (organizerParticipantsError.value) return [...heading, h('article', { class: 'wide-panel dashboard-error' }, [h('p', organizerParticipantsError.value), h('button', { onClick: () => { void loadOrganizerParticipants(eventUlid); } }, 'Riprova')])];
       if (!organizerParticipants.value.length) return [...heading, emptyState('Nessuna prenotazione valida trovata.')];
-      return [...heading, h('div', { class: 'booking-table-wrap' }, h('table', { class: 'booking-table' }, [h('thead', h('tr', ['Codice', 'Cliente', 'Persone', 'Stato', 'Check-in'].map((label) => h('th', label)))), h('tbody', organizerParticipants.value.map((participant) => h('tr', { tabindex: 0, onClick: () => { void go(`/organizer/bookings/${participant.booking_ulid}`); }, onKeydown: (event: KeyboardEvent) => { if (event.key === 'Enter') void go(`/organizer/bookings/${participant.booking_ulid}`); } }, [h('td', participant.booking_code), h('td', [h('strong', participant.name), h('small', participant.email)]), h('td', String(participant.people)), h('td', bookingStatusLabel(participant.status)), h('td', participant.checked_in_at ? new Date(participant.checked_in_at).toLocaleString('it-IT') : 'Da effettuare')])))])), meta ? h('nav', { class: 'organizer-events-pagination' }, [h('button', { disabled: meta.current_page <= 1, onClick: () => { organizerParticipantsPage.value--; void loadOrganizerParticipants(eventUlid); } }, 'Precedente'), h('span', `Pagina ${meta.current_page} di ${meta.last_page}`), h('button', { disabled: meta.current_page >= meta.last_page, onClick: () => { organizerParticipantsPage.value++; void loadOrganizerParticipants(eventUlid); } }, 'Successiva')]) : null];
+      return [...heading, h('div', { class: 'booking-table-wrap' }, h('table', { class: 'booking-table' }, [h('thead', h('tr', ['Codice', 'Cliente', 'Telefono', 'Persone', 'Stato', 'Check-in'].map((label) => h('th', label)))), h('tbody', organizerParticipants.value.map((participant) => h('tr', { tabindex: 0, onClick: () => { void go(`/organizer/bookings/${participant.booking_ulid}`); }, onKeydown: (event: KeyboardEvent) => { if (event.key === 'Enter') void go(`/organizer/bookings/${participant.booking_ulid}`); } }, [h('td', participant.booking_code), h('td', [h('strong', participant.name), h('small', participant.email)]), h('td', participant.phone), h('td', String(participant.people)), h('td', bookingStatusLabel(participant.status)), h('td', participant.checked_in_at ? new Date(participant.checked_in_at).toLocaleString('it-IT') : 'Da effettuare')])))])), meta ? h('nav', { class: 'organizer-events-pagination' }, [h('button', { disabled: meta.current_page <= 1, onClick: () => { organizerParticipantsPage.value--; void loadOrganizerParticipants(eventUlid); } }, 'Precedente'), h('span', `Pagina ${meta.current_page} di ${meta.last_page}`), h('button', { disabled: meta.current_page >= meta.last_page, onClick: () => { organizerParticipantsPage.value++; void loadOrganizerParticipants(eventUlid); } }, 'Successiva')]) : null];
     };
 
     const renderAdminOrganizerDetail = () => {

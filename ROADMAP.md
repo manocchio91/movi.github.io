@@ -95,7 +95,8 @@ Completata end-to-end:
 3. Organizer reso disponibile esclusivamente sul web per la beta; il mobile comunica il limite senza simulazioni.
 4. Error handling, sessioni, autorizzazioni, messaggi e contratti modificati sottoposti a hardening.
 5. Regression gate automatico e Browser QA desktop, tablet e mobile completati.
-6. Debito Redocly invariato nella natura: 58 errori preesistenti, nessuna regressione introdotta.
+6. Debito Redocly invariato nella natura: 49 errori preesistenti e 176 warning, nessuna regressione introdotta.
+7. Prenotazioni Customer completate con telefono operativo obbligatorio, normalizzato e storicizzato, esposto esclusivamente agli attori autorizzati e incluso negli strumenti Organizer.
 
 ## Attività future
 

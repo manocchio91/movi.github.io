@@ -8,6 +8,9 @@ services:
       sh -c "test -f .env || cp .env.example .env;
       composer install --no-interaction --prefer-dist;
       grep -qE '^APP_KEY=base64:.+' .env || php artisan key:generate --force;
+      mkdir -p storage/logs bootstrap/cache;
+      touch storage/logs/laravel.log;
+      chown -R www-data:www-data storage bootstrap/cache;
       php-fpm"
     volumes:
       - ./backend:/var/www/html

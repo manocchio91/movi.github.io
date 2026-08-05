@@ -251,8 +251,12 @@ paths:
           application/json:
             schema:
               type: object
-              required: [adults_count, items]
+              required: [phone, adults_count, items]
               properties:
+                phone:
+                  type: string
+                  pattern: '^\+?[0-9]{7,15}$'
+                  description: Numero operativo normalizzato e salvato come dato storico della prenotazione.
                 adults_count: { type: integer, minimum: 0, maximum: 50 }
                 children_count: { type: integer, minimum: 0, maximum: 50 }
                 items:
@@ -265,20 +269,20 @@ paths:
                       ticket_type_ulid: { type: string, minLength: 26, maxLength: 26 }
                       quantity: { type: integer, minimum: 1, maximum: 50 }
       responses:
-        "201": { description: Prenotazione confermata; include qr_token, anche nei retry idempotenti }
+        "201": { description: "Prenotazione confermata; include qr_token e contact_phone per il Customer proprietario, anche nei retry idempotenti" }
         "401": { description: Autenticazione richiesta }
         "403": { description: Solo Customer }
         "422": { description: Posti non disponibili o richiesta non valida }
   /me/bookings:
     get:
       security: [{ bearerAuth: [] }]
-      summary: Prenotazioni del cliente
+      summary: Prenotazioni del cliente, incluso il telefono storico del proprietario autenticato
       responses:
         "200": { description: Lista prenotazioni }
   /me/bookings/{booking}:
     get:
       security: [{ bearerAuth: [] }]
-      summary: Dettaglio prenotazione cliente
+      summary: Dettaglio prenotazione cliente, incluso il telefono storico
       parameters:
         - { name: booking, in: path, required: true, schema: { type: string } }
       responses:
@@ -635,7 +639,7 @@ paths:
       parameters:
         - { name: booking, in: path, required: true, schema: { type: string } }
       responses:
-        "200": { description: Cliente, evento, ticket, persone, stato, QR, note, date e check-in }
+        "200": { description: "Cliente con telefono storico, evento, ticket, persone, stato, QR, note, date e check-in; accesso limitato a Organizer proprietario o Admin" }
         "401": { description: Token assente o non valido }
         "403": { description: Prenotazione di un altro Organizer o ruolo non consentito }
         "404": { description: Prenotazione non trovata }
@@ -695,7 +699,7 @@ paths:
         - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 15 } }
         - { name: format, in: query, schema: { type: string, enum: [json, csv], default: json } }
       responses:
-        "200": { description: Prenotazioni-partecipanti paginate, conteggi e stato check-in oppure esportazione CSV }
+          "200": { description: "Prenotazioni-partecipanti con telefono storico, conteggi e stato check-in oppure esportazione CSV; solo Organizer proprietario" }
   /organizer/events/{event}/reviews:
     get:
       security: [{ bearerAuth: [] }]

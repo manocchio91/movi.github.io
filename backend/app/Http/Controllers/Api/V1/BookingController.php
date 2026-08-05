@@ -24,16 +24,18 @@ class BookingController extends Controller
         );
         $emails->bookingConfirmed($booking);
 
+        $booking->makeVisible('contact_phone');
+
         return response()->json(['data' => $booking], 201);
     }
 
     public function index(): JsonResponse
     {
         $bookings = request()->user()->bookings()->with(['event.categories', 'items.ticketType'])->latest()->get();
-        $bookings->each(fn (Booking $booking) => $booking->setAttribute(
-            'can_cancel',
-            $booking->status === 'confirmed' && $booking->event->starts_at->isFuture(),
-        ));
+        $bookings->each(function (Booking $booking): void {
+            $booking->makeVisible('contact_phone');
+            $booking->setAttribute('can_cancel', $booking->status === 'confirmed' && $booking->event->starts_at->isFuture());
+        });
 
         return response()->json([
             'data' => $bookings,
@@ -44,7 +46,7 @@ class BookingController extends Controller
     {
         abort_unless($booking->user_id === request()->user()->id, 403);
 
-        return response()->json(['data' => $booking->load(['event.categories', 'items.ticketType'])]);
+        return response()->json(['data' => $booking->load(['event.categories', 'items.ticketType'])->makeVisible('contact_phone')]);
     }
 
     public function cancel(Booking $booking, CancelBooking $cancelBooking, OperationalEmailService $emails): JsonResponse
@@ -53,6 +55,8 @@ class BookingController extends Controller
 
         $booking = $cancelBooking->handle($booking)->load(['user', 'event']);
         $emails->bookingCancelled($booking);
+
+        $booking->makeVisible('contact_phone');
 
         return response()->json(['data' => $booking]);
     }

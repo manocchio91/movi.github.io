@@ -85,6 +85,7 @@ class CreateBooking
                     'accessibility_needs' => $data['accessibility_needs'] ?? null,
                     'notes' => $data['notes'] ?? null,
                     'booking_code' => 'EVT-'.Str::upper(Str::random(8)),
+                    'contact_phone' => $data['phone'],
                     'qr_token_hash' => Hash::make($qrToken),
                     'qr_token_encrypted' => $qrToken,
                     'booked_at' => now(),

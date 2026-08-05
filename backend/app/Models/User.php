@@ -22,7 +22,7 @@ class User extends Authenticatable
     use HasFactory;
     use Notifiable;
 
-    protected $fillable = ['ulid', 'name', 'email', 'password', 'role', 'status'];
+    protected $fillable = ['ulid', 'name', 'email', 'phone', 'password', 'role', 'status'];
 
     protected $hidden = ['password', 'remember_token'];
 

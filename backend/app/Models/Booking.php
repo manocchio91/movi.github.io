@@ -12,13 +12,13 @@ class Booking extends Model
     protected $fillable = [
         'ulid', 'user_id', 'event_id', 'status', 'total_people', 'adults_count',
         'children_count', 'total_price_cents', 'children_age_ranges', 'dietary_needs',
-        'accessibility_needs', 'notes', 'booking_code', 'qr_token_hash', 'booked_at',
+        'accessibility_needs', 'notes', 'booking_code', 'contact_phone', 'qr_token_hash', 'booked_at',
         'qr_token_encrypted',
         'cancelled_at', 'cancellation_reason', 'cancelled_by_user_id',
         'idempotency_key', 'event_terms_accepted',
     ];
 
-    protected $hidden = ['qr_token_hash', 'qr_token_encrypted', 'idempotency_key'];
+    protected $hidden = ['contact_phone', 'qr_token_hash', 'qr_token_encrypted', 'idempotency_key'];
 
     protected function casts(): array
     {

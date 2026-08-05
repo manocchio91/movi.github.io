@@ -14,7 +14,7 @@ class CustomerProfileController extends Controller
     {
         $user = $request->user()->loadCount(['bookings', 'favorites', 'reviews']);
 
-        return response()->json(['data' => $user->only(['ulid', 'name', 'email', 'created_at', 'bookings_count', 'favorites_count', 'reviews_count'])]);
+        return response()->json(['data' => $user->only(['ulid', 'name', 'email', 'phone', 'created_at', 'bookings_count', 'favorites_count', 'reviews_count'])]);
     }
 
     public function update(UpdateCustomerProfileRequest $request): JsonResponse
@@ -22,7 +22,7 @@ class CustomerProfileController extends Controller
         $user = $request->user();
         $user->update($request->validated());
 
-        return response()->json(['data' => $user->only(['ulid', 'name', 'email', 'created_at'])]);
+        return response()->json(['data' => $user->only(['ulid', 'name', 'email', 'phone', 'created_at'])]);
     }
 
     public function password(UpdatePasswordRequest $request): JsonResponse

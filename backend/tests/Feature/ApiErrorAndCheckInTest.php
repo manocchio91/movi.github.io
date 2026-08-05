@@ -54,6 +54,7 @@ class ApiErrorAndCheckInTest extends TestCase
         $response = $this->actingAs($customer, 'sanctum')
             ->withHeader('Idempotency-Key', 'qr-check-in')
             ->postJson("/api/v1/events/{$event->ulid}/bookings", [
+                'phone' => '+393331234567',
                 'adults_count' => 1,
                 'children_count' => 0,
                 'items' => [['ticket_type_ulid' => $ticket->ulid, 'quantity' => 1]],

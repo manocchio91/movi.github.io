@@ -43,7 +43,7 @@
 
 ## Task corrente
 
-EPIC 3 - Hardening MVP e preparazione beta completato nelle verifiche automatiche e nel Browser QA confermato dal Product Owner.
+Beta privata pronta: hardening MVP completato e telefono operativo obbligatorio nelle prenotazioni Customer approvato dal Product Owner.
 
 ## Funzionalità completate
 
@@ -59,6 +59,7 @@ EPIC 3 - Hardening MVP e preparazione beta completato nelle verifiche automatich
 - Ricerca Comune/Provincia per CAP eseguita esclusivamente sull'anagrafica Comuni backend, senza servizi esterni o dataset frontend.
 - Lista e dettaglio Prenotazioni Organizer in sola lettura, con ricerca, filtri, ordinamento, paginazione e isolamento per proprietario evento.
 - Flusso Customer web ripristinato dalla lista pubblica al dettaglio evento, scelta ticket, prenotazione idempotente e QR.
+- Telefono Customer obbligatorio, normalizzato e storicizzato nella singola prenotazione; visibile solo al Customer proprietario, all'Organizer dell'evento e agli Admin autorizzati, incluso il CSV partecipanti.
 - Identificatori pubblici di eventi e ticket uniformati su ULID nel flusso Customer.
 - Partecipanti Organizer per evento con ricerca, filtri, paginazione, conteggi ed esportazione CSV; ogni riga conserva la semantica reale della prenotazione e di `total_people`.
 - Check-in Organizer tramite token QR o codice prenotazione, con blocco dei riutilizzi, delle prenotazioni annullate e dei codici appartenenti ad altri eventi.
@@ -85,6 +86,7 @@ EPIC 3 - Hardening MVP e preparazione beta completato nelle verifiche automatich
 - Browser QA finale v1.1 confermato, incluso annullamento prenotazione Customer dopo il riavvio del frontend Vite.
 - Browser QA finale v1.2 confermato dal Product Owner su dashboard, ricerca, dettagli, transizioni e accordi Admin.
 - Browser QA finale v1.3 confermato dal Product Owner su web Customer/Organizer/Admin e mobile Customer/Organizer beta.
+- Browser QA del telefono obbligatorio nella prenotazione Customer confermato dal Product Owner.
 
 ## Prossimo task
 
@@ -92,7 +94,7 @@ Preparazione e gestione operativa della beta privata.
 
 ## Debiti aperti
 
-- Il lint Redocly rileva 58 errori strutturali preesistenti e 176 warning; i contratti modificati sono coerenti e non è stata introdotta alcuna regressione. La bonifica globale resta un task dedicato.
+- Il lint Redocly rileva 49 errori strutturali preesistenti e 176 warning; i contratti modificati sono coerenti e non è stata introdotta alcuna regressione. La bonifica globale resta un task dedicato.
 - Flutter Organizer reale resta debito della fase successiva; nella beta le funzioni Organizer sono esclusivamente web.
 - Test frontend automatizzati.
 - Upload immagini evento non incluso.

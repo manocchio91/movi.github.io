@@ -658,6 +658,7 @@ class EventPlatformTest extends TestCase
         $ticket = TicketType::query()->create(['event_id' => $event->id, 'name' => 'Ingresso', 'audience' => 'generic', 'max_quantity' => 2, 'price_cents' => 1000, 'is_active' => true]);
 
         $payload = [
+            'phone' => '+393331234567',
             'adults_count' => 2,
             'children_count' => 0,
             'items' => [['ticket_type_ulid' => $ticket->ulid, 'quantity' => 2]],

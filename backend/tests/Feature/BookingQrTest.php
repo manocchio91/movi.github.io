@@ -247,6 +247,7 @@ class BookingQrTest extends TestCase
     private function payload(TicketType $ticket, int $quantity = 1): array
     {
         return [
+            'phone' => '+393331234567',
             'adults_count' => $quantity,
             'children_count' => 0,
             'items' => [['ticket_type_ulid' => $ticket->ulid, 'quantity' => $quantity]],
