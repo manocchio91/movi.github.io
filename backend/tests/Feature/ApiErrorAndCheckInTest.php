@@ -12,6 +12,7 @@ use App\Models\Region;
 use App\Models\TicketType;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -32,6 +33,17 @@ class ApiErrorAndCheckInTest extends TestCase
     {
         $this->postJson('/api/v1/auth/register', [])
             ->assertUnprocessable()
+            ->assertJsonStructure(['message', 'errors', 'request_id']);
+    }
+
+    public function test_internal_errors_never_expose_exception_or_sql_details_even_with_debug_enabled(): void
+    {
+        config()->set('app.debug', true);
+        Route::get('/api/v1/testing/internal-error', fn () => throw new \RuntimeException('SQLSTATE secret_table stack trace'));
+
+        $this->getJson('/api/v1/testing/internal-error')->assertInternalServerError()
+            ->assertJsonPath('message', 'Errore interno del server.')
+            ->assertJsonMissing(['SQLSTATE secret_table stack trace'])
             ->assertJsonStructure(['message', 'errors', 'request_id']);
     }
 

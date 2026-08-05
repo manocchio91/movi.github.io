@@ -23,6 +23,7 @@ APP EVENTI è una piattaforma territoriale per scoprire, pubblicare, prenotare e
 | v1.0 | Completata | Booking Customer, gestione prenotazioni/partecipanti e check-in Organizer |
 | v1.1 | Completata | Profili MVP, piani commerciali, ricerca Admin, email operative e regression gate |
 | v1.2 | Completata | Backoffice Admin e business, KPI economici teorici e gestione operativa completa |
+| v1.3 | Completata | Hardening MVP, eliminazione runtime demo e preparazione beta privata |
 
 ## v0.8 — Organizer Event Creation and Editing
 
@@ -60,7 +61,7 @@ Completata end-to-end sul frontend web:
 
 ## Prossima milestone
 
-Preparazione MVP: criteri di rilascio, hardening operativo, rimozione dei residui demo e bonifica strutturale OpenAPI.
+Gestione beta privata e raccolta feedback su flussi Customer, Organizer web e Admin.
 
 ## v1.1 - MVP Profiles, Commercial Plans and Operations
 
@@ -85,11 +86,22 @@ Completata end-to-end sul frontend web:
 5. Ricerca globale raggruppata e isolamento completo delle API Admin.
 6. Suite automatica, analisi statica, lint, build e Browser QA completati.
 
+## v1.3 - Hardened MVP and Private Beta
+
+Completata end-to-end:
+
+1. Rimossi dati, fallback, pulsanti, route e schermate runtime esclusivamente demo.
+2. Customer mobile mantenuto soltanto sui flussi reali collegati al backend.
+3. Organizer reso disponibile esclusivamente sul web per la beta; il mobile comunica il limite senza simulazioni.
+4. Error handling, sessioni, autorizzazioni, messaggi e contratti modificati sottoposti a hardening.
+5. Regression gate automatico e Browser QA desktop, tablet e mobile completati.
+6. Debito Redocly invariato nella natura: 58 errori preesistenti, nessuna regressione introdotta.
+
 ## Attività future
 
 ### Organizer
 
-- Sostituzione progressiva di `InMemoryDemoRepository` nell'app Flutter.
+- Implementazione reale dell'area Flutter Organizer nella fase successiva alla beta.
 - Statistiche e strumenti operativi avanzati.
 
 ### Preparazione MVP

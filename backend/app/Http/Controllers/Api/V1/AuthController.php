@@ -30,7 +30,7 @@ class AuthController extends Controller
         $guard = Auth::guard('web');
 
         if (! $guard->attempt($request->validated())) {
-            return response()->json(['message' => 'Credenziali non valide.'], 422);
+            return response()->json(['message' => 'Credenziali non valide.'], 401);
         }
 
         /** @var User $user */

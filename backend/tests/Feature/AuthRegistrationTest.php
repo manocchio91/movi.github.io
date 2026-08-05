@@ -133,7 +133,7 @@ class AuthRegistrationTest extends TestCase
         $this->postJson('/api/v1/auth/login', [
             'email' => $user->email,
             'password' => 'errata',
-        ])->assertUnprocessable()
+        ])->assertUnauthorized()
             ->assertJsonPath('message', 'Credenziali non valide.');
 
         $login = $this->postJson('/api/v1/auth/login', [

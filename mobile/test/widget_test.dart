@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:eventi_locali_mobile/core/auth/auth_controller.dart';
 import 'package:eventi_locali_mobile/core/auth/authentication_repository.dart';
 import 'package:eventi_locali_mobile/core/models/app_role.dart';
@@ -43,8 +45,22 @@ void main() {
     await tester.tap(find.text('Entra'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Dashboard'), findsWidgets);
-    expect(find.text('Opportunità'), findsWidgets);
+    expect(find.text('Le funzioni Organizer sono disponibili nella versione web.'), findsOneWidget);
+    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('Dashboard'), findsNothing);
+    expect(find.text('Opportunità'), findsNothing);
+  });
+
+  test('demo routes and repositories are absent from the mobile application', () {
+    final router = File('lib/core/router/app_router.dart').readAsStringSync();
+    final sources = Directory('lib').listSync(recursive: true).whereType<File>().where((file) => file.path.endsWith('.dart')).map((file) => file.readAsStringSync()).join('\n');
+
+    expect(router, isNot(contains('/organizer/events')));
+    expect(router, isNot(contains('/organizer/create')));
+    expect(router, isNot(contains('/organizer/opportunities')));
+    expect(router, isNot(contains('/customer/preferences')));
+    expect(sources, isNot(contains('InMemoryDemoRepository')));
+    expect(sources, isNot(contains('demoRepositoryProvider')));
   });
 }
 

@@ -105,7 +105,7 @@ class AuthenticationRepository {
   String _messageFor(ApiResponse response) {
     final serverMessage = response.body['message'] as String?;
     return switch (response.statusCode) {
-      401 => 'Sessione non valida. Accedi di nuovo.',
+      401 => serverMessage ?? 'Credenziali o sessione non valide.',
       403 => 'Non hai i permessi per accedere.',
       422 => serverMessage ?? 'Controlla email e password.',
       >= 500 => 'Il server ha riscontrato un errore. Riprova più tardi.',

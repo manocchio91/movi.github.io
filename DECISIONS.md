@@ -180,6 +180,18 @@ Decisione: la sospensione Admin modifica esclusivamente lo stato dell'evento; la
 
 Conseguenze: prenotazioni, partecipanti e check-in restano integri durante la moderazione e le transizioni non sono alterabili dal client.
 
+## ADR-017
+
+### Organizer web-only nella beta privata
+
+Stato: Accepted
+
+Contesto: l'area Organizer Flutter era interamente simulata, mentre il backoffice web è completo e collegato alle API reali.
+
+Decisione: nella beta privata i Customer mobile usano esclusivamente flussi reali; le funzioni Organizer sono disponibili soltanto sul web. Route, schermate e repository mobile basati su `InMemoryDemoRepository` vengono rimossi e il mobile comunica esplicitamente il limite.
+
+Conseguenze: nessuna funzionalità simulata è presentata come operativa; l'implementazione Flutter Organizer reale resta una fase successiva.
+
 ## ADR-014
 
 ### APP_KEY stabile e recupero controllato dei QR

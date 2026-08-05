@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/auth_controller.dart';
-import '../../shared/ui/app_components.dart';
+import '../../shared/ui/real_components.dart';
 import '../data/customer_api_models.dart';
 import '../data/customer_providers.dart';
 

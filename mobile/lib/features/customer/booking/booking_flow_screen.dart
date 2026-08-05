@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
-import '../../shared/ui/app_components.dart';
+import '../../shared/ui/real_components.dart';
 import '../data/customer_api_models.dart';
 import '../data/customer_providers.dart';
 import '../screens/customer_api_screens.dart';

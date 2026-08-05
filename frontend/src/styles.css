@@ -215,8 +215,7 @@ button {
   margin: 24px 0;
 }
 
-.auth-tabs button,
-.demo-fill button {
+.auth-tabs button {
   background: #fff;
   border: 1px solid #d9d4c9;
   border-radius: 12px;
@@ -278,17 +277,9 @@ button {
 }
 
 .auth-submit:disabled,
-.auth-tabs button:disabled,
-.demo-fill button:disabled {
+.auth-tabs button:disabled {
   cursor: wait;
   opacity: 0.65;
-}
-
-.demo-fill {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  grid-column: 1 / -1;
 }
 
 .auth-restoring {

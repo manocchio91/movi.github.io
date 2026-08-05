@@ -3,19 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/login_screen.dart';
+import '../../features/account/account_screens.dart';
 import '../../features/customer/customer_shell.dart';
-import '../../features/customer/screens/customer_screens.dart';
 import '../../features/customer/screens/customer_api_screens.dart';
 import '../../features/customer/booking/booking_flow_screen.dart';
 import '../../features/customer/booking/booking_list_screen.dart';
 import '../../features/organizer/organizer_shell.dart';
-import '../../features/organizer/screens/organizer_screens.dart';
 import '../auth/auth_controller.dart';
 import '../models/app_role.dart';
 
 final _rootKey = GlobalKey<NavigatorState>();
 final _customerShellKey = GlobalKey<NavigatorState>();
-final _organizerShellKey = GlobalKey<NavigatorState>();
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authControllerProvider);
@@ -65,17 +63,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     builder: (_, state) =>
                         BookingFlowScreen(id: state.pathParameters['id']!),
                   ),
-                  GoRoute(
-                    path: 'preferences',
-                    parentNavigatorKey: _rootKey,
-                    builder: (_, __) => const PreferencesScreen(),
-                  ),
-                  GoRoute(
-                    path: 'review/:id',
-                    parentNavigatorKey: _rootKey,
-                    builder: (_, state) =>
-                        ReviewScreen(id: state.pathParameters['id']!),
-                  ),
                 ],
               ),
             ],
@@ -118,54 +105,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       StatefulShellRoute.indexedStack(
         builder: (_, state, shell) => OrganizerShell(shell: shell),
         branches: [
-          StatefulShellBranch(
-            navigatorKey: _organizerShellKey,
-            routes: [
-              GoRoute(
-                path: '/organizer',
-                builder: (_, __) => const OrganizerDashboardScreen(),
-                routes: [
-                  GoRoute(
-                    path: 'calendar',
-                    parentNavigatorKey: _rootKey,
-                    builder: (_, __) => const SmartCalendarScreen(),
-                  ),
-                  GoRoute(
-                    path: 'bookings',
-                    parentNavigatorKey: _rootKey,
-                    builder: (_, __) => const OrganizerBookingsScreen(),
-                  ),
-                  GoRoute(
-                    path: 'reviews',
-                    parentNavigatorKey: _rootKey,
-                    builder: (_, __) => const OrganizerReviewsScreen(),
-                  ),
-                ],
-              ),
-            ],
-          ),
           StatefulShellBranch(routes: [
             GoRoute(
-              path: '/organizer/events',
-              builder: (_, __) => const MyEventsScreen(),
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/organizer/create',
-              builder: (_, __) => const CreateEventWizardScreen(),
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/organizer/opportunities',
-              builder: (_, __) => const OpportunitiesScreen(),
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/organizer/profile',
-              builder: (_, __) => const OrganizerProfileScreen(),
+              path: '/organizer',
+              builder: (_, __) => const OrganizerWebOnlyScreen(),
             ),
           ]),
         ],

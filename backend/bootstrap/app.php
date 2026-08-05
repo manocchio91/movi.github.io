@@ -55,7 +55,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 409 => $exception->getMessage() ?: 'Conflitto con lo stato corrente della risorsa.',
                 422 => $exception->getMessage() ?: 'I dati forniti non sono validi.',
                 429 => 'Troppe richieste. Riprova più tardi.',
-                500 => config('app.debug') ? $exception->getMessage() : 'Errore interno del server.',
+                500 => 'Errore interno del server.',
                 default => $exception->getMessage() ?: 'Richiesta non completata.',
             };
 

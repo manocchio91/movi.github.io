@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
-import '../../shared/ui/app_components.dart';
+import '../../shared/ui/real_components.dart';
 import 'booking_controller.dart';
 import 'booking_models.dart';
 

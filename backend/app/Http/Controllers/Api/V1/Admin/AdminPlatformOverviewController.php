@@ -249,7 +249,6 @@ class AdminPlatformOverviewController extends Controller
                 'plan' => $subscription->plan->name,
                 'renewal' => $subscription->current_period_ends_at?->toDateString(),
                 'status' => $subscription->status,
-                'payments' => 'predisposto',
             ])->values()->all();
     }
 

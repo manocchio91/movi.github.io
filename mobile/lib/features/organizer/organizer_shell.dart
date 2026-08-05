@@ -16,25 +16,9 @@ class OrganizerShell extends StatelessWidget {
             shell.goBranch(index, initialLocation: index == shell.currentIndex),
         destinations: const [
           NavigationDestination(
-              icon: Icon(Icons.dashboard_outlined),
-              selectedIcon: Icon(Icons.dashboard_rounded),
-              label: 'Dashboard'),
-          NavigationDestination(
-              icon: Icon(Icons.event_note_outlined),
-              selectedIcon: Icon(Icons.event_note_rounded),
-              label: 'Eventi'),
-          NavigationDestination(
-              icon: Icon(Icons.add_circle_outline_rounded),
-              selectedIcon: Icon(Icons.add_circle_rounded),
-              label: 'Crea'),
-          NavigationDestination(
-              icon: Icon(Icons.lightbulb_outline_rounded),
-              selectedIcon: Icon(Icons.lightbulb_rounded),
-              label: 'Opportunità'),
-          NavigationDestination(
               icon: Icon(Icons.storefront_outlined),
               selectedIcon: Icon(Icons.storefront_rounded),
-              label: 'Profilo'),
+              label: 'Account'),
         ],
       ),
     );

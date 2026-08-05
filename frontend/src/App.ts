@@ -362,76 +362,9 @@ const canAccess = (role: Role, route: AppRoute) => {
   return false;
 };
 
-const customerMobileDashboardDemo = {
-  bookings_count: 2,
-  favorites_count: 5,
-  notifications_unread: 3,
-  recommended_events: [
-    {
-      ulid: 'demo-pasta',
-      title: 'Laboratorio di pasta fresca',
-      category: 'Cucina',
-      municipality: 'Campobasso',
-      starts_at: new Date(Date.now() + 86400000 * 3).toISOString(),
-      available_total: 8,
-      is_free: false,
-    },
-    {
-      ulid: 'demo-bimbi',
-      title: 'Caccia al tesoro nel borgo',
-      category: 'Famiglie',
-      municipality: 'Sepino',
-      starts_at: new Date(Date.now() + 86400000 * 6).toISOString(),
-      available_total: 14,
-      is_free: true,
-    },
-    {
-      ulid: 'demo-vino',
-      title: 'Degustazione tramonto',
-      category: 'Degustazioni',
-      municipality: 'Termoli',
-      starts_at: new Date(Date.now() + 86400000 * 9).toISOString(),
-      available_total: 5,
-      is_free: false,
-    },
-  ],
-};
-
-const successfulEventsDemo = [
-  {
-    ulid: 'success-1',
-    title: 'Cena contadina sotto le stelle',
-    category: 'Cena esperienziale',
-    municipality: 'Agnone',
-    province: 'IS',
-    average_rating: 4.8,
-    fill_rate: 96,
-    recommendation_rate: 94,
-    review_count: 38,
-    has_next_edition: true,
-    next_edition: {
-      title: 'Cena contadina - nuova edizione',
-      starts_at: new Date(Date.now() + 86400000 * 12).toISOString(),
-      available_total: 11,
-    },
-  },
-  {
-    ulid: 'success-2',
-    title: 'Passeggiata e picnic nel bosco',
-    category: 'Natura',
-    municipality: 'Capracotta',
-    province: 'IS',
-    average_rating: 4.7,
-    fill_rate: 91,
-    recommendation_rate: 89,
-    review_count: 24,
-  },
-];
-
 export default defineComponent({
   name: 'App',
   setup() {
-    const customerMobilePreview = window.location.pathname.includes('cliente-mobile') || window.location.search.includes('cliente=mobile');
     const currentUser = ref<AuthUser | null>(null);
     const token = ref<string | null>(null);
     const route = ref<AppRoute>('/login');
@@ -556,11 +489,6 @@ export default defineComponent({
     const adminSearchQuery = ref('');
     const adminSearchResults = ref<any>(null);
 
-    if (customerMobilePreview) {
-      customerDashboard.value = customerMobileDashboardDemo;
-      allCustomerEvents.value = customerMobileDashboardDemo.recommended_events;
-      successfulEvents.value = successfulEventsDemo;
-    }
 
     const role = computed<Role>(() => currentUser.value?.role ?? 'guest');
 
@@ -1852,21 +1780,11 @@ export default defineComponent({
 
     const renderAllEvents = () => [
       h('div', { class: 'section-title' }, [h('h2', 'Tutti gli Eventi'), h('span', 'filtri: categoria, comune, data, prezzo')]),
-      h('div', { class: 'filter-strip' }, ['Categoria', 'Comune', 'Provincia', 'Data', 'Prezzo'].map((item) => h('button', {
-        type: 'button',
-        disabled: true,
-        title: 'Filtro non ancora collegato',
-      }, item))),
       allCustomerEvents.value.length === 0 ? emptyState('Nessun evento pubblicato disponibile dal database.') : h('div', { class: 'event-grid' }, allCustomerEvents.value.map(renderEventCard)),
     ];
 
     const renderSuccessfulEvents = () => [
       h('div', { class: 'section-title' }, [h('h2', 'Eventi di Successo'), h('span', 'ranking con success score aggregato')]),
-      h('div', { class: 'filter-strip' }, ['Piu apprezzati', 'Piu recenti', 'Miglior valutazione', 'Riempimento', 'Con nuova edizione'].map((item) => h('button', {
-        type: 'button',
-        disabled: true,
-        title: 'Filtro non ancora collegato',
-      }, item))),
       successfulEvents.value.length === 0 ? emptyState('Nessun evento concluso valido nel feed successi.') : h('div', { class: 'event-grid' }, successfulEvents.value.map(renderSuccessfulEventCard)),
     ];
 
@@ -2590,11 +2508,6 @@ export default defineComponent({
 
     const renderAdminReviews = () => [
       h('div', { class: 'page-heading' }, [h('h1', 'Recensioni'), h('p', 'Tutte le recensioni, filtrabili per evento, organizer, stelle e categoria.')]),
-      h('div', { class: 'filter-strip' }, ['Organizzatore', 'Evento', 'Stelle', 'Categoria', 'Nascoste'].map((item) => h('button', {
-        type: 'button',
-        disabled: true,
-        title: 'Filtro non ancora collegato',
-      }, item))),
       renderReviewsList(),
     ];
 

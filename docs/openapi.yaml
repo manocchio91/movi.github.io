@@ -34,7 +34,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AuthResponse" }
-        "422": { description: Credenziali non valide }
+        "401": { description: Credenziali non valide }
   /auth/logout:
     post:
       security: [{ bearerAuth: [] }]
