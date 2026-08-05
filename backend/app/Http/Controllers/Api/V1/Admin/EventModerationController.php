@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
-use App\Actions\Events\CancelEvent;
 use App\Enums\EventStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
@@ -19,7 +18,8 @@ class EventModerationController extends Controller
             ->with(['organizerProfile.owner', 'categories', 'municipality', 'reviewStatistic'])
             ->withCount(['bookings', 'reviews'])
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->query('status')))
-            ->when($request->filled('organizer_id'), fn ($query) => $query->where('organizer_profile_id', $request->integer('organizer_id')))
+            ->when($request->filled('organizer'), fn ($query) => $query->whereHas('organizerProfile', fn ($profile) => $profile->where('ulid', $request->query('organizer'))))
+            ->when($request->filled('q'), fn ($query) => $query->where('title', 'ilike', '%'.$request->query('q').'%'))
             ->when($request->filled('date_from'), fn ($query) => $query->whereDate('starts_at', '>=', $request->date('date_from')))
             ->when($request->filled('date_to'), fn ($query) => $query->whereDate('starts_at', '<=', $request->date('date_to')))
             ->latest('starts_at')
@@ -55,7 +55,7 @@ class EventModerationController extends Controller
         ]);
     }
 
-    public function suspend(Event $event, CancelEvent $cancelEvent): JsonResponse
+    public function suspend(Event $event): JsonResponse
     {
         $this->authorize('moderate', Event::class);
 
@@ -64,16 +64,8 @@ class EventModerationController extends Controller
             'reason' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $activeBookings = $event->bookings()->whereIn('status', ['confirmed', 'checked_in'])->exists();
-
-        if ($event->starts_at->isFuture() && $activeBookings) {
-            $event = $cancelEvent->handle($event, request()->user(), [
-                'reason_code' => $data['reason_code'] ?? 'ADMIN_SUSPENSION',
-                'reason' => $data['reason'] ?? 'Evento sospeso dall amministrazione.',
-            ], adminAction: true);
-        } else {
-            $event->forceFill(['status' => EventStatus::Suspended])->save();
-        }
+        abort_unless(in_array($event->status, [EventStatus::Published, EventStatus::SoldOut], true), 409, 'Solo un evento pubblicato può essere sospeso.');
+        $event->forceFill(['status' => EventStatus::Suspended])->save();
 
         return response()->json(['data' => $event->refresh()->load(['organizerProfile', 'cancellation'])]);
     }
@@ -85,5 +77,14 @@ class EventModerationController extends Controller
         $event->forceFill(['status' => EventStatus::Archived])->save();
 
         return response()->json(['data' => $event->refresh()->load(['organizerProfile'])]);
+    }
+
+    public function reactivate(Event $event): JsonResponse
+    {
+        $this->authorize('moderate', Event::class);
+        abort_unless($event->status === EventStatus::Suspended, 409, 'Solo un evento sospeso può essere riattivato.');
+        $event->forceFill(['status' => $event->starts_at->isFuture() ? EventStatus::Published : EventStatus::Completed])->save();
+
+        return response()->json(['data' => $event->refresh()->load('organizerProfile')]);
     }
 }

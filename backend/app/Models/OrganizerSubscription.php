@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OrganizerSubscription extends Model
 {
@@ -12,6 +13,7 @@ class OrganizerSubscription extends Model
         'trial_ends_at', 'current_period_starts_at', 'current_period_ends_at',
         'cancelled_at', 'external_subscription_id',
         'agreement_starts_at', 'agreement_ends_at', 'agreement_notes',
+        'booking_fee_cents',
     ];
 
     protected function casts(): array
@@ -40,5 +42,10 @@ class OrganizerSubscription extends Model
     public function organizerProfile(): BelongsTo
     {
         return $this->belongsTo(OrganizerProfile::class);
+    }
+
+    public function history(): HasMany
+    {
+        return $this->hasMany(OrganizerSubscriptionHistory::class)->latest('created_at');
     }
 }

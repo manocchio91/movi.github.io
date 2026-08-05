@@ -4,11 +4,11 @@
 
 ## Riferimenti correnti
 
-- Versione corrente: `v1.1 - MVP Profiles, Commercial Plans and Operations`
-- Ultimo aggiornamento: 4 agosto 2026
+- Versione corrente: `v1.2 - Admin and Business Backoffice`
+- Ultimo aggiornamento: 5 agosto 2026
 - Repository: `manocchio91/app-eventi`
-- Branch corrente: `feat/organizer-bookings-management`
-- Commit milestone: da aggiornare dopo il commit `v1.1 - Complete MVP profiles, commercial plans and operations`
+- Branch corrente: `feat/admin-business-backoffice`
+- Commit milestone: da aggiornare dopo il commit `v1.2 - Complete Admin and business backoffice`
 - Ultimo tag: `v0.5-customer-booking-qr`, verificato localmente sul commit `c5e9605`
 
 ## Stato delle aree
@@ -21,7 +21,7 @@
 - Customer Flutter: integrazione reale completata per autenticazione, eventi, booking, QR e annullamento.
 - Customer web: profilo e password, cronologia prenotazioni, QR recuperabile, annullamento, preferiti e recensioni collegati alle API reali.
 - Organizer web: profilo pubblico/privato, logo e copertina, dati fiscali riservati e pagina pubblica con storico eventi.
-- Admin web: ricerca globale reale, gestione catalogo piani e accordi commerciali Organizer senza pagamenti automatici.
+- Admin web: dashboard KPI reale, ricerca globale, gestione completa di Organizer, Customer ed eventi, catalogo piani e accordi commerciali senza pagamenti automatici.
 - Email operative: approvazione/revisione Organizer e conferma/annullamento booking tramite mailer configurabile e fake nei test.
 - Organizer Flutter: schermate presenti, ma dati ancora forniti da `InMemoryDemoRepository`.
 
@@ -38,10 +38,11 @@
 - v0.9: onboarding fiscale Organizer, revisione Admin e correzione definitiva del flusso auth/logout
 - v1.0: booking Customer, partecipanti, prenotazioni Organizer e check-in
 - v1.1: profili MVP, piani commerciali, ricerca Admin, email operative e regressioni Customer risolte
+- v1.2: backoffice Admin e business completo con KPI economici teorici, transizioni protette e storico accordi
 
 ## Task corrente
 
-Macrofase v1.1 completata nelle verifiche automatiche e nel Browser QA confermato dal Product Owner.
+EPIC 2 - Backoffice amministrativo e business completato nelle verifiche automatiche e nel Browser QA confermato dal Product Owner.
 
 ## Funzionalità completate
 
@@ -62,18 +63,23 @@ Macrofase v1.1 completata nelle verifiche automatiche e nel Browser QA confermat
 - Check-in Organizer tramite token QR o codice prenotazione, con blocco dei riutilizzi, delle prenotazioni annullate e dei codici appartenenti ad altri eventi.
 - Recupero atomico dei QR cifrati con una precedente `APP_KEY`, senza esporre errori tecnici e preservando la validità one-time del check-in.
 - Piani `unlimited` e `pay_per_booking` con periodicità, importi in centesimi, stato, date e note dell'accordo gestiti dall'Admin.
+- Dashboard Admin reale con KPI per Organizer, Customer, eventi, prenotazioni, partecipanti, check-in e ricavi teorici.
+- Gestione Admin ricercabile e paginata di Organizer, Customer ed eventi, con dati fiscali riservati e transizioni backend protette.
+- Sospensione e riattivazione eventi senza alterare prenotazioni esistenti.
+- Accordi `UNLIMITED` e `PAY_PER_BOOKING` con tariffa personalizzata per partecipante e storico minimo delle modifiche.
 
 ## Verifiche
 
 - Test mirati auth finali: 8 test e 84 asserzioni verdi.
 - Test mirati auth e onboarding: 14 test e 135 asserzioni verdi.
-- Suite Laravel completa: 93 test e 619 asserzioni verdi.
+- Suite Laravel completa: 96 test e 647 asserzioni verdi.
 - Test mirati finali Customer dettaglio/booking e QR: 8 test e 55 asserzioni verdi.
-- Pint, PHPStan, ESLint, build frontend e `git diff --check` verdi; OpenAPI resta nel debito esplicito sotto.
+- Pint, PHPStan mirato finale, ESLint, build frontend e `git diff --check` verdi.
 - Migrazione onboarding fiscale eseguita correttamente nell'ambiente Docker locale.
 - Browser QA finale auth, logout e onboarding confermato dall'utente.
 - Browser QA della compilazione automatica Comune/Provincia tramite CAP confermato dall'utente.
 - Browser QA finale v1.1 confermato, incluso annullamento prenotazione Customer dopo il riavvio del frontend Vite.
+- Browser QA finale v1.2 confermato dal Product Owner su dashboard, ricerca, dettagli, transizioni e accordi Admin.
 
 ## Prossimo task
 
@@ -81,12 +87,11 @@ Preparazione MVP: hardening operativo, rimozione residui demo e allineamento com
 
 ## Debiti aperti
 
-- Statistiche avanzate.
+- Il lint Redocly di `docs/openapi.yaml` rileva 62 errori strutturali e 176 warning preesistenti, soprattutto descrizioni inline non quotate, `operationId` mancanti e risposte 4xx mancanti. I contratti v1.2 sono aggiornati; la bonifica globale resta un task dedicato per evitare una riscrittura fuori scope.
 - Organizer Flutter ancora basato su dati demo.
 - Test frontend automatizzati.
 - Upload immagini evento non incluso.
 - Redesign grafico generale non incluso.
-- OpenAPI corrente da riallineare e validare: il lint Redocly segnala errori strutturali preesistenti.
 
 ## Come riprendere il lavoro
 

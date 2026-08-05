@@ -156,6 +156,30 @@ Decisione: i dati fiscali dell'Organizer sono riservati e possono essere visuali
 
 Conseguenze: endpoint, serializer e interfacce pubbliche devono escludere questi campi; ogni nuova esposizione richiede autorizzazione esplicita e test dedicati.
 
+## ADR-015
+
+### KPI economici Admin teorici e deterministici
+
+Stato: Accepted
+
+Contesto: il backoffice deve stimare il valore commerciale senza introdurre pagamenti online o fatturazione automatica.
+
+Decisione: calcolare i ricavi teorici sugli accordi `active`: canone `UNLIMITED` e partecipanti delle prenotazioni `confirmed`, `checked_in` o `completed` moltiplicati per la tariffa personalizzata `PAY_PER_BOOKING`. Gli importi restano in centesimi nel backend e sono mostrati in euro nel frontend.
+
+Conseguenze: i KPI sono riproducibili e testabili, non rappresentano incassi o fatture e condividono la definizione canonica di prenotazione valida.
+
+## ADR-016
+
+### Sospensione amministrativa non distruttiva degli eventi
+
+Stato: Accepted
+
+Contesto: sospendere un evento per moderazione non deve cancellare o riscrivere prenotazioni e partecipanti già acquisiti.
+
+Decisione: la sospensione Admin modifica esclusivamente lo stato dell'evento; la riattivazione è una transizione backend esplicita e protetta. Cancellazione e sospensione amministrativa restano operazioni distinte.
+
+Conseguenze: prenotazioni, partecipanti e check-in restano integri durante la moderazione e le transizioni non sono alterabili dal client.
+
 ## ADR-014
 
 ### APP_KEY stabile e recupero controllato dei QR

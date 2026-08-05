@@ -56,6 +56,7 @@ class MvpProfilesCommercialOperationsTest extends TestCase
         $this->putJson('/api/v1/admin/organizers/'.$organizer->ulid.'/plan', [
             'plan_ulid' => $plan['ulid'], 'status' => 'active',
             'agreement_starts_at' => '2026-08-01', 'agreement_ends_at' => '2027-07-31',
+            'booking_fee_cents' => 75,
             'agreement_notes' => 'Accordo firmato offline.',
         ])->assertOk()
             ->assertJsonPath('data.plan.billing_model', 'pay_per_booking')

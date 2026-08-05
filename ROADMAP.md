@@ -22,6 +22,7 @@ APP EVENTI è una piattaforma territoriale per scoprire, pubblicare, prenotare e
 | v1.0-A | Completata | Gestione prenotazioni ricevute Organizer e ripristino booking Customer web |
 | v1.0 | Completata | Booking Customer, gestione prenotazioni/partecipanti e check-in Organizer |
 | v1.1 | Completata | Profili MVP, piani commerciali, ricerca Admin, email operative e regression gate |
+| v1.2 | Completata | Backoffice Admin e business, KPI economici teorici e gestione operativa completa |
 
 ## v0.8 — Organizer Event Creation and Editing
 
@@ -59,7 +60,7 @@ Completata end-to-end sul frontend web:
 
 ## Prossima milestone
 
-Preparazione MVP: criteri di rilascio, hardening operativo e rimozione dei residui demo.
+Preparazione MVP: criteri di rilascio, hardening operativo, rimozione dei residui demo e bonifica strutturale OpenAPI.
 
 ## v1.1 - MVP Profiles, Commercial Plans and Operations
 
@@ -72,6 +73,17 @@ Completata end-to-end sul frontend web:
 5. Email operative tramite infrastruttura Laravel e modalità sicura locale/test.
 6. `APP_KEY` persistente tra i riavvii e recupero controllato dei QR cifrati con chiavi precedenti.
 7. Suite automatica, analisi statica, build e Browser QA completati.
+
+## v1.2 - Admin and Business Backoffice
+
+Completata end-to-end sul frontend web:
+
+1. Dashboard Admin reale con KPI operativi ed economici teorici.
+2. Gestione ricercabile e paginata di Organizer, Customer ed eventi con dettagli protetti.
+3. Transizioni backend protette per Organizer ed eventi, senza modifiche distruttive alle prenotazioni.
+4. Piani `UNLIMITED` e `PAY_PER_BOOKING`, accordi in centesimi, tariffa personalizzata e storico modifiche.
+5. Ricerca globale raggruppata e isolamento completo delle API Admin.
+6. Suite automatica, analisi statica, lint, build e Browser QA completati.
 
 ## Attività future
 

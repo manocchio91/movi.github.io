@@ -15,7 +15,7 @@ class AdminOrganizerInsightController extends Controller
         $events = $organizer->events();
 
         return response()->json([
-            'data' => $organizer->load(['owner', 'municipality', 'ranking']),
+            'data' => $organizer->load(['owner', 'municipality', 'ranking', 'subscription.plan', 'subscription.history'])->loadCount(['events', 'reviews']),
             'overview' => [
                 'events_total' => (clone $events)->count(),
                 'events_published' => (clone $events)->where('status', 'published')->count(),

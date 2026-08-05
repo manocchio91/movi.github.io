@@ -134,6 +134,7 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/admin/dashboard', [AdminDashboardController::class, 'show']);
             Route::get('/admin/search', AdminSearchController::class);
             Route::get('/admin/customers/{customer:ulid}', [AdminSearchController::class, 'customer']);
+            Route::get('/admin/customers', [AdminSearchController::class, 'customers']);
             Route::get('/admin/plans', [AdminCommercialController::class, 'plans']);
             Route::post('/admin/plans', [AdminCommercialController::class, 'storePlan']);
             Route::patch('/admin/plans/{plan:ulid}', [AdminCommercialController::class, 'updatePlan']);
@@ -143,6 +144,7 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/admin/events', [EventModerationController::class, 'index']);
             Route::get('/admin/events/{event:ulid}', [EventModerationController::class, 'show']);
             Route::post('/admin/events/{event:ulid}/suspend', [EventModerationController::class, 'suspend']);
+            Route::post('/admin/events/{event:ulid}/reactivate', [EventModerationController::class, 'reactivate']);
             Route::post('/admin/events/{event:ulid}/archive', [EventModerationController::class, 'archive']);
             Route::get('/admin/organizers/{organizer:ulid}', [AdminOrganizerInsightController::class, 'show']);
             Route::get('/admin/organizers/{organizer:ulid}/events', [AdminOrganizerInsightController::class, 'events']);
@@ -155,6 +157,8 @@ Route::prefix('v1')->group(function (): void {
             Route::post('/admin/organizers/{organizer:ulid}/approve', [OrganizerModerationController::class, 'approve']);
             Route::post('/admin/organizers/{organizer:ulid}/request-changes', [OrganizerModerationController::class, 'requestChanges']);
             Route::post('/admin/organizers/{organizer:ulid}/reject', [OrganizerModerationController::class, 'reject']);
+            Route::post('/admin/organizers/{organizer:ulid}/suspend', [OrganizerModerationController::class, 'suspend']);
+            Route::post('/admin/organizers/{organizer:ulid}/reactivate', [OrganizerModerationController::class, 'reactivate']);
             Route::post('/admin/reviews/{review:ulid}/approve', [ReviewModerationController::class, 'approve']);
             Route::post('/admin/reviews/{review:ulid}/hide', [ReviewModerationController::class, 'hide']);
             Route::delete('/admin/reviews/{review:ulid}', [ReviewModerationController::class, 'destroy']);

@@ -713,7 +713,7 @@ paths:
   /admin/dashboard:
     get:
       security: [{ bearerAuth: [] }]
-      summary: Dashboard amministrativa protetta da role:admin
+      summary: Dashboard amministrativa reale con KPI operativi ed economici teorici, protetta da role:admin
       responses:
         "200": { description: KPI piattaforma, organizer, eventi, sospensioni e report review }
         "403": { description: Solo admin }
@@ -741,7 +741,7 @@ paths:
   /admin/events/{event}/suspend:
     post:
       security: [{ bearerAuth: [] }]
-      summary: Sospende o annulla in post-moderazione un evento
+      summary: Sospende un evento preservando prenotazioni e partecipanti esistenti
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
@@ -844,6 +844,71 @@ paths:
         - { name: organizer, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Eventi e prenotazioni annullate }
+  /admin/events/{event}/reactivate:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Riattiva un evento sospeso senza modificare le prenotazioni
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Evento riattivato }
+        '409': { description: Evento non sospeso }
+  /admin/organizers/{organizer}/suspend:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Sospende un Organizer approvato con motivazione
+      parameters:
+        - { name: organizer, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Organizer sospeso }
+        '409': { description: Transizione non ammessa }
+  /admin/organizers/{organizer}/reactivate:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Riattiva un Organizer sospeso
+      parameters:
+        - { name: organizer, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Organizer riattivato }
+        '409': { description: Transizione non ammessa }
+  /admin/customers:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Ricerca, filtra e pagina i Customer
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 120 } }
+        - { name: status, in: query, schema: { type: string, enum: [active, pending, suspended] } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+      responses:
+        '200': { description: Customer paginati con conteggi booking e recensioni }
+  /admin/customers/{customer}:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Dettaglio Customer con booking, eventi partecipati e recensioni necessarie
+      parameters:
+        - { name: customer, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Dettaglio Customer }
+  /admin/plans:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Catalogo piani UNLIMITED e PAY_PER_BOOKING
+      responses:
+        '200': { description: Piani con importi in centesimi }
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Crea un piano commerciale
+      responses:
+        '201': { description: Piano creato }
+  /admin/organizers/{organizer}/plan:
+    put:
+      security: [{ bearerAuth: [] }]
+      summary: Assegna l'accordo commerciale e registra lo storico della modifica
+      parameters:
+        - { name: organizer, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Accordo aggiornato con storico }
+        '422': { description: Tariffa personalizzata PAY_PER_BOOKING mancante o dati non validi }
   /admin/rankings/events:
     get:
       security: [{ bearerAuth: [] }]

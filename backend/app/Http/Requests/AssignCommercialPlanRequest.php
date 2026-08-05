@@ -20,6 +20,7 @@ class AssignCommercialPlanRequest extends FormRequest
             'agreement_starts_at' => ['nullable', 'date'],
             'agreement_ends_at' => ['nullable', 'date', 'after_or_equal:agreement_starts_at'],
             'agreement_notes' => ['nullable', 'string', 'max:2000'],
+            'booking_fee_cents' => ['nullable', 'integer', 'min:0', 'max:100000'],
         ];
     }
 }

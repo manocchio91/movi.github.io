@@ -79,7 +79,9 @@ type OrganizerProfile = OrganizerProfileSummary & {
     agreement_starts_at?: string | null;
     agreement_ends_at?: string | null;
     agreement_notes?: string | null;
-    plan?: { ulid: string; name: string };
+    booking_fee_cents?: number | null;
+    plan?: { ulid: string; name: string; billing_model?: string };
+    history?: Array<{ ulid: string; created_at: string; new_values: Record<string, unknown> }>;
   } | null;
 };
 
@@ -540,6 +542,7 @@ export default defineComponent({
     const adminEventStats = ref<any>(null);
     const adminOrganizers = ref<any[]>([]);
     const adminOrganizerFilter = ref<OrganizerVerificationStatus | ''>('pending');
+    const adminOrganizerSearch = ref('');
     const adminOrganizerPage = ref(1);
     const adminOrganizerMeta = ref<OrganizerEventPaginationMeta | null>(null);
     const adminOrganizerPendingCount = ref(0);
@@ -1210,6 +1213,7 @@ export default defineComponent({
       try {
         const query = new URLSearchParams({ page: String(adminOrganizerPage.value), per_page: '15' });
         if (adminOrganizerFilter.value) query.set('status', adminOrganizerFilter.value);
+        if (adminOrganizerSearch.value.trim()) query.set('q', adminOrganizerSearch.value.trim());
         const response = await api<{ data: { data: OrganizerProfile[] } & OrganizerEventPaginationMeta; pending_count: number }>(`/admin/organizers?${query}`);
         adminOrganizers.value = response?.data.data ?? [];
         adminOrganizerMeta.value = response?.data ?? null;
@@ -1233,12 +1237,12 @@ export default defineComponent({
       }
     };
 
-    const reviewAdminOrganizer = async (decision: 'approve' | 'request-changes' | 'reject') => {
+    const reviewAdminOrganizer = async (decision: 'approve' | 'request-changes' | 'reject' | 'suspend' | 'reactivate') => {
       const organizer = selectedAdminOrganizer.value;
       if (!organizer || adminOrganizerActionLoading.value) return;
       let reason = '';
-      if (decision !== 'approve') {
-        reason = window.prompt(decision === 'reject' ? 'Motivazione del rifiuto' : 'Integrazioni richieste')?.trim() ?? '';
+      if (decision === 'request-changes' || decision === 'reject' || decision === 'suspend') {
+        reason = window.prompt(decision === 'reject' ? 'Motivazione del rifiuto' : decision === 'suspend' ? 'Motivazione della sospensione' : 'Integrazioni richieste')?.trim() ?? '';
         if (!reason) return;
       }
       const label = decision === 'approve' ? 'approvare' : decision === 'reject' ? 'rifiutare' : 'richiedere integrazioni per';
@@ -1357,11 +1361,19 @@ export default defineComponent({
           agreement_starts_at: form.get('agreement_starts_at') || null,
           agreement_ends_at: form.get('agreement_ends_at') || null,
           agreement_notes: form.get('agreement_notes') || null,
+          booking_fee_cents: form.get('booking_fee_euro') === '' ? null : Math.round(Number(form.get('booking_fee_euro')) * 100),
         }),
       });
       await selectAdminOrganizer(organizer);
     };
     const runAdminSearch = async () => { if (adminSearchQuery.value.trim().length < 2) return; adminSearchResults.value = (await api<any>(`/admin/search?q=${encodeURIComponent(adminSearchQuery.value.trim())}`))?.data ?? null; };
+    const moderateAdminEvent = async (event: any) => {
+      const action = event.status === 'suspended' ? 'reactivate' : 'suspend';
+      const reason = action === 'suspend' ? window.prompt('Motivazione della sospensione')?.trim() : '';
+      if (action === 'suspend' && !reason) return;
+      await api(`/admin/events/${event.ulid}/${action}`, { method: 'POST', body: JSON.stringify(reason ? { reason } : {}) });
+      await loadAdminData();
+    };
 
     const completeAuth = async (payload: AuthResponse | SessionResponse, nextToken: string) => {
       clearSession();
@@ -2309,22 +2321,22 @@ export default defineComponent({
         h('div', [
           h('span', 'Centro di controllo'),
           h('h1', 'Piattaforma eventi locali'),
-          h('p', `${number(kpis().events_created_today)} eventi creati oggi, ${number(kpis().bookings_today)} prenotazioni arrivate oggi.`),
+          h('p', adminDashboard.value?.economics?.criteria ?? 'Indicatori calcolati sui dati reali della piattaforma.'),
         ]),
         h('div', { class: 'hero-signal' }, [
-          h('strong', number(kpis().events_scheduled)),
+          h('strong', number(adminDashboard.value?.events?.future)),
           h('span', 'eventi in programma'),
         ]),
       ]),
       h('section', { class: 'admin-kpi-grid' }, [
-        adminKpi('Organizzatori registrati', kpis().organizers_registered ?? adminOrganizers.value.length, 'offerta attiva', 'mint'),
-        adminKpi('Clienti registrati', kpis().customers_registered ?? adminDashboard.value?.customers, 'domanda potenziale', 'blue'),
-        adminKpi('Eventi pubblicati', kpis().events_published ?? adminEventStats.value?.published, 'visibili ai clienti', 'gold'),
-        adminKpi('Eventi in programma', kpis().events_scheduled, 'prossime date', 'mint'),
-        adminKpi('Eventi conclusi', kpis().events_completed, 'storico esperienze', 'blue'),
-        adminKpi('Eventi annullati', kpis().events_cancelled, 'da monitorare', 'alert'),
-        adminKpi('Prenotazioni totali', kpis().bookings_total, 'volume piattaforma', 'gold'),
-        adminKpi('Partecipanti totali', kpis().participants_total, 'persone servite', 'mint'),
+        adminKpi('Organizer totali', adminDashboard.value?.organizers?.total, `${number(adminDashboard.value?.organizers?.approved)} approvati`, 'mint'),
+        adminKpi('Organizer pending', adminDashboard.value?.organizers?.pending, `${number(adminDashboard.value?.organizers?.suspended)} sospesi`, 'alert'),
+        adminKpi('Customer attivi', adminDashboard.value?.customers?.active, `${number(adminDashboard.value?.customers?.total)} totali`, 'blue'),
+        adminKpi('Eventi pubblicati', adminDashboard.value?.events?.published, `${number(adminDashboard.value?.events?.draft)} bozze`, 'gold'),
+        adminKpi('Prenotazioni valide', adminDashboard.value?.bookings?.valid, `${number(adminDashboard.value?.bookings?.cancelled)} annullate`, 'mint'),
+        adminKpi('Partecipanti', adminDashboard.value?.participants, 'fatturabili sui piani PpB', 'blue'),
+        adminKpi('Check-in', adminDashboard.value?.check_ins, 'registrati', 'gold'),
+        adminKpi('Ricavi teorici', `€ ${(Number(adminDashboard.value?.economics?.theoretical_revenue_cents ?? 0) / 100).toFixed(2)}`, 'nessun incasso online', 'mint'),
       ]),
       h('section', { class: 'admin-chart-grid' }, [
         renderMiniBars('Eventi pubblicati per mese', chart('events_by_month')),
@@ -2348,7 +2360,7 @@ export default defineComponent({
     ];
 
     const renderEventsTable = (rows = adminEvents.value) => adminTable(
-      ['Titolo', 'Organizzatore', 'Categoria', 'Comune', 'Data', 'Stato', 'Prenotati', 'Partecipanti', 'Media'],
+      ['Titolo', 'Organizzatore', 'Categoria', 'Comune', 'Data', 'Stato', 'Prenotati', 'Partecipanti', 'Media', ''],
       rows,
       (event) => [
         h('td', h('strong', event.title)),
@@ -2360,6 +2372,7 @@ export default defineComponent({
         h('td', number(event.booked ?? event.bookings_count)),
         h('td', number(event.participants ?? event.participants_count)),
         h('td', `${event.average_rating ?? 0}/5`),
+        h('td', h('button', { onClick: () => { void moderateAdminEvent(event); } }, event.status === 'suspended' ? 'Riattiva' : 'Sospendi')),
       ],
     );
 
@@ -2477,19 +2490,21 @@ export default defineComponent({
           h('label', ['Inizio accordo', h('input', { name: 'agreement_starts_at', type: 'date', value: organizer.subscription?.agreement_starts_at?.slice(0, 10) ?? '' })]),
           h('label', ['Fine accordo', h('input', { name: 'agreement_ends_at', type: 'date', value: organizer.subscription?.agreement_ends_at?.slice(0, 10) ?? '' })]),
           h('textarea', { name: 'agreement_notes', maxlength: 2000, placeholder: 'Note accordo offline', value: organizer.subscription?.agreement_notes ?? '' }),
+          h('label', ['Costo personalizzato per partecipante (€)', h('input', { name: 'booking_fee_euro', type: 'number', min: 0, step: '0.01', value: ((organizer.subscription?.booking_fee_cents ?? 0) / 100).toFixed(2) })]),
           h('button', { type: 'submit' }, 'Salva accordo'),
         ]),
         organizer.verification_status === 'pending' ? h('div', { class: 'onboarding-actions' }, [
           h('button', { disabled: adminOrganizerActionLoading.value, onClick: () => { void reviewAdminOrganizer('approve'); } }, 'Approva'),
           h('button', { disabled: adminOrganizerActionLoading.value, onClick: () => { void reviewAdminOrganizer('request-changes'); } }, 'Richiedi integrazione'),
           h('button', { disabled: adminOrganizerActionLoading.value, onClick: () => { void reviewAdminOrganizer('reject'); } }, 'Rifiuta'),
-        ]) : null,
+        ]) : organizer.verification_status === 'verified' ? h('button', { disabled: adminOrganizerActionLoading.value, onClick: () => { void reviewAdminOrganizer('suspend'); } }, 'Sospendi Organizer') : organizer.verification_status === 'suspended' ? h('button', { disabled: adminOrganizerActionLoading.value, onClick: () => { void reviewAdminOrganizer('reactivate'); } }, 'Riattiva Organizer') : null,
       ]);
     };
 
     const renderAdminOrganizers = () => [
       h('div', { class: 'page-heading' }, [h('h1', 'Richieste Organizer'), h('p', 'Esamina i dati fiscali e gestisci l’abilitazione alle funzioni operative.')]),
       h('div', { class: 'filter-strip' }, [
+        h('form', { onSubmit: (event: Event) => { event.preventDefault(); adminOrganizerPage.value = 1; void loadAdminOrganizerRequests(); } }, [h('input', { value: adminOrganizerSearch.value, placeholder: 'Cerca nome o email', onInput: (event: Event) => { adminOrganizerSearch.value = (event.target as HTMLInputElement).value; } }), h('button', { type: 'submit' }, 'Cerca')]),
         h('label', [h('span', 'Stato '), h('select', {
           value: adminOrganizerFilter.value,
           disabled: adminOrganizerLoading.value,
@@ -2691,7 +2706,7 @@ export default defineComponent({
           h('form', { onSubmit: (event: Event) => { event.preventDefault(); void runAdminSearch(); } }, [h('input', { value: adminSearchQuery.value, placeholder: 'Cerca Organizer, Customer, Eventi', onInput: (event: Event) => { adminSearchQuery.value = (event.target as HTMLInputElement).value; } }), h('button', { type: 'submit' }, 'Cerca')]),
           h('button', { type: 'button', onClick: () => { void loadAdminData(); } }, loading.value ? 'Aggiorno...' : 'Aggiorna dati'),
         ]),
-        adminSearchResults.value ? h('section', { class: 'admin-panel' }, [h('h3', 'Risultati ricerca'), h('p', `${adminSearchResults.value.organizers.length} Organizer · ${adminSearchResults.value.customers.length} Customer · ${adminSearchResults.value.events.length} Eventi`), ...['organizers', 'customers', 'events'].flatMap((group) => adminSearchResults.value[group].map((item: any) => h('div', [h('strong', item.name ?? item.title), h('small', item.email ?? item.status ?? '')])))]) : null,
+        adminSearchResults.value ? h('section', { class: 'admin-panel' }, [h('h3', 'Risultati ricerca'), h('p', `${adminSearchResults.value.organizers.length} Organizer · ${adminSearchResults.value.customers.length} Customer · ${adminSearchResults.value.events.length} Eventi`), ...['organizers', 'customers', 'events'].flatMap((group) => adminSearchResults.value[group].map((item: any) => h('button', { type: 'button', onClick: () => { if (group === 'organizers') { void go('/admin/organizers'); void selectAdminOrganizer(item); } else void go(group === 'customers' ? '/admin/customers' : '/admin/events'); } }, [h('strong', item.name ?? item.title), h('small', item.email ?? item.status ?? '')])))]) : null,
         apiError.value ? h('p', { class: 'api-error' }, apiError.value) : null,
         ...renderAdminPage(),
       ]),
