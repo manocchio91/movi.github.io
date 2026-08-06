@@ -1,65 +1,145 @@
-# Eventi Locali Molise
+# 🎉 Eventi Locali Molise
 
-Piattaforma territoriale per scoprire, pubblicare e moderare eventi ed esperienze locali a numero chiuso. La prima vertical slice copre autenticazione, ruoli, territori del Molise, categorie, profilo organizzatore, creazione evento in bozza, invio in moderazione, approvazione amministrativa e pubblicazione nell'elenco pubblico.
+Aiutiamo organizzatori, associazioni e cittadini a scoprire, promuovere e gestire gli eventi locali in un'unica piattaforma semplice e moderna.
 
-## Stack
-- Backend: PHP, Laravel, Sanctum, PostgreSQL, Redis.
-- Frontend: Vue 3, TypeScript, Vite.
-- Infrastruttura: Docker Compose, Nginx, Postgres, Redis.
-- Qualità: PHPUnit, Laravel Pint, PHPStan, ESLint, TypeScript build.
+### Scopri, organizza e vivi gli eventi del territorio.
 
-## Avvio
-```bash
-cp backend/.env.example backend/.env
-docker compose up --build
-docker compose exec app composer install
-docker compose exec app php artisan key:generate
-docker compose exec app php artisan migrate --seed
+### La piattaforma intelligente per scoprire, organizzare e promuovere eventi sul territorio.
+
+> Un'unica piattaforma per utenti, organizzatori e amministratori, progettata per valorizzare gli eventi locali e semplificarne la gestione.
+
+> 🚧 **Versione attuale:** MVP in sviluppo
+
+---
+
+# 🌍 Il progetto
+
+Eventi Locali Molise nasce con l'obiettivo di valorizzare il territorio attraverso una piattaforma moderna dedicata alla scoperta, promozione e gestione degli eventi.
+
+L'app collega cittadini, turisti, associazioni, comuni e organizzatori in un unico ecosistema digitale.
+L'obiettivo è semplificare l'incontro tra organizzatori e partecipanti, valorizzando il territorio attraverso strumenti digitali moderni.
+# 📸 Anteprima
+
+> Screenshot disponibili prossimamente.
+---
+
+# ✨ Funzionalità
+
+## 👥 Per gli utenti
+
+- Scopri eventi vicino a te
+- Ricerca per categoria
+- Prenotazione rapida
+- Eventi preferiti
+- Notifiche personalizzate
+
+---
+
+## 🎯 Per gli organizzatori
+
+- Creazione eventi
+- Gestione prenotazioni
+- Dashboard dedicata
+- Moderazione
+- Statistiche
+
+---
+
+## 🛡️ Per gli amministratori
+
+- Moderazione eventi
+- Gestione categorie
+- Gestione territori
+- Controllo utenti
+
+---
+
+# 📱 Applicazioni
+
+# 📱 Piattaforme supportate
+
+- 🌐 Web App (Utenti e Organizzatori)
+- 📲 App Mobile Flutter
+- 🛠️ Pannello Amministratore
+- ⚙️ REST API
+---
+
+# 🚀 Tecnologie
+
+- Flutter
+- PHP
+- Laravel
+- PostgreSQL
+- Redis
+- Docker
+- Vue 3
+- TypeScript
+- GitHub Actions
+JWT
+Nginx
+
+---
+
+# 🏗️ Architettura
+
+```
+Flutter Mobile
+        │
+Vue Web Application
+        │
+ REST API
+        │
+ Laravel Backend
+        │
+ PostgreSQL
+        │
+ Redis
 ```
 
-API backend: `http://localhost:8080/api/v1`
+---
 
-Frontend: `http://localhost:5173`
+# 🗺️ Roadmap
 
-Health check: `http://localhost:8080/health`
+## ✅ Completato
 
-## App mobile Flutter
-Il prototipo mobile Android/iOS si trova in `mobile/` e contiene due esperienze separate, Customer e Organizer, con login demo e dati mock sostituibili dalle API reali.
+- Architettura del progetto
+Sistema di autenticazione
+Interfaccia Web
+- Mobile App
+- Database
+- Docker
 
-```bash
-cd mobile
-flutter pub get
-flutter analyze
-flutter test
-flutter run
-```
+## 🚧 In sviluppo
 
-Account mobile demo:
-- Customer: `customer@demo.it` / `password`
-- Organizer: `organizer@demo.it` / `password`
+- Prenotazioni
+- Dashboard organizzatore
+- QR Check-in
 
-## Account demo
-- Admin: `admin@example.test` / `password`
-- Organizzatore: `organizer@example.test` / `password`
-- Partecipante: `participant@example.test` / `password`
+## 🔜 Pianificato
 
-## Comandi qualità
-```bash
-docker compose exec app ./vendor/bin/pint
-docker compose exec app ./vendor/bin/phpstan analyse
-docker compose exec app php artisan test
-docker compose exec frontend npm run lint
-docker compose exec frontend npm run build
-```
+- Notifiche Push
+- AI Assistant
+- Biglietti digitali
+- Analytics
 
-## Documentazione
-- Visione prodotto: `docs/product-vision.md`
-- Architettura: `docs/architecture.md`
-- Modello dominio: `docs/domain-model.md`
-- Schema database: `docs/database-schema.md`
-- API/OpenAPI: `docs/api.md` e `docs/openapi.yaml`
-- Sicurezza e privacy: `docs/security-privacy.md`
-- Roadmap: `docs/roadmap.md`
+---
 
-## Stato implementazione
-Questa repository contiene lo scheletro operativo della prima vertical slice. Prenotazioni, QR check-in, lista d'attesa e notifiche sono documentati e predisposti nel dominio, ma non implementati nel codice applicativo iniziale.
+# 📚 Documentazione
+
+- Product Vision
+- Architecture
+- Domain Model
+- Database Schema
+- API Documentation
+- Security & Privacy
+- Roadmap
+
+---
+
+# 🎯 Vision
+
+Diventare la piattaforma di riferimento per gli eventi locali, offrendo strumenti moderni per organizzatori e un'esperienza semplice e personalizzata per gli utenti.
+
+---
+
+## ❤️ Made in Italy 🇮🇹
