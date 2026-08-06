@@ -257,6 +257,8 @@ paths:
                   type: string
                   pattern: '^\+?[0-9]{7,15}$'
                   description: Numero operativo normalizzato e salvato come dato storico della prenotazione.
+                save_phone_to_profile: { type: boolean, default: false, description: Se true aggiorna facoltativamente il telefono del profilo Customer. }
+                notes: { type: [string, "null"], maxLength: 1000 }
                 adults_count: { type: integer, minimum: 0, maximum: 50 }
                 children_count: { type: integer, minimum: 0, maximum: 50 }
                 items:
@@ -288,6 +290,38 @@ paths:
       responses:
         "200": { description: Prenotazione }
         "403": { description: Prenotazione altrui }
+    patch:
+      security: [{ bearerAuth: [] }]
+      summary: Modifica ticket, quantità, telefono e note di una prenotazione Customer
+      description: Aggiorna atomicamente disponibilità evento e contingenti ticket senza cambiare prenotazione, codice o QR.
+      parameters:
+        - { name: booking, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, adults_count, items]
+              properties:
+                phone: { type: string, pattern: '^\+?[0-9]{7,15}$' }
+                save_phone_to_profile: { type: boolean, default: false }
+                notes: { type: [string, "null"], maxLength: 1000 }
+                adults_count: { type: integer, minimum: 0, maximum: 50 }
+                children_count: { type: integer, minimum: 0, maximum: 50 }
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [ticket_type_ulid, quantity]
+                    properties:
+                      ticket_type_ulid: { type: string, minLength: 26, maxLength: 26 }
+                      quantity: { type: integer, minimum: 1, maximum: 50 }
+      responses:
+        "200": { description: Prenotazione modificata; QR invariato }
+        "403": { description: Prenotazione altrui }
+        "422": { description: Prenotazione non modificabile o disponibilità insufficiente }
   /me/bookings/{booking}/qr:
     get:
       security: [{ bearerAuth: [] }]

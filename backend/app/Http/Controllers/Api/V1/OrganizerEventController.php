@@ -125,20 +125,20 @@ class OrganizerEventController extends Controller
     {
         $this->authorize('viewOrganizer', $event);
         $validated = validator($request->query(), ['search' => ['sometimes', 'string', 'max:120'], 'filter' => ['sometimes', 'in:all,pending,checked_in'], 'page' => ['sometimes', 'integer', 'min:1'], 'per_page' => ['sometimes', 'integer', 'min:1', 'max:50'], 'format' => ['sometimes', 'in:json,csv']])->validate();
-        $query = $event->bookings()->with(['user:id,name,email', 'checkIns'])->whereIn('status', ['confirmed', 'checked_in', 'completed']);
+        $query = $event->bookings()->with(['user:id,name,email', 'checkIns', 'items.ticketType'])->whereIn('status', ['confirmed', 'checked_in', 'completed']);
         $search = trim((string) ($validated['search'] ?? ''));
         $query->when($search !== '', fn ($bookings) => $bookings->where(fn ($nested) => $nested->where('booking_code', 'ilike', "%{$search}%")->orWhereHas('user', fn ($users) => $users->where('name', 'ilike', "%{$search}%")->orWhere('email', 'ilike', "%{$search}%"))));
         $filter = $validated['filter'] ?? 'all';
         $query->when($filter === 'checked_in', fn ($bookings) => $bookings->whereHas('checkIns'))->when($filter === 'pending', fn ($bookings) => $bookings->whereDoesntHave('checkIns'))->latest('booked_at');
-        $serialize = fn ($booking) => ['booking_ulid' => $booking->ulid, 'booking_code' => $booking->booking_code, 'name' => $booking->user->name, 'email' => $booking->user->email, 'phone' => $booking->contact_phone, 'people' => $booking->total_people, 'status' => $booking->status, 'checked_in' => $booking->checkIns->isNotEmpty(), 'checked_in_at' => $booking->checkIns->first()?->checked_in_at];
+        $serialize = fn ($booking) => ['booking_ulid' => $booking->ulid, 'booking_code' => $booking->booking_code, 'name' => $booking->user->name, 'email' => $booking->user->email, 'phone' => $booking->contact_phone, 'tickets' => $booking->items->map(fn ($item) => "{$item->ticketType->name} x {$item->quantity}")->implode(', '), 'people' => $booking->total_people, 'status' => $booking->status, 'checked_in' => $booking->checkIns->isNotEmpty(), 'checked_in_at' => $booking->checkIns->first()?->checked_in_at];
         if (($validated['format'] ?? 'json') === 'csv') {
             $rows = $query->get()->map($serialize);
 
             return response()->streamDownload(function () use ($rows): void {
                 $output = fopen('php://output', 'w');
-                fputcsv($output, ['Codice', 'Cliente', 'Email', 'Telefono', 'Persone', 'Stato', 'Check-in']);
+                fputcsv($output, ['Codice', 'Cliente', 'Email', 'Telefono', 'Biglietti', 'Persone', 'Stato', 'Check-in']);
                 foreach ($rows as $row) {
-                    fputcsv($output, [$row['booking_code'], $row['name'], $row['email'], $row['phone'], $row['people'], $row['status'], $row['checked_in_at']]);
+                    fputcsv($output, [$row['booking_code'], $row['name'], $row['email'], $row['phone'], $row['tickets'], $row['people'], $row['status'], $row['checked_in_at']]);
                 }
                 fclose($output);
             }, "partecipanti-{$event->ulid}.csv", ['Content-Type' => 'text/csv; charset=UTF-8']);

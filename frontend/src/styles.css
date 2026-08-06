@@ -1213,6 +1213,14 @@ button {
 .customer-ticket-row span, .customer-ticket-row small { display: block; }
 .customer-ticket-row input { width: 80px; padding: .6rem; }
 .booking-confirmation { padding: 1rem; border-radius: 12px; background: #ecf8f0; }
+.booking-summary { display: grid; gap: .65rem; padding: 1rem; border: 1px solid #dfe7e1; border-radius: 12px; background: #f8fbf9; }
+.booking-summary ul { display: grid; gap: .45rem; margin: 0; padding: 0; list-style: none; }
+.booking-summary li, .booking-total { display: flex; justify-content: space-between; gap: 1rem; }
+.booking-total { padding-top: .65rem; border-top: 1px solid #dfe7e1; font-size: 1.1rem; }
+.checkbox-field { display: flex; align-items: center; gap: .6rem; }
+.dialog-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 1rem; background: rgba(12, 25, 17, .65); }
+.booking-dialog { width: min(560px, 100%); max-height: calc(100vh - 2rem); overflow-y: auto; display: grid; gap: 1rem; padding: 1.4rem; border-radius: 16px; background: #fff; box-shadow: 0 24px 70px rgba(0,0,0,.25); }
+.booking-edit-dialog { width: min(720px, 100%); }
 
 @media (max-width: 680px) {
   .booking-toolbar form { flex-direction: column; }
@@ -1221,6 +1229,8 @@ button {
   .subscription-plan-form .full-row { grid-column: auto; }
   .booking-detail-wide { grid-column: auto; }
   .booking-table th:nth-child(3), .booking-table td:nth-child(3) { display: none; }
+  .customer-ticket-row { align-items: flex-start; }
+  .booking-dialog .action-row { display: grid; grid-template-columns: 1fr; }
 }
 
 .auth-role-grid {

@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api\V1;
 use App\Actions\Bookings\CancelBooking;
 use App\Actions\Bookings\CreateBooking;
 use App\Actions\Bookings\ResolveBookingQr;
+use App\Actions\Bookings\UpdateBooking;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreBookingRequest;
+use App\Http\Requests\UpdateBookingRequest;
 use App\Models\Booking;
 use App\Models\Event;
 use App\Services\OperationalEmailService;
@@ -35,6 +37,7 @@ class BookingController extends Controller
         $bookings->each(function (Booking $booking): void {
             $booking->makeVisible('contact_phone');
             $booking->setAttribute('can_cancel', $booking->status === 'confirmed' && $booking->event->starts_at->isFuture());
+            $booking->setAttribute('can_edit', $booking->status === 'confirmed' && $booking->event->starts_at->isFuture());
         });
 
         return response()->json([
@@ -47,6 +50,18 @@ class BookingController extends Controller
         abort_unless($booking->user_id === request()->user()->id, 403);
 
         return response()->json(['data' => $booking->load(['event.categories', 'items.ticketType'])->makeVisible('contact_phone')]);
+    }
+
+    public function update(UpdateBookingRequest $request, Booking $booking, UpdateBooking $updateBooking): JsonResponse
+    {
+        abort_unless($booking->user_id === $request->user()->id, 403);
+
+        $booking = $updateBooking->handle($request->user(), $booking, $request->validated());
+        $booking->makeVisible('contact_phone');
+        $booking->setAttribute('can_cancel', true);
+        $booking->setAttribute('can_edit', true);
+
+        return response()->json(['data' => $booking]);
     }
 
     public function cancel(Booking $booking, CancelBooking $cancelBooking, OperationalEmailService $emails): JsonResponse

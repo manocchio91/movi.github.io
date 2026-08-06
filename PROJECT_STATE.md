@@ -5,7 +5,7 @@
 ## Riferimenti correnti
 
 - Versione corrente: `v1.3 - Hardened MVP for Private Beta`
-- Ultimo aggiornamento: 5 agosto 2026
+- Ultimo aggiornamento: 6 agosto 2026
 - Repository: `manocchio91/app-eventi`
 - Branch corrente: `feat/mvp-beta-hardening`
 - Commit milestone: `v1.3 - Harden MVP and prepare private beta`
@@ -43,7 +43,7 @@
 
 ## Task corrente
 
-Beta privata pronta: hardening MVP completato e telefono operativo obbligatorio nelle prenotazioni Customer approvato dal Product Owner.
+Customer Booking Experience completata end-to-end e approvata nel Browser QA dal Product Owner.
 
 ## Funzionalità completate
 
@@ -60,6 +60,7 @@ Beta privata pronta: hardening MVP completato e telefono operativo obbligatorio 
 - Lista e dettaglio Prenotazioni Organizer in sola lettura, con ricerca, filtri, ordinamento, paginazione e isolamento per proprietario evento.
 - Flusso Customer web ripristinato dalla lista pubblica al dettaglio evento, scelta ticket, prenotazione idempotente e QR.
 - Telefono Customer obbligatorio, normalizzato e storicizzato nella singola prenotazione; visibile solo al Customer proprietario, all'Organizer dell'evento e agli Admin autorizzati, incluso il CSV partecipanti.
+- Prenotazioni Customer modificabili e annullabili con conferma, riepilogo dinamico, aggiornamento atomico di ticket, quantità e disponibilità, conservando booking code e QR.
 - Identificatori pubblici di eventi e ticket uniformati su ULID nel flusso Customer.
 - Partecipanti Organizer per evento con ricerca, filtri, paginazione, conteggi ed esportazione CSV; ogni riga conserva la semantica reale della prenotazione e di `total_people`.
 - Check-in Organizer tramite token QR o codice prenotazione, con blocco dei riutilizzi, delle prenotazioni annullate e dei codici appartenenti ad altri eventi.
@@ -87,6 +88,8 @@ Beta privata pronta: hardening MVP completato e telefono operativo obbligatorio 
 - Browser QA finale v1.2 confermato dal Product Owner su dashboard, ricerca, dettagli, transizioni e accordi Admin.
 - Browser QA finale v1.3 confermato dal Product Owner su web Customer/Organizer/Admin e mobile Customer/Organizer beta.
 - Browser QA del telefono obbligatorio nella prenotazione Customer confermato dal Product Owner.
+- Browser QA finale Customer Booking Experience confermato: singola PATCH, payload completo, aggiornamento UI e disponibilità, QR e booking code invariati.
+- Regression gate Customer Booking Experience: test frontend 4/4, test backend mirati 3/3 con 71 asserzioni; suite Laravel 99 test e 715 asserzioni, Pint, PHPStan, ESLint, build e `git diff --check` verdi.
 
 ## Prossimo task
 
@@ -96,7 +99,7 @@ Preparazione e gestione operativa della beta privata.
 
 - Il lint Redocly rileva 49 errori strutturali preesistenti e 176 warning; i contratti modificati sono coerenti e non è stata introdotta alcuna regressione. La bonifica globale resta un task dedicato.
 - Flutter Organizer reale resta debito della fase successiva; nella beta le funzioni Organizer sono esclusivamente web.
-- Test frontend automatizzati.
+- La copertura frontend automatizzata resta limitata al flusso critico di modifica prenotazione; ampliare progressivamente agli altri componenti.
 - Upload immagini evento non incluso.
 - Redesign grafico generale non incluso.
 

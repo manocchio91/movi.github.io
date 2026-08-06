@@ -38,6 +38,24 @@ class AuthRegistrationTest extends TestCase
             ->assertOk();
     }
 
+    public function test_seeded_customer_can_login_and_receive_a_sanctum_token(): void
+    {
+        $this->seed();
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'email' => 'customer@example.test',
+            'password' => 'password',
+        ])->assertOk()
+            ->assertJsonPath('user.role', 'customer')
+            ->assertJsonPath('redirect_to', '/customer/dashboard')
+            ->assertJsonStructure(['token']);
+
+        $this->withToken($response->json('token'))
+            ->getJson('/api/v1/me')
+            ->assertOk()
+            ->assertJsonPath('user.email', 'customer@example.test');
+    }
+
     public function test_registration_rejects_duplicate_email_and_wrong_password_confirmation(): void
     {
         User::factory()->create(['email' => 'duplicata@example.test']);

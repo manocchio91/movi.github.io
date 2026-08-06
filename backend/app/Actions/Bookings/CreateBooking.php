@@ -134,6 +134,10 @@ class CreateBooking
                     'sent_at' => now(),
                 ]);
 
+                if ((bool) ($data['save_phone_to_profile'] ?? false)) {
+                    $user->forceFill(['phone' => $data['phone']])->save();
+                }
+
                 $booking->setAttribute('qr_token', $qrToken);
 
                 return $this->responseBooking($booking);

@@ -22,8 +22,9 @@ class StoreBookingRequest extends FormRequest
             'accessibility_needs' => ['nullable', 'string', 'max:1000'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'phone' => ['required', 'string', 'regex:/^\+?[0-9]{7,15}$/'],
+            'save_phone_to_profile' => ['sometimes', 'boolean'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.ticket_type_ulid' => ['required', 'string', 'size:26', 'exists:ticket_types,ulid'],
+            'items.*.ticket_type_ulid' => ['required', 'string', 'size:26', 'distinct', 'exists:ticket_types,ulid'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:50'],
         ];
     }

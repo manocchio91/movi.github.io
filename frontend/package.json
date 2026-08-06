@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test:booking": "node --test src/bookingUpdate.test.ts"
   },
   "dependencies": {
     "@vitejs/plugin-vue": "^5.2.4",

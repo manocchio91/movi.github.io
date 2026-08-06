@@ -96,7 +96,7 @@ Completata end-to-end:
 4. Error handling, sessioni, autorizzazioni, messaggi e contratti modificati sottoposti a hardening.
 5. Regression gate automatico e Browser QA desktop, tablet e mobile completati.
 6. Debito Redocly invariato nella natura: 49 errori preesistenti e 176 warning, nessuna regressione introdotta.
-7. Prenotazioni Customer completate con telefono operativo obbligatorio, normalizzato e storicizzato, esposto esclusivamente agli attori autorizzati e incluso negli strumenti Organizer.
+7. Customer Booking Experience completata con telefono obbligatorio, riepilogo e conferma, modifica e annullamento, disponibilità atomica, QR e booking code invariati, aggiornamento degli strumenti Organizer e regression test frontend/backend.
 
 ## Attività future
 
