@@ -2,11 +2,14 @@ openapi: 3.1.0
 info:
   title: Eventi Locali API
   version: 0.2.0
+  license: { name: Proprietary, identifier: LicenseRef-Proprietary }
 servers:
-  - url: http://localhost:8080/api/v1
+  - url: /api/v1
 paths:
   /auth/register:
     post:
+      operationId: post_auth_register
+      security: []
       summary: Registra e autentica un customer o un organizer
       requestBody:
         required: true
@@ -19,9 +22,12 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AuthResponse" }
-        "422": { description: Payload non valido, conferma password errata o email duplicata }
+        "422": { description: "Payload non valido, conferma password errata o email duplicata" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /auth/login:
     post:
+      operationId: post_auth_login
+      security: []
       summary: Login e token Sanctum con role e redirect_to
       requestBody:
         required: true
@@ -35,15 +41,19 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/AuthResponse" }
         "401": { description: Credenziali non valide }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /auth/logout:
     post:
+      operationId: post_auth_logout
       security: [{ bearerAuth: [] }]
       summary: Revoca il token Sanctum corrente
       responses:
         "200": { description: Logout eseguito }
         "401": { description: Token assente o non valido }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /me:
     get:
+      operationId: get_me
       security: [{ bearerAuth: [] }]
       summary: Verifica e ripristina la sessione corrente
       responses:
@@ -52,14 +62,21 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/SessionResponse" }
-        "401": { description: Token assente, revocato o non valido }
+        "401": { description: "Token assente, revocato o non valido" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /categories:
     get:
+      operationId: get_categories
+      security: []
       summary: Macroaree evento
       responses:
         "200": { description: Lista categorie }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /events:
     get:
+      operationId: get_events
+      security: []
       summary: Eventi pubblicati
       parameters:
         - { name: q, in: query, description: Ricerca case-insensitive in titolo e descrizione, schema: { type: string, maxLength: 200 } }
@@ -71,21 +88,32 @@ paths:
         - { name: available, in: query, schema: { type: boolean } }
       responses:
         "200": { description: Lista paginata }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /events/{event}:
     get:
+      operationId: get_events_event
+      security: []
       summary: Dettaglio evento pubblicato
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Evento }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /events/{event}/reviews:
     get:
+      operationId: get_events_event_reviews
+      security: []
       summary: Recensioni approvate e statistiche evento
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Lista paginata con statistiche recensioni }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
     post:
+      operationId: post_events_event_reviews
       security: [{ bearerAuth: [] }]
       summary: Crea recensione da prenotazione confermata e partecipata
       parameters:
@@ -94,61 +122,88 @@ paths:
         "201": { description: Recensione creata }
         "403": { description: Prenotazione/partecipazione mancante o organizer proprietario }
         "422": { description: Recensione duplicata o payload non valido }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /reviews/{review}/report:
     post:
+      operationId: post_reviews_review_report
       security: [{ bearerAuth: [] }]
       summary: Segnala una recensione
       parameters:
         - { name: review, in: path, required: true, schema: { type: string } }
       responses:
         "201": { description: Segnalazione aperta }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /subscription-plans:
     get:
+      operationId: get_subscription_plans
+      security: []
       summary: Piani SaaS disponibili per organizzatori
       responses:
         "200": { description: Lista piani con feature }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizers/{organizer}:
     get:
+      operationId: get_organizers_organizer
+      security: []
       summary: Profilo pubblico organizzatore con esperienze future e concluse
       parameters:
         - { name: organizer, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Profilo pubblico }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizers/{organizer}/follow:
     post:
+      operationId: post_organizers_organizer_follow
       security: [{ bearerAuth: [] }]
       summary: Segui organizzatore
       parameters:
         - { name: organizer, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Organizzatore seguito }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
     delete:
+      operationId: delete_organizers_organizer_follow
       security: [{ bearerAuth: [] }]
       summary: Smetti di seguire organizzatore
       parameters:
         - { name: organizer, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Follow rimosso }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /me/preferences:
     get:
+      operationId: get_me_preferences
       security: [{ bearerAuth: [] }]
       summary: Preferenze macroarea del cliente
       responses:
         "200": { description: Preferenze }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
     put:
+      operationId: put_me_preferences
       security: [{ bearerAuth: [] }]
       summary: Aggiorna preferenze macroarea
       responses:
         "200": { description: Preferenze aggiornate }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /customer/dashboard:
     get:
+      operationId: get_customer_dashboard
       security: [{ bearerAuth: [] }]
       summary: Dashboard cliente protetta da role:customer
       responses:
-        "200": { description: Eventi di successo, eventi futuri, consigliati, booking, preferiti e notifiche }
+        "200": { description: "Eventi di successo, eventi futuri, consigliati, booking, preferiti e notifiche" }
         "403": { description: Ruolo non autorizzato }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /customer/successful-events:
     get:
+      operationId: get_customer_successful_events
       security: [{ bearerAuth: [] }]
       summary: Eventi di Successo per customer
       parameters:
@@ -163,55 +218,73 @@ paths:
       responses:
         "200": { description: Lista eventi conclusi con dati pubblici e aggregati }
         "403": { description: Solo customer }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /customer/successful-events/{event}:
     get:
+      operationId: get_customer_successful_events_event
       security: [{ bearerAuth: [] }]
       summary: Dettaglio pubblico aggregato di un evento concluso di successo
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
-        "200": { description: Dettaglio con recensioni pubbliche, nuova edizione e simili }
+        "200": { description: "Dettaglio con recensioni pubbliche, nuova edizione e simili" }
         "404": { description: Evento non ammesso al feed }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /customer/successful-events/{event}/next-editions:
     get:
+      operationId: get_customer_successful_events_event_next_editions
       security: [{ bearerAuth: [] }]
       summary: Nuove edizioni future collegate via event_series
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Edizioni future prenotabili se pubblicate }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /customer/successful-events/{event}/similar:
     get:
+      operationId: get_customer_successful_events_event_similar
       security: [{ bearerAuth: [] }]
       summary: Eventi futuri simili per categoria e territorio
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Eventi simili deterministici }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /customer/successful-events/{event}/notify-similar:
     post:
+      operationId: post_customer_successful_events_event_notify_similar
       security: [{ bearerAuth: [] }]
       summary: Attiva notifiche per format simili
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
         "201": { description: Preferenza salvata in customer_event_format_interests }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
     delete:
+      operationId: delete_customer_successful_events_event_notify_similar
       security: [{ bearerAuth: [] }]
       summary: Disattiva notifiche per format simili
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Preferenza rimossa }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /me/favorites:
     get:
+      operationId: get_me_favorites
       security: [{ bearerAuth: [] }]
       summary: Preferiti cliente
       responses:
         "200": { description: Lista preferiti }
         "403": { description: Solo customer }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /me/favorites/{event}:
     post:
+      operationId: post_me_favorites_event
       security: [{ bearerAuth: [] }]
       summary: Salva evento tra i preferiti
       parameters:
@@ -219,7 +292,9 @@ paths:
       responses:
         "201": { description: Preferito creato }
         "403": { description: Solo customer }
+        "500": { $ref: "#/components/responses/InternalServerError" }
     delete:
+      operationId: delete_me_favorites_event
       security: [{ bearerAuth: [] }]
       summary: Rimuovi evento dai preferiti
       parameters:
@@ -227,19 +302,27 @@ paths:
       responses:
         "200": { description: Preferito rimosso }
         "403": { description: Solo customer }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /me/notification-preferences:
     get:
+      operationId: get_me_notification_preferences
       security: [{ bearerAuth: [] }]
       summary: Preferenze notifica
       responses:
         "200": { description: Preferenze notifica }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
     put:
+      operationId: put_me_notification_preferences
       security: [{ bearerAuth: [] }]
       summary: Aggiorna preferenze notifica
       responses:
         "200": { description: Preferenze aggiornate }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /events/{event}/bookings:
     post:
+      operationId: post_events_event_bookings
       security: [{ bearerAuth: [] }]
       summary: Prenota posti per un evento
       parameters:
@@ -275,14 +358,19 @@ paths:
         "401": { description: Autenticazione richiesta }
         "403": { description: Solo Customer }
         "422": { description: Posti non disponibili o richiesta non valida }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /me/bookings:
     get:
+      operationId: get_me_bookings
       security: [{ bearerAuth: [] }]
       summary: Prenotazioni del cliente, incluso il telefono storico del proprietario autenticato
       responses:
         "200": { description: Lista prenotazioni }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /me/bookings/{booking}:
     get:
+      operationId: get_me_bookings_booking
       security: [{ bearerAuth: [] }]
       summary: Dettaglio prenotazione cliente, incluso il telefono storico
       parameters:
@@ -290,7 +378,9 @@ paths:
       responses:
         "200": { description: Prenotazione }
         "403": { description: Prenotazione altrui }
+        "500": { $ref: "#/components/responses/InternalServerError" }
     patch:
+      operationId: patch_me_bookings_booking
       security: [{ bearerAuth: [] }]
       summary: Modifica ticket, quantità, telefono e note di una prenotazione Customer
       description: Aggiorna atomicamente disponibilità evento e contingenti ticket senza cambiare prenotazione, codice o QR.
@@ -322,8 +412,10 @@ paths:
         "200": { description: Prenotazione modificata; QR invariato }
         "403": { description: Prenotazione altrui }
         "422": { description: Prenotazione non modificabile o disponibilità insufficiente }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /me/bookings/{booking}/qr:
     get:
+      operationId: get_me_bookings_booking_qr
       security: [{ bearerAuth: [] }]
       summary: Recupera il token QR persistente della prenotazione Customer
       description: Il token resta recuperabile dopo il check-in, ma non può essere riutilizzato. Hash e ciphertext non sono mai esposti.
@@ -348,41 +440,58 @@ paths:
         "403": { description: Prenotazione altrui o ruolo non Customer }
         "404": { description: Prenotazione non trovata }
         "409": { description: Booking legacy senza token QR recuperabile }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /me/bookings/{booking}/cancel:
     post:
+      operationId: post_me_bookings_booking_cancel
       security: [{ bearerAuth: [] }]
       summary: Annulla prenotazione e libera posti
       parameters:
         - { name: booking, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Prenotazione annullata }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /me/notifications:
     get:
+      operationId: get_me_notifications
       security: [{ bearerAuth: [] }]
       summary: Centro notifiche
       responses:
         "200": { description: Lista notifiche }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /me/notifications/{notification}/read:
     post:
+      operationId: post_me_notifications_notification_read
       security: [{ bearerAuth: [] }]
       summary: Marca una notifica come letta
       parameters:
         - { name: notification, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Notifica letta }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /me/notifications/read-all:
     post:
+      operationId: post_me_notifications_read_all
       security: [{ bearerAuth: [] }]
       summary: Marca tutte le notifiche come lette
       responses:
         "200": { description: Notifiche lette }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/profile:
     get:
+      operationId: get_organizer_profile
       security: [{ bearerAuth: [] }]
       summary: Profilo fiscale e pubblico dell'Organizer autenticato
       responses:
         "200": { description: Profilo }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
     patch:
+      operationId: patch_organizer_profile
       security: [{ bearerAuth: [] }]
       summary: Salva parzialmente il profilo Organizer modificabile
       requestBody:
@@ -394,16 +503,20 @@ paths:
         "200": { description: Profilo aggiornato }
         "409": { description: Profilo non modificabile nello stato corrente }
         "422": { description: Dati non validi }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/profile/submit:
     post:
+      operationId: post_organizer_profile_submit
       security: [{ bearerAuth: [] }]
       summary: Invia il profilo fiscale completo all'approvazione Admin
       responses:
         "200": { description: Profilo passato allo stato pending con submitted_at valorizzato }
         "409": { description: Transizione non valida }
         "422": { description: Dati fiscali obbligatori incompleti o non validi }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/dashboard:
     get:
+      operationId: get_organizer_dashboard
       security: [{ bearerAuth: [] }]
       summary: Dashboard SaaS organizzatore protetta da role:organizer e organizer.approved
       description: >-
@@ -422,107 +535,157 @@ paths:
                 $ref: "#/components/schemas/OrganizerDashboardResponse"
         "401": { description: Token Sanctum assente o non valido }
         "403": { description: Organizer non approvato o ruolo errato }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/reviews:
     get:
+      operationId: get_organizer_reviews
       security: [{ bearerAuth: [] }]
       summary: Recensioni del profilo organizzatore
       responses:
-        "200": { description: Statistiche, distribuzione stelle, recensioni recenti, migliori e critiche }
+        "200": { description: "Statistiche, distribuzione stelle, recensioni recenti, migliori e critiche" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/statistics:
     get:
+      operationId: get_organizer_statistics
       security: [{ bearerAuth: [] }]
       summary: KPI business intelligence organizzatore
       responses:
         "200": { description: KPI e performance categorie }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/analytics:
     get:
+      operationId: get_organizer_analytics
       security: [{ bearerAuth: [] }]
       summary: Eventi analytics recenti
       responses:
         "200": { description: Lista analytics events }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/followers:
     get:
+      operationId: get_organizer_followers
       security: [{ bearerAuth: [] }]
       summary: Utenti che seguono il locale
       responses:
         "200": { description: Lista follower }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/categories:
     get:
+      operationId: get_organizer_categories
       security: [{ bearerAuth: [] }]
       summary: Performance categorie
       responses:
-        "200": { description: Categoria, eventi, prenotazioni, fill rate }
+        "200": { description: "Categoria, eventi, prenotazioni, fill rate" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/opportunities:
     get:
+      operationId: get_organizer_opportunities
       security: [{ bearerAuth: [] }]
       summary: Organizer Opportunity Engine
       responses:
-        "200": { description: Concorrenza, suggerimenti AI/fallback e top events aggregati }
+        "200": { description: "Concorrenza, suggerimenti AI/fallback e top events aggregati" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/opportunities/generate:
     post:
+      operationId: post_organizer_opportunities_generate
       security: [{ bearerAuth: [] }]
       summary: Genera suggerimenti evento server-side con fallback stagionale
       responses:
         "201": { description: Suggerimenti salvati in ai_event_suggestions }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/opportunities/top-events:
     get:
+      operationId: get_organizer_opportunities_top_events
       security: [{ bearerAuth: [] }]
       summary: Eventi di maggior successo con dati pubblici o aggregati
       responses:
         "200": { description: Feed ispirazione filtrato da show_in_inspiration_feed }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/opportunities/{suggestion}/use:
     post:
+      operationId: post_organizer_opportunities_suggestion_use
       security: [{ bearerAuth: [] }]
       summary: Crea bozza da suggerimento senza pubblicare
       parameters:
         - { name: suggestion, in: path, required: true, schema: { type: string } }
       responses:
         "201": { description: Bozza evento creata }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/top-events/{event}/inspire:
     post:
+      operationId: post_organizer_top_events_event_inspire
       security: [{ bearerAuth: [] }]
       summary: Crea bozza generica ispirata a un format di successo
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
         "201": { description: Bozza generica creata senza copiare contenuti protetti }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/campaigns:
     get:
+      operationId: get_organizer_campaigns
       security: [{ bearerAuth: [] }]
       summary: Campagne tracciate
       responses:
         "200": { description: Lista campagne con statistiche }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
     post:
+      operationId: post_organizer_campaigns
       security: [{ bearerAuth: [] }]
       summary: Crea campagna promozionale semplice
       responses:
         "201": { description: Campagna creata }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/calendar:
     get:
+      operationId: get_organizer_calendar
       security: [{ bearerAuth: [] }]
       summary: Vista calendario giornaliera o mensile
       responses:
         "200": { description: Esperienze con colore categoria }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/calendar/availability:
     get:
+      operationId: get_organizer_calendar_availability
       security: [{ bearerAuth: [] }]
       summary: Disponibilita mensile con livello empty, low o crowded
       responses:
         "200": { description: Giorni con conteggio eventi pubblici e colore logico }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/calendar/events:
     get:
+      operationId: get_organizer_calendar_events
       security: [{ bearerAuth: [] }]
       summary: Eventi pubblici sintetici in una data
       responses:
-        "200": { description: Titolo, categoria, ora, comune, organizer e sold out }
+        "200": { description: "Titolo, categoria, ora, comune, organizer e sold out" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/map:
     get:
+      operationId: get_organizer_map
       security: [{ bearerAuth: [] }]
       summary: Vista mappa esperienze vicine
       responses:
-        "200": { description: Marker con categoria, luogo e distanza }
+        "200": { description: "Marker con categoria, luogo e distanza" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/events:
     get:
+      operationId: get_organizer_events
       security: [{ bearerAuth: [] }]
       summary: Eventi del locale
       description: Lista paginata degli eventi del solo Organizer autenticato, classificata con la stessa semantica della dashboard.
@@ -549,7 +712,9 @@ paths:
         "401": { description: Token assente o non valido }
         "403": { description: Ruolo Organizer o profilo approvato richiesto }
         "422": { description: Parametri di filtro o paginazione non validi }
+        "500": { $ref: "#/components/responses/InternalServerError" }
     post:
+      operationId: post_organizer_events
       security: [{ bearerAuth: [] }]
       summary: Crea una bozza evento con ticket type
       description: Assegna automaticamente l'Organizer autenticato. Stato, disponibilità, prenotazioni e identificatori protetti non sono accettati dal client.
@@ -567,8 +732,10 @@ paths:
         "401": { description: Token assente o non valido }
         "403": { description: Ruolo Organizer o profilo approvato richiesto }
         "422": { description: Payload non valido o campo protetto presente }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/events/{event}:
     get:
+      operationId: get_organizer_events_event
       security: [{ bearerAuth: [] }]
       summary: Carica un proprio evento per la modifica
       parameters:
@@ -582,7 +749,9 @@ paths:
         "401": { description: Token assente o non valido }
         "403": { description: Evento appartenente a un altro Organizer }
         "404": { description: Evento non trovato }
+        "500": { $ref: "#/components/responses/InternalServerError" }
     put:
+      operationId: put_organizer_events_event
       security: [{ bearerAuth: [] }]
       summary: Aggiorna un proprio evento modificabile preservando identità e prenotazioni dei ticket
       parameters:
@@ -601,8 +770,10 @@ paths:
         "401": { description: Token assente o non valido }
         "403": { description: Evento altrui o stato non modificabile }
         "404": { description: Evento non trovato }
-        "422": { description: Payload non valido, quantità sotto le prenotazioni o rimozione di ticket prenotato }
+        "422": { description: "Payload non valido, quantità sotto le prenotazioni o rimozione di ticket prenotato" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
     patch:
+      operationId: patch_organizer_events_event
       security: [{ bearerAuth: [] }]
       summary: Aggiorna un proprio evento usando lo stesso contratto completo della PUT
       parameters:
@@ -618,8 +789,10 @@ paths:
         "403": { description: Evento altrui o stato non modificabile }
         "404": { description: Evento non trovato }
         "422": { description: Payload non valido o vincolo prenotazioni violato }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/events/{event}/publish:
     post:
+      operationId: post_organizer_events_event_publish
       security: [{ bearerAuth: [] }]
       summary: Pubblica evento e genera notifiche ai clienti interessati
       parameters:
@@ -634,24 +807,32 @@ paths:
         "403": { description: Evento altrui o Organizer non approvato }
         "404": { description: Evento non trovato }
         "422": { description: Stato non pubblicabile o evento incompleto }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/events/{event}/cancel:
     post:
+      operationId: post_organizer_events_event_cancel
       security: [{ bearerAuth: [] }]
       summary: Annulla un proprio evento futuro con reason_code e reason
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
-        "200": { description: Evento annullato, prenotazioni chiuse e notifiche accodate }
+        "200": { description: "Evento annullato, prenotazioni chiuse e notifiche accodate" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/events/{event}/bookings:
     get:
+      operationId: get_organizer_events_event_bookings
       security: [{ bearerAuth: [] }]
       summary: Prenotazioni ricevute dal locale
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Lista prenotazioni }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/bookings:
     get:
+      operationId: get_organizer_bookings
       security: [{ bearerAuth: [] }]
       summary: Elenco paginato delle prenotazioni ricevute dall'Organizer
       parameters:
@@ -662,12 +843,14 @@ paths:
         - { name: page, in: query, schema: { type: integer, minimum: 1 } }
         - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 15 } }
       responses:
-        "200": { description: Prenotazioni visibili all'Organizer, con metadati di paginazione }
+        "200": { description: "Prenotazioni visibili all'Organizer, con metadati di paginazione" }
         "401": { description: Token assente o non valido }
         "403": { description: Ruolo non consentito o profilo Organizer non approvato }
-        "422": { description: Parametri di ricerca, filtro o ordinamento non validi }
+        "422": { description: "Parametri di ricerca, filtro o ordinamento non validi" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/bookings/{booking}:
     get:
+      operationId: get_organizer_bookings_booking
       security: [{ bearerAuth: [] }]
       summary: Dettaglio in sola lettura di una prenotazione ricevuta
       parameters:
@@ -677,8 +860,10 @@ paths:
         "401": { description: Token assente o non valido }
         "403": { description: Prenotazione di un altro Organizer o ruolo non consentito }
         "404": { description: Prenotazione non trovata }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/events/{event}/check-ins:
     post:
+      operationId: post_organizer_events_event_check_ins
       security: [{ bearerAuth: [] }]
       summary: Registra una sola volta il check-in tramite QR o codice prenotazione
       parameters:
@@ -713,16 +898,21 @@ paths:
                       checked_in_at: { type: string, format: date-time }
         "404": { description: QR non valido }
         "409": { description: QR già utilizzato }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/events/{event}/summary:
     get:
+      operationId: get_organizer_events_event_summary
       security: [{ bearerAuth: [] }]
       summary: Riepilogo aperto/chiuso con prenotati, check-in, no-show e rating
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Summary evento proprietario }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/events/{event}/participants:
     get:
+      operationId: get_organizer_events_event_participants
       security: [{ bearerAuth: [] }]
       summary: Partecipanti del proprio evento
       parameters:
@@ -733,67 +923,92 @@ paths:
         - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 15 } }
         - { name: format, in: query, schema: { type: string, enum: [json, csv], default: json } }
       responses:
-          "200": { description: "Prenotazioni-partecipanti con telefono storico, conteggi e stato check-in oppure esportazione CSV; solo Organizer proprietario" }
+        "200": { description: "Prenotazioni-partecipanti con telefono storico, conteggi e stato check-in oppure esportazione CSV; solo Organizer proprietario" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/events/{event}/reviews:
     get:
+      operationId: get_organizer_events_event_reviews
       security: [{ bearerAuth: [] }]
       summary: Recensioni del proprio evento
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Recensioni e statistiche evento }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/reviews/events:
     get:
+      operationId: get_organizer_reviews_events
       security: [{ bearerAuth: [] }]
       summary: Recensioni raggruppate per evento
       responses:
-        "200": { description: Lista eventi con media, conteggio, distribuzione e ultima recensione }
+        "200": { description: "Lista eventi con media, conteggio, distribuzione e ultima recensione" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/dashboard:
     get:
+      operationId: get_admin_dashboard
       security: [{ bearerAuth: [] }]
       summary: Dashboard amministrativa reale con KPI operativi ed economici teorici, protetta da role:admin
       responses:
-        "200": { description: KPI piattaforma, organizer, eventi, sospensioni e report review }
+        "200": { description: "KPI piattaforma, organizer, eventi, sospensioni e report review" }
         "403": { description: Solo admin }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/overview:
     get:
+      operationId: get_admin_overview
       security: [{ bearerAuth: [] }]
       summary: Console amministratore completa orientata ai dati
       responses:
-        "200": { description: KPI, grafici, ultime attivita, eventi, organizzatori, clienti, recensioni, categorie, territorio, abbonamenti e audit log }
+        "200": { description: "KPI, grafici, ultime attivita, eventi, organizzatori, clienti, recensioni, categorie, territorio, abbonamenti e audit log" }
         "403": { description: Solo admin }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/events:
     get:
+      operationId: get_admin_events
       security: [{ bearerAuth: [] }]
       summary: Lista completa eventi con filtri admin
       responses:
         "200": { description: Lista paginata eventi e statistiche stato }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/events/{event}:
     get:
+      operationId: get_admin_events_event
       security: [{ bearerAuth: [] }]
       summary: Dettaglio evento admin
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
-        "200": { description: Evento con prenotazioni, recensioni, ranking e annullamento }
+        "200": { description: "Evento con prenotazioni, recensioni, ranking e annullamento" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/events/{event}/suspend:
     post:
+      operationId: post_admin_events_event_suspend
       security: [{ bearerAuth: [] }]
       summary: Sospende un evento preservando prenotazioni e partecipanti esistenti
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Evento sospeso o annullato con notifiche se necessario }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/events/{event}/archive:
     post:
+      operationId: post_admin_events_event_archive
       security: [{ bearerAuth: [] }]
       summary: Archivia evento
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Evento archiviato }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/organizers:
     get:
+      operationId: get_admin_organizers
       security: [{ bearerAuth: [] }]
       summary: Lista paginata delle richieste Organizer per moderazione Admin
       parameters:
@@ -803,8 +1018,10 @@ paths:
       responses:
         "200": { description: Lista paginata con pending_count }
         "403": { description: Solo admin }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/organizers/{organizer}/approve:
     post:
+      operationId: post_admin_organizers_organizer_approve
       security: [{ bearerAuth: [] }]
       summary: Approva organizzatore
       parameters:
@@ -812,8 +1029,10 @@ paths:
       responses:
         "200": { description: Organizzatore approvato }
         "409": { description: Richiesta non in revisione }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/organizers/{organizer}/request-changes:
     post:
+      operationId: post_admin_organizers_organizer_request_changes
       security: [{ bearerAuth: [] }]
       summary: Richiede integrazioni motivate all'Organizer
       parameters:
@@ -827,8 +1046,10 @@ paths:
         "200": { description: Integrazione richiesta }
         "409": { description: Richiesta non in revisione }
         "422": { description: Motivazione mancante o non valida }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/organizers/{organizer}/reject:
     post:
+      operationId: post_admin_organizers_organizer_reject
       security: [{ bearerAuth: [] }]
       summary: Rifiuta con motivazione la richiesta Organizer
       parameters:
@@ -842,48 +1063,65 @@ paths:
         "200": { description: Richiesta rifiutata }
         "409": { description: Richiesta non in revisione }
         "422": { description: Motivazione mancante o non valida }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/organizers/{organizer}:
     get:
+      operationId: get_admin_organizers_organizer
       security: [{ bearerAuth: [] }]
       summary: Dettaglio organizzatore admin
       parameters:
         - { name: organizer, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Overview organizzatore }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/organizers/{organizer}/events:
     get:
+      operationId: get_admin_organizers_organizer_events
       security: [{ bearerAuth: [] }]
       summary: Eventi organizzatore per admin
       parameters:
         - { name: organizer, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Eventi con conteggi }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/organizers/{organizer}/reviews:
     get:
+      operationId: get_admin_organizers_organizer_reviews
       security: [{ bearerAuth: [] }]
       summary: Recensioni organizzatore per admin
       parameters:
         - { name: organizer, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Recensioni aggregate }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/organizers/{organizer}/bookings:
     get:
+      operationId: get_admin_organizers_organizer_bookings
       security: [{ bearerAuth: [] }]
       summary: Prenotazioni organizzatore aggregate per evento
       parameters:
         - { name: organizer, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Booking stats }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/organizers/{organizer}/cancellations:
     get:
+      operationId: get_admin_organizers_organizer_cancellations
       security: [{ bearerAuth: [] }]
       summary: Annullamenti organizzatore
       parameters:
         - { name: organizer, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Eventi e prenotazioni annullate }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/events/{event}/reactivate:
     post:
+      operationId: post_admin_events_event_reactivate
       security: [{ bearerAuth: [] }]
       summary: Riattiva un evento sospeso senza modificare le prenotazioni
       parameters:
@@ -891,8 +1129,11 @@ paths:
       responses:
         '200': { description: Evento riattivato }
         '409': { description: Evento non sospeso }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/organizers/{organizer}/suspend:
     post:
+      operationId: post_admin_organizers_organizer_suspend
       security: [{ bearerAuth: [] }]
       summary: Sospende un Organizer approvato con motivazione
       parameters:
@@ -900,8 +1141,11 @@ paths:
       responses:
         '200': { description: Organizer sospeso }
         '409': { description: Transizione non ammessa }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/organizers/{organizer}/reactivate:
     post:
+      operationId: post_admin_organizers_organizer_reactivate
       security: [{ bearerAuth: [] }]
       summary: Riattiva un Organizer sospeso
       parameters:
@@ -909,8 +1153,11 @@ paths:
       responses:
         '200': { description: Organizer riattivato }
         '409': { description: Transizione non ammessa }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/customers:
     get:
+      operationId: get_admin_customers
       security: [{ bearerAuth: [] }]
       summary: Ricerca, filtra e pagina i Customer
       parameters:
@@ -919,27 +1166,39 @@ paths:
         - { name: page, in: query, schema: { type: integer, minimum: 1 } }
       responses:
         '200': { description: Customer paginati con conteggi booking e recensioni }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/customers/{customer}:
     get:
+      operationId: get_admin_customers_customer
       security: [{ bearerAuth: [] }]
       summary: Dettaglio Customer con booking, eventi partecipati e recensioni necessarie
       parameters:
         - { name: customer, in: path, required: true, schema: { type: string } }
       responses:
         '200': { description: Dettaglio Customer }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/plans:
     get:
+      operationId: get_admin_plans
       security: [{ bearerAuth: [] }]
       summary: Catalogo piani UNLIMITED e PAY_PER_BOOKING
       responses:
         '200': { description: Piani con importi in centesimi }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
     post:
+      operationId: post_admin_plans
       security: [{ bearerAuth: [] }]
       summary: Crea un piano commerciale
       responses:
         '201': { description: Piano creato }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/organizers/{organizer}/plan:
     put:
+      operationId: put_admin_organizers_organizer_plan
       security: [{ bearerAuth: [] }]
       summary: Assegna l'accordo commerciale e registra lo storico della modifica
       parameters:
@@ -947,52 +1206,246 @@ paths:
       responses:
         '200': { description: Accordo aggiornato con storico }
         '422': { description: Tariffa personalizzata PAY_PER_BOOKING mancante o dati non validi }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/rankings/events:
     get:
+      operationId: get_admin_rankings_events
       security: [{ bearerAuth: [] }]
       summary: Classifica eventi
       responses:
-        "200": { description: Creativity, participation, review e final score }
+        "200": { description: "Creativity, participation, review e final score" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/rankings/organizers:
     get:
+      operationId: get_admin_rankings_organizers
       security: [{ bearerAuth: [] }]
       summary: Classifica organizzatori
       responses:
         "200": { description: Eventi creati e indicatori qualitativi }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/rankings/events/{event}/breakdown:
     get:
+      operationId: get_admin_rankings_events_event_breakdown
       security: [{ bearerAuth: [] }]
       summary: Breakdown formula classifica evento
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Formula e punteggi }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/reviews/{review}/approve:
     post:
+      operationId: post_admin_reviews_review_approve
       security: [{ bearerAuth: [] }]
       summary: Approva recensione
       parameters:
         - { name: review, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Recensione approvata }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/reviews/{review}/hide:
     post:
+      operationId: post_admin_reviews_review_hide
       security: [{ bearerAuth: [] }]
       summary: Nasconde recensione
       parameters:
         - { name: review, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Recensione nascosta }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/reviews/{review}:
     delete:
+      operationId: delete_admin_reviews_review
       security: [{ bearerAuth: [] }]
       summary: Elimina recensione
       parameters:
         - { name: review, in: path, required: true, schema: { type: string } }
       responses:
         "204": { description: Recensione eliminata }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /locations/municipalities:
+    get:
+      operationId: get_locations_municipalities
+      security: []
+      summary: Cerca Comuni tramite CAP italiano
+      parameters:
+        - { name: postal_code, in: query, required: true, schema: { type: string, pattern: "^[0-9]{5}$" } }
+      responses:
+        "200": { description: Comuni corrispondenti al CAP }
+        "422": { $ref: "#/components/responses/UnprocessableEntity" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /locations/search:
+    get:
+      operationId: get_locations_search
+      security: []
+      summary: Cerca Comuni per nome
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+      responses:
+        "200": { description: Comuni corrispondenti alla ricerca }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /me/profile:
+    get:
+      operationId: get_me_profile
+      security: [{ bearerAuth: [] }]
+      summary: Profilo Customer autenticato
+      responses:
+        "200": { description: Profilo Customer }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    patch:
+      operationId: patch_me_profile
+      security: [{ bearerAuth: [] }]
+      summary: Aggiorna profilo Customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CustomerProfileUpdate" }
+      responses:
+        "200": { description: Profilo aggiornato }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/UnprocessableEntity" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /me/password:
+    put:
+      operationId: put_me_password
+      security: [{ bearerAuth: [] }]
+      summary: Aggiorna password Customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PasswordUpdate" }
+      responses:
+        "200": { description: Password aggiornata }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/UnprocessableEntity" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /organizer/profile/images:
+    post:
+      operationId: post_organizer_profile_images
+      security: [{ bearerAuth: [] }]
+      summary: Carica logo o copertina Organizer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                logo: { type: string, format: binary }
+                cover: { type: string, format: binary }
+      responses:
+        "200": { description: Profilo con URL immagini aggiornati }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/UnprocessableEntity" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /organizer/events/{event}/close-bookings:
+    post:
+      operationId: post_organizer_events_event_close_bookings
+      security: [{ bearerAuth: [] }]
+      summary: Chiude le prenotazioni di un evento
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Evento con prenotazioni chiuse }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /organizer/reviews/events/{event}:
+    get:
+      operationId: get_organizer_reviews_events_event
+      security: [{ bearerAuth: [] }]
+      summary: Recensioni approvate di un evento Organizer
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Evento con statistiche e recensioni }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /admin/search:
+    get:
+      operationId: get_admin_search
+      security: [{ bearerAuth: [] }]
+      summary: Ricerca globale Admin
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 2, maxLength: 120 } }
+      responses:
+        "200": { description: Risultati per Organizer Customer ed eventi }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/UnprocessableEntity" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /admin/plans/{plan}:
+    patch:
+      operationId: patch_admin_plans_plan
+      security: [{ bearerAuth: [] }]
+      summary: Aggiorna piano commerciale
+      parameters:
+        - { name: plan, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminPlanWrite" }
+      responses:
+        "200": { description: Piano aggiornato }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/UnprocessableEntity" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
 components:
   schemas:
+    ErrorResponse:
+      type: object
+      required: [message, errors, request_id]
+      properties:
+        message: { type: string }
+        errors: { type: object, additionalProperties: true }
+        request_id: { type: [string, "null"] }
+    CustomerProfileUpdate:
+      type: object
+      required: [name, email]
+      properties:
+        name: { type: string, maxLength: 120 }
+        email: { type: string, format: email, maxLength: 255 }
+        phone: { type: [string, "null"], pattern: "^\\+?[0-9]{7,15}$" }
+    PasswordUpdate:
+      type: object
+      required: [current_password, password, password_confirmation]
+      properties:
+        current_password: { type: string, format: password }
+        password: { type: string, format: password, minLength: 8 }
+        password_confirmation: { type: string, format: password, minLength: 8 }
+    AdminPlanWrite:
+      type: object
+      required: [name, billing_model, billing_interval, monthly_price_cents, booking_fee_cents, is_active]
+      properties:
+        name: { type: string, maxLength: 120 }
+        description: { type: [string, "null"], maxLength: 1000 }
+        billing_model: { type: string, enum: [unlimited, pay_per_booking] }
+        billing_interval: { type: string, enum: [monthly, yearly] }
+        monthly_price_cents: { type: integer, minimum: 0 }
+        booking_fee_cents: { type: integer, minimum: 0 }
+        is_active: { type: boolean }
     RegisterRequest:
       type: object
       required: [name, email, password, password_confirmation]
@@ -1103,6 +1556,17 @@ components:
                 type: object
                 required: [ulid, title, status, visual_status, starts_at, capacity_total, booked_people, available_total, checked_in_people, no_show]
                 additionalProperties: true
+                properties:
+                  ulid: { type: string }
+                  title: { type: string }
+                  status: { type: string, enum: [draft, pending_review, published, sold_out, cancelled, completed, rejected, suspended, archived] }
+                  visual_status: { type: string }
+                  starts_at: { type: string, format: date-time }
+                  capacity_total: { type: integer, minimum: 0 }
+                  booked_people: { type: integer, minimum: 0 }
+                  available_total: { type: integer, minimum: 0 }
+                  checked_in_people: { type: integer, minimum: 0 }
+                  no_show: { type: integer, minimum: 0 }
         meta:
           type: object
           required: [current_page, last_page, per_page, total, from, to]
@@ -1304,6 +1768,14 @@ components:
         bookings_count: { type: integer, minimum: 0 }
         avg_participants: { type: number, minimum: 0 }
         fill_rate: { type: number, minimum: 0 }
+  responses:
+    BadRequest: { description: Richiesta non valida, content: { application/json: { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+    Unauthorized: { description: Autenticazione richiesta o token non valido, content: { application/json: { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+    Forbidden: { description: Operazione non autorizzata, content: { application/json: { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+    NotFound: { description: Risorsa non trovata, content: { application/json: { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+    Conflict: { description: Conflitto con lo stato corrente, content: { application/json: { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+    UnprocessableEntity: { description: Dati non validi, content: { application/json: { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+    InternalServerError: { description: Errore interno generico e sicuro, content: { application/json: { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
   securitySchemes:
     bearerAuth:
       type: http

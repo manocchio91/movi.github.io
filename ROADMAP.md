@@ -95,7 +95,7 @@ Completata end-to-end:
 3. Organizer reso disponibile esclusivamente sul web per la beta; il mobile comunica il limite senza simulazioni.
 4. Error handling, sessioni, autorizzazioni, messaggi e contratti modificati sottoposti a hardening.
 5. Regression gate automatico e Browser QA desktop, tablet e mobile completati.
-6. Debito Redocly invariato nella natura: 49 errori preesistenti e 176 warning, nessuna regressione introdotta.
+6. OpenAPI Contract Cleanup completato: 111 route reali coperte, operationId univoci e Redocly a 0 errori/0 warning.
 7. Customer Booking Experience completata con telefono obbligatorio, riepilogo e conferma, modifica e annullamento, disponibilità atomica, QR e booking code invariati, aggiornamento degli strumenti Organizer e regression test frontend/backend.
 
 ## Attività future

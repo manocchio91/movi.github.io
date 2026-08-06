@@ -35,6 +35,7 @@ Una funzione è conclusa quando:
 - i test automatici sono verdi;
 - il collaudo browser è completato, se applicabile;
 - OpenAPI e documentazione sono aggiornati quando cambia il contratto;
+- il lint Redocly del contratto OpenAPI termina con 0 errori e 0 warning;
 - non restano dati demo nel flusso dichiarato reale;
 - `PROJECT_STATE.md` riflette lo stato finale.
 
@@ -42,6 +43,7 @@ Una funzione è conclusa quando:
 
 - Backend: eseguire test Laravel, test mirati del dominio modificato, Pint e PHPStan.
 - Frontend web: eseguire lint e build quando viene modificato.
+- Contratti API: eseguire `npx --yes @redocly/cli lint docs/openapi.yaml --max-problems 1000`; il gate è obbligatorio e richiede 0 errori e 0 warning.
 - Flutter: eseguire `flutter analyze`, `flutter test` e la build richiesta dal task.
 - Non alterare test isolati per nascondere una regressione.
 - Aggiungere test per il bug prima o insieme alla correzione quando possibile.

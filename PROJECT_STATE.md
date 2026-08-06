@@ -43,7 +43,7 @@
 
 ## Task corrente
 
-Customer Booking Experience completata end-to-end e approvata nel Browser QA dal Product Owner.
+OpenAPI Contract Cleanup completato: contratto allineato alle 111 route API reali e lint Redocly azzerato.
 
 ## Funzionalità completate
 
@@ -90,6 +90,7 @@ Customer Booking Experience completata end-to-end e approvata nel Browser QA dal
 - Browser QA del telefono obbligatorio nella prenotazione Customer confermato dal Product Owner.
 - Browser QA finale Customer Booking Experience confermato: singola PATCH, payload completo, aggiornamento UI e disponibilità, QR e booking code invariati.
 - Regression gate Customer Booking Experience: test frontend 4/4, test backend mirati 3/3 con 71 asserzioni; suite Laravel 99 test e 715 asserzioni, Pint, PHPStan, ESLint, build e `git diff --check` verdi.
+- OpenAPI Contract Cleanup: 111/111 route documentate, operationId univoci e lint Redocly passato con 0 errori e 0 warning.
 
 ## Prossimo task
 
@@ -97,7 +98,6 @@ Preparazione e gestione operativa della beta privata.
 
 ## Debiti aperti
 
-- Il lint Redocly rileva 49 errori strutturali preesistenti e 176 warning; i contratti modificati sono coerenti e non è stata introdotta alcuna regressione. La bonifica globale resta un task dedicato.
 - Flutter Organizer reale resta debito della fase successiva; nella beta le funzioni Organizer sono esclusivamente web.
 - La copertura frontend automatizzata resta limitata al flusso critico di modifica prenotazione; ampliare progressivamente agli altri componenti.
 - Upload immagini evento non incluso.
