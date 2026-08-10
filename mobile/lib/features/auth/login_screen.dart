@@ -31,7 +31,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     ref.listen(authControllerProvider, (_, next) {
       final user = next.user;
       if (user == null) return;
-      context.go(user.role == AppRole.customer ? '/customer' : '/organizer');
+      context.go(user.role.homePath);
     });
 
     return Scaffold(
@@ -60,13 +60,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     bottom: 22,
                     child: Text(
                       'Eventi Locali\nMolise',
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineMedium
-                          ?.copyWith(
-                            fontWeight: FontWeight.w900,
-                            color: scheme.onPrimaryContainer,
-                          ),
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                color: scheme.onPrimaryContainer,
+                              ),
                     ),
                   ),
                 ],
@@ -101,7 +99,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
             if (auth.error != null) ...[
               const SizedBox(height: 12),
-              Text(auth.error!, style: TextStyle(color: scheme.error)),
+              Semantics(
+                liveRegion: true,
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: scheme.errorContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(auth.error!,
+                      style: TextStyle(color: scheme.onErrorContainer)),
+                ),
+              ),
             ],
             const SizedBox(height: 20),
             FilledButton.icon(

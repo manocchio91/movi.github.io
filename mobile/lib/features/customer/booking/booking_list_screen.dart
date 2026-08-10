@@ -102,7 +102,7 @@ class _BookingList extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                      '${booking.bookingCode} · ${booking.totalPeople} partecipanti · ${_money(booking.totalPriceCents)}'),
+                      '${booking.bookingCode} Â· ${booking.totalPeople} partecipanti Â· ${_money(booking.totalPriceCents)}'),
                   if (booking.canCancel)
                     TextButton(
                       key: Key('cancel-list-${booking.ulid}'),
@@ -147,6 +147,17 @@ class CustomerBookingDetailScreen extends ConsumerWidget {
           ListTile(
               title: const Text('Totale'),
               trailing: Text(_money(value.totalPriceCents))),
+          if (value.canEdit) ...[
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => editBooking(context, ref, value),
+                icon: const Icon(Icons.edit_rounded),
+                label: const Text('Modifica telefono e note'),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
           if (value.canCancel)
             FilledButton.tonalIcon(
               key: const Key('cancel-booking'),
@@ -194,7 +205,7 @@ class _BookingError extends StatelessWidget {
 }
 
 String _money(int cents) =>
-    cents == 0 ? 'Gratis' : '€${(cents / 100).toStringAsFixed(2)}';
+    cents == 0 ? 'Gratis' : 'â‚¬${(cents / 100).toStringAsFixed(2)}';
 
 Future<void> confirmAndCancelBooking(
     BuildContext context, WidgetRef ref, String bookingUlid) async {
@@ -203,7 +214,7 @@ Future<void> confirmAndCancelBooking(
         builder: (dialogContext) => AlertDialog(
           title: const Text('Annullare la prenotazione?'),
           content: const Text(
-              'I posti verranno liberati. Questa operazione non può essere annullata.'),
+              'I posti verranno liberati. Questa operazione non puÃ² essere annullata.'),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
@@ -229,5 +240,68 @@ Future<void> confirmAndCancelBooking(
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(error?.toString() ??
             'Impossibile annullare la prenotazione. Riprova.')));
+  }
+}
+
+Future<void> editBooking(
+    BuildContext context, WidgetRef ref, CustomerBooking booking) async {
+  final phone = TextEditingController(text: booking.contactPhone);
+  final notes = TextEditingController(text: booking.notes);
+  final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Modifica prenotazione'),
+          content: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              TextField(
+                controller: phone,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                    labelText: 'Telefono',
+                    prefixIcon: Icon(Icons.phone_rounded)),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: notes,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                    labelText: 'Note', prefixIcon: Icon(Icons.notes_rounded)),
+              ),
+            ]),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Annulla')),
+            FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Salva')),
+          ],
+        ),
+      ) ??
+      false;
+  if (!confirmed || !context.mounted) {
+    phone.dispose();
+    notes.dispose();
+    return;
+  }
+  try {
+    await ref
+        .read(bookingRepositoryProvider)
+        .updateBooking(booking, phone.text, notes.text);
+    ref.invalidate(customerBookingsProvider);
+    ref.invalidate(customerBookingDetailProvider(booking.ulid));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Prenotazione aggiornata.')));
+    }
+  } on BookingApiException catch (error) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error.message)));
+    }
+  } finally {
+    phone.dispose();
+    notes.dispose();
   }
 }

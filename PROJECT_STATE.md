@@ -1,4 +1,4 @@
-# Stato del progetto APP EVENTI
+﻿# Stato del progetto APP EVENTI
 
 > Aggiornare questo documento ogni volta che cambia lo stato reale del repository.
 
@@ -17,7 +17,7 @@
 - Autenticazione web: registrazione Customer e Organizer, login/logout reali e ripristino sessione tramite `GET /api/v1/me`.
 - Dashboard, lista, creazione e modifica eventi Organizer web: collegate esclusivamente alle API reali.
 - Onboarding fiscale Organizer e approvazione Admin: collegati alle API reali, con accesso operativo vincolato allo stato approvato.
-- Onboarding fiscale Organizer: Comune e Provincia vengono derivati dall'anagrafica backend al completamento di un CAP italiano valido, con gestione dei CAP associati a più Comuni.
+- Onboarding fiscale Organizer: Comune e Provincia vengono derivati dall'anagrafica backend al completamento di un CAP italiano valido, con gestione dei CAP associati a piÃ¹ Comuni.
 - Customer Flutter: nella beta usa esclusivamente flussi reali per autenticazione, eventi, booking, QR e annullamento.
 - Customer web: profilo e password, cronologia prenotazioni, QR recuperabile, annullamento, preferiti e recensioni collegati alle API reali.
 - Organizer web: profilo pubblico/privato, logo e copertina, dati fiscali riservati e pagina pubblica con storico eventi.
@@ -40,14 +40,14 @@
 - v1.1: profili MVP, piani commerciali, ricerca Admin, email operative e regressioni Customer risolte
 - v1.2: backoffice Admin e business completo con KPI economici teorici, transizioni protette e storico accordi
 - v1.3: hardening MVP, rimozione runtime demo e preparazione beta privata
-- v1.4: configurazione, container, sicurezza e operatività pronte per staging/private beta
+- v1.4: configurazione, container, sicurezza e operativitÃ  pronte per staging/private beta
 - v1.5: staging readiness, deploy ripetibile, seed beta sicuro, smoke test e runbook operativo
 
 ## Task corrente
 
-Staging Readiness completata: il deploy remoto è posticipato alla fase finale; configurazione, artifact, runbook e gate restano pronti per la futura attivazione.
+Staging Readiness completata: il deploy remoto Ã¨ posticipato alla fase finale; configurazione, artifact, runbook e gate restano pronti per la futura attivazione.
 
-## Funzionalità completate
+## FunzionalitÃ  completate
 
 - Profilo fiscale Organizer salvabile parzialmente e inviabile alla revisione Admin.
 - Stati profilo gestiti: `incomplete`, `pending`, `changes_requested`, `verified`, `rejected`, `suspended`.
@@ -62,12 +62,12 @@ Staging Readiness completata: il deploy remoto è posticipato alla fase finale; 
 - Lista e dettaglio Prenotazioni Organizer in sola lettura, con ricerca, filtri, ordinamento, paginazione e isolamento per proprietario evento.
 - Flusso Customer web ripristinato dalla lista pubblica al dettaglio evento, scelta ticket, prenotazione idempotente e QR.
 - Telefono Customer obbligatorio, normalizzato e storicizzato nella singola prenotazione; visibile solo al Customer proprietario, all'Organizer dell'evento e agli Admin autorizzati, incluso il CSV partecipanti.
-- Prenotazioni Customer modificabili e annullabili con conferma, riepilogo dinamico, aggiornamento atomico di ticket, quantità e disponibilità, conservando booking code e QR.
+- Prenotazioni Customer modificabili e annullabili con conferma, riepilogo dinamico, aggiornamento atomico di ticket, quantitÃ  e disponibilitÃ , conservando booking code e QR.
 - Identificatori pubblici di eventi e ticket uniformati su ULID nel flusso Customer.
 - Partecipanti Organizer per evento con ricerca, filtri, paginazione, conteggi ed esportazione CSV; ogni riga conserva la semantica reale della prenotazione e di `total_people`.
 - Check-in Organizer tramite token QR o codice prenotazione, con blocco dei riutilizzi, delle prenotazioni annullate e dei codici appartenenti ad altri eventi.
-- Recupero atomico dei QR cifrati con una precedente `APP_KEY`, senza esporre errori tecnici e preservando la validità one-time del check-in.
-- Piani `unlimited` e `pay_per_booking` con periodicità, importi in centesimi, stato, date e note dell'accordo gestiti dall'Admin.
+- Recupero atomico dei QR cifrati con una precedente `APP_KEY`, senza esporre errori tecnici e preservando la validitÃ  one-time del check-in.
+- Piani `unlimited` e `pay_per_booking` con periodicitÃ , importi in centesimi, stato, date e note dell'accordo gestiti dall'Admin.
 - Dashboard Admin reale con KPI per Organizer, Customer, eventi, prenotazioni, partecipanti, check-in e ricavi teorici.
 - Gestione Admin ricercabile e paginata di Organizer, Customer ed eventi, con dati fiscali riservati e transizioni backend protette.
 - Sospensione e riattivazione eventi senza alterare prenotazioni esistenti.
@@ -90,7 +90,7 @@ Staging Readiness completata: il deploy remoto è posticipato alla fase finale; 
 - Browser QA finale v1.2 confermato dal Product Owner su dashboard, ricerca, dettagli, transizioni e accordi Admin.
 - Browser QA finale v1.3 confermato dal Product Owner su web Customer/Organizer/Admin e mobile Customer/Organizer beta.
 - Browser QA del telefono obbligatorio nella prenotazione Customer confermato dal Product Owner.
-- Browser QA finale Customer Booking Experience confermato: singola PATCH, payload completo, aggiornamento UI e disponibilità, QR e booking code invariati.
+- Browser QA finale Customer Booking Experience confermato: singola PATCH, payload completo, aggiornamento UI e disponibilitÃ , QR e booking code invariati.
 - Regression gate Customer Booking Experience: test frontend 4/4, test backend mirati 3/3 con 71 asserzioni; suite Laravel 99 test e 715 asserzioni, Pint, PHPStan, ESLint, build e `git diff --check` verdi.
 - OpenAPI Contract Cleanup: 111/111 route documentate, operationId univoci e lint Redocly passato con 0 errori e 0 warning.
 - Production Readiness: health applicativo/DB/Redis, Docker production, queue e scheduler, upload hardening, SMTP, logging, CORS/proxy, pagine legali placeholder e procedure deploy/backup/restore verificati.
@@ -118,3 +118,9 @@ Final Product Completion & UX/UI Polish in ambiente locale.
 3. Verificare branch, working tree e cronologia recente.
 4. Analizzare il contratto backend delle prenotazioni Organizer prima di intervenire sul frontend.
 5. Aggiornare questo documento al termine della sessione.
+## Flutter mobile multi-ruolo
+
+- Customer: discovery eventi, booking, QR, modifica/annullamento e profilo via API.
+- Organizer: dashboard, eventi, prenotazioni, partecipanti, check-in e profilo via API.
+- Admin: dashboard, ricerca, gestione Organizer/Customer/Eventi e piani commerciali via API.
+- Navigazione, role guard e design system Material 3 dedicati per ruolo.

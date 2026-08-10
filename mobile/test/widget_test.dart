@@ -33,7 +33,7 @@ void main() {
     await tester.tap(find.text('Entra'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Tutti gli Eventi'), findsWidgets);
+    expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.byIcon(Icons.home_rounded), findsOneWidget);
   });
 
@@ -45,18 +45,42 @@ void main() {
     await tester.tap(find.text('Entra'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Le funzioni Organizer sono disponibili nella versione web.'), findsOneWidget);
-    expect(find.text('Account'), findsOneWidget);
-    expect(find.text('Dashboard'), findsNothing);
-    expect(find.text('Opportunità'), findsNothing);
+    expect(find.text('Dashboard'), findsWidgets);
+    expect(find.text('Eventi'), findsOneWidget);
+    expect(find.text('Prenotazioni'), findsWidgets);
+    expect(find.text('Profilo'), findsOneWidget);
+    expect(find.textContaining('disponibili nella versione web'), findsNothing);
+    expect(find.byType(NavigationBar), findsOneWidget);
   });
 
-  test('demo routes and repositories are absent from the mobile application', () {
-    final router = File('lib/core/router/app_router.dart').readAsStringSync();
-    final sources = Directory('lib').listSync(recursive: true).whereType<File>().where((file) => file.path.endsWith('.dart')).map((file) => file.readAsStringSync()).join('\n');
+  testWidgets('real admin login opens admin shell', (tester) async {
+    await _pumpApp(tester);
+    await tester.enterText(find.byType(TextField).first, 'admin@example.test');
+    await tester.enterText(find.byType(TextField).last, 'password');
+    await tester.tap(find.text('Entra'));
+    await tester.pumpAndSettle();
 
-    expect(router, isNot(contains('/organizer/events')));
-    expect(router, isNot(contains('/organizer/create')));
+    expect(find.text('Dashboard Admin'), findsOneWidget);
+    expect(find.text('Ricerca'), findsOneWidget);
+    expect(find.text('Gestione'), findsOneWidget);
+    expect(find.text('Piani'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
+  });
+  test('demo routes and repositories are absent from the mobile application',
+      () {
+    final router = File('lib/core/router/app_router.dart').readAsStringSync();
+    final sources = Directory('lib')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.dart'))
+        .map((file) => file.readAsStringSync())
+        .join('\n');
+
+    expect(router, contains('/organizer/events'));
+    expect(router, contains('/admin/management'));
+    expect(router, contains('/admin/plans'));
+    expect(router, contains('create'));
+    expect(sources, contains('Crea evento'));
     expect(router, isNot(contains('/organizer/opportunities')));
     expect(router, isNot(contains('/customer/preferences')));
     expect(sources, isNot(contains('InMemoryDemoRepository')));
@@ -87,8 +111,11 @@ class _TestAuthRepository extends AuthenticationRepository {
   @override
   Future<AuthUser> login(
       {required String email, required String password}) async {
-    final role =
-        email.startsWith('organizer') ? AppRole.organizer : AppRole.customer;
+    final role = email.startsWith('admin')
+        ? AppRole.admin
+        : email.startsWith('organizer')
+            ? AppRole.organizer
+            : AppRole.customer;
     return AuthUser(name: 'Test User', email: email, role: role);
   }
 
@@ -111,6 +138,12 @@ class _TestApiClient extends ApiClient {
     }
     if (path.startsWith('/customer/successful-events')) {
       return const ApiResponse(statusCode: 200, body: {'data': []});
+    }
+    if (path == '/organizer/dashboard') {
+      return const ApiResponse(statusCode: 200, body: {'data': {}});
+    }
+    if (path == '/admin/dashboard') {
+      return const ApiResponse(statusCode: 200, body: {'data': {}});
     }
     if (path.startsWith('/events')) {
       return const ApiResponse(statusCode: 200, body: {

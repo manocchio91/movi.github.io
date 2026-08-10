@@ -37,7 +37,8 @@ class AuthenticationRepository {
   static const _tokenKey = 'authentication_token';
   final ApiClient _client;
 
-  Future<AuthUser> login({required String email, required String password}) async {
+  Future<AuthUser> login(
+      {required String email, required String password}) async {
     try {
       final response = await _client.post('/auth/login', body: {
         'email': email.trim(),
@@ -78,7 +79,9 @@ class AuthenticationRepository {
       }
       if (response.statusCode < 200 || response.statusCode >= 300) return null;
       final userJson = response.body['user'];
-      return userJson is Map<String, dynamic> ? AuthUser.fromJson(userJson) : null;
+      return userJson is Map<String, dynamic>
+          ? AuthUser.fromJson(userJson)
+          : null;
     } catch (_) {
       return null;
     }

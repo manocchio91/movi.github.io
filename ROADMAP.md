@@ -1,10 +1,10 @@
-# Roadmap APP EVENTI
+﻿# Roadmap APP EVENTI
 
 > Aggiornare questa roadmap quando cambia lo stato reale del repository. Non segnare una milestone come completata senza verifiche tecniche e collaudo.
 
 ## Visione del prodotto
 
-APP EVENTI è una piattaforma territoriale per scoprire, pubblicare, prenotare e gestire eventi ed esperienze locali, con esperienze separate per Customer, Organizer e Admin.
+APP EVENTI Ã¨ una piattaforma territoriale per scoprire, pubblicare, prenotare e gestire eventi ed esperienze locali, con esperienze separate per Customer, Organizer e Admin.
 
 ## Milestone
 
@@ -27,7 +27,7 @@ APP EVENTI è una piattaforma territoriale per scoprire, pubblicare, prenotare e
 | v1.4 | Completata | Production readiness tecnica per staging e private beta |
 | v1.5 | Completata | Staging readiness e preparazione tecnica del deploy/private beta, senza deploy remoto |
 
-## v0.8 — Organizer Event Creation and Editing
+## v0.8 â€” Organizer Event Creation and Editing
 
 Completata end-to-end sul frontend web:
 
@@ -35,7 +35,7 @@ Completata end-to-end sul frontend web:
 2. Pubblicazione come transizione backend esplicita.
 3. Modifica degli eventi propri negli stati consentiti.
 4. Categorie, comuni e dettaglio evento caricati dalle API.
-5. Ticket esistenti aggiornati per ULID senza perdere identità o prenotazioni.
+5. Ticket esistenti aggiornati per ULID senza perdere identitÃ  o prenotazioni.
 6. Blocco della riduzione sotto `booked_quantity` e della rimozione di ticket prenotati.
 7. Transazioni, lock, autorizzazioni, OpenAPI, test automatici e Browser QA completati.
 
@@ -49,7 +49,7 @@ Completata end-to-end sul frontend web:
 4. Protezione delle funzioni operative fino all'approvazione.
 5. Sessione auth reale, logout completo e selezione ruolo senza accessi simulati.
 6. Test automatici e Browser QA finale completati.
-7. Compilazione automatica di Comune e Provincia dal CAP tramite anagrafica backend, inclusi CAP condivisi da più Comuni.
+7. Compilazione automatica di Comune e Provincia dal CAP tramite anagrafica backend, inclusi CAP condivisi da piÃ¹ Comuni.
 
 ## v1.0-A - Organizer Bookings Management
 
@@ -57,7 +57,7 @@ Completata end-to-end sul frontend web:
 
 1. Lista prenotazioni Organizer con ricerca, filtri, ordinamento e paginazione server-side.
 2. Dettaglio in sola lettura con cliente, evento, ticket, persone, stato, note, QR e check-in.
-3. Isolamento delle prenotazioni per Organizer proprietario e visibilità completa Admin.
+3. Isolamento delle prenotazioni per Organizer proprietario e visibilitÃ  completa Admin.
 4. Ripristino del flusso Customer lista evento, dettaglio, scelta ticket, booking e QR.
 5. Test automatici, OpenAPI e Browser QA finale completati.
 
@@ -73,7 +73,7 @@ Completata end-to-end sul frontend web:
 2. Profilo Organizer pubblico e privato, upload validati, social facoltativi e dati fiscali non pubblici.
 3. Ricerca Admin reale e gestione di piani `unlimited` e `pay_per_booking`.
 4. Accordi commerciali manuali con stato, date e note, senza pagamenti o fatturazione automatica.
-5. Email operative tramite infrastruttura Laravel e modalità sicura locale/test.
+5. Email operative tramite infrastruttura Laravel e modalitÃ  sicura locale/test.
 6. `APP_KEY` persistente tra i riavvii e recupero controllato dei QR cifrati con chiavi precedenti.
 7. Suite automatica, analisi statica, build e Browser QA completati.
 
@@ -98,7 +98,7 @@ Completata end-to-end:
 4. Error handling, sessioni, autorizzazioni, messaggi e contratti modificati sottoposti a hardening.
 5. Regression gate automatico e Browser QA desktop, tablet e mobile completati.
 6. OpenAPI Contract Cleanup completato: 111 route reali coperte, operationId univoci e Redocly a 0 errori/0 warning.
-7. Customer Booking Experience completata con telefono obbligatorio, riepilogo e conferma, modifica e annullamento, disponibilità atomica, QR e booking code invariati, aggiornamento degli strumenti Organizer e regression test frontend/backend.
+7. Customer Booking Experience completata con telefono obbligatorio, riepilogo e conferma, modifica e annullamento, disponibilitÃ  atomica, QR e booking code invariati, aggiornamento degli strumenti Organizer e regression test frontend/backend.
 
 ## v1.4 - Production Readiness
 
@@ -123,7 +123,7 @@ Completata senza deploy remoto:
 5. Artifact backend/frontend e gate automatici verificati localmente.
 6. Hosting, dominio, DNS, TLS e SMTP reali intenzionalmente posticipati fino al completamento locale del prodotto.
 
-## Attività future
+## AttivitÃ  future
 
 ### Organizer
 
@@ -133,6 +133,12 @@ Completata senza deploy remoto:
 ### Preparazione MVP
 
 - Rimuovere o isolare i dati demo dai flussi dichiarati reali.
-- Aggiungere test frontend automatizzati quando il perimetro lo richiederà.
+- Aggiungere test frontend automatizzati quando il perimetro lo richiederÃ .
 - Allineare README, OpenAPI e documentazione allo stato effettivo.
-- Definire criteri di rilascio, sicurezza, osservabilità e gestione operativa.
+- Definire criteri di rilascio, sicurezza, osservabilitÃ  e gestione operativa.
+## Mobile multi-ruolo
+
+- [x] Esperienza Customer operativa via API
+- [x] Esperienza Organizer operativa via API
+- [x] Esperienza Admin operativa via API
+- [x] Navigazione e componenti Material 3 condivisi

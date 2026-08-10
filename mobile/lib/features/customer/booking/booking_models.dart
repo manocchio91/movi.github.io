@@ -46,6 +46,7 @@ class BookingItem {
     required this.unitPriceCents,
     required this.totalPriceCents,
     required this.ticketName,
+    this.ticketTypeUlid = '',
   });
   factory BookingItem.fromJson(Map<String, dynamic> json) {
     final ticket = _map(json['ticket_type']);
@@ -54,12 +55,14 @@ class BookingItem {
       unitPriceCents: _int(json['unit_price_cents']),
       totalPriceCents: _int(json['total_price_cents']),
       ticketName: _string(ticket?['name']),
+      ticketTypeUlid: _string(ticket?['ulid']),
     );
   }
   final int quantity;
   final int unitPriceCents;
   final int totalPriceCents;
   final String ticketName;
+  final String ticketTypeUlid;
 }
 
 class CustomerBooking {
@@ -74,6 +77,11 @@ class CustomerBooking {
     this.eventStartsAt,
     this.eventEndsAt,
     this.qrToken,
+    this.contactPhone = '',
+    this.notes = '',
+    this.adultsCount = 0,
+    this.childrenCount = 0,
+    this.canEditFromApi = false,
   });
   factory CustomerBooking.fromJson(Map<String, dynamic> json) {
     final event = _map(json['event']);
@@ -88,6 +96,11 @@ class CustomerBooking {
       eventStartsAt: DateTime.tryParse(_string(event?['starts_at']))?.toLocal(),
       eventEndsAt: DateTime.tryParse(_string(event?['ends_at']))?.toLocal(),
       qrToken: _nullableString(json['qr_token']),
+      contactPhone: _string(json['contact_phone']),
+      notes: _string(json['notes']),
+      adultsCount: _int(json['adults_count']),
+      childrenCount: _int(json['children_count']),
+      canEditFromApi: json['can_edit'] == true,
     );
   }
   final String ulid;
@@ -100,6 +113,11 @@ class CustomerBooking {
   final DateTime? eventStartsAt;
   final DateTime? eventEndsAt;
   final String? qrToken;
+  final String contactPhone;
+  final String notes;
+  final int adultsCount;
+  final int childrenCount;
+  final bool canEditFromApi;
 
   bool get isCancelled => status.startsWith('cancelled');
   bool get isCompleted =>
@@ -107,6 +125,7 @@ class CustomerBooking {
       status == 'checked_in' ||
       ((eventEndsAt ?? eventStartsAt)?.isBefore(DateTime.now()) ?? false);
   bool get canCancel => status == 'confirmed' && !isCompleted;
+  bool get canEdit => canEditFromApi || canCancel;
 }
 
 class BookingQr {

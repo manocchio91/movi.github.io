@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class ApiResponse {
@@ -9,8 +10,18 @@ class ApiResponse {
 }
 
 class ApiClient {
-  ApiClient({http.Client? client}) : _client = client ?? http.Client();
-  static const baseUrl = 'http://localhost:8080/api/v1';
+  ApiClient({http.Client? client, String? baseUrl})
+      : baseUrl = baseUrl ?? _defaultBaseUrl,
+        _client = client ?? http.Client();
+
+  static String get _defaultBaseUrl {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:8080/api/v1';
+    }
+    return 'http://localhost:8080/api/v1';
+  }
+
+  final String baseUrl;
   final http.Client _client;
 
   Future<ApiResponse> post(String path,
@@ -20,6 +31,14 @@ class ApiClient {
       _send('POST', path, body: body, token: token, extraHeaders: headers);
   Future<ApiResponse> get(String path, {String? token}) =>
       _send('GET', path, token: token);
+  Future<ApiResponse> put(String path,
+          {Map<String, dynamic>? body, String? token}) =>
+      _send('PUT', path, body: body, token: token);
+  Future<ApiResponse> patch(String path,
+          {Map<String, dynamic>? body, String? token}) =>
+      _send('PATCH', path, body: body, token: token);
+  Future<ApiResponse> delete(String path, {String? token}) =>
+      _send('DELETE', path, token: token);
 
   Future<ApiResponse> _send(String method, String path,
       {Map<String, dynamic>? body,
@@ -32,10 +51,14 @@ class ApiClient {
       ...?extraHeaders,
     };
     final uri = Uri.parse('$baseUrl$path');
-    final response = method == 'GET'
-        ? await _client.get(uri, headers: headers)
-        : await _client.post(uri,
-            headers: headers, body: body == null ? null : jsonEncode(body));
+    final encoded = body == null ? null : jsonEncode(body);
+    final response = switch (method) {
+      'GET' => await _client.get(uri, headers: headers),
+      'PUT' => await _client.put(uri, headers: headers, body: encoded),
+      'PATCH' => await _client.patch(uri, headers: headers, body: encoded),
+      'DELETE' => await _client.delete(uri, headers: headers),
+      _ => await _client.post(uri, headers: headers, body: encoded),
+    };
     Map<String, dynamic> decoded = const {};
     if (response.body.isNotEmpty) {
       final value = jsonDecode(response.body);

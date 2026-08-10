@@ -4,15 +4,13 @@ Prototipo Flutter Material 3 per smartphone Android e iOS, con due esperienze se
 
 - Customer App
 - Organizer App
+- Admin App
 
 Il backend e il pannello amministratore web non sono modificati. I dati sono mock realistici del Molise e sono isolati in `lib/features/demo/data`, pronti per essere sostituiti da repository API reali.
 
-## Account Demo
+## Accesso
 
-- Customer: `customer@demo.it` / `password`
-- Organizer: `organizer@demo.it` / `password`
-
-La schermata di login contiene anche due pulsanti rapidi solo per preview di sviluppo.
+L’app usa esclusivamente autenticazione e sessioni reali delle API Laravel. Non contiene account demo o repository in-memory.
 
 ## Comandi
 
@@ -88,13 +86,13 @@ lib/
 - Calendario intelligente con legenda e bottom sheet dei concorrenti pubblici
 - Prenotazioni organizer con ricerca, filtri e check-in QR demo
 - Recensioni per evento, non lista unica
-- Opportunità con idee stagionali e ispirazioni aggregate
-- Profilo attività
+- OpportunitÃ  con idee stagionali e ispirazioni aggregate
+- Profilo attivitÃ 
 
 ## Mock Ancora Presenti
 
 - Autenticazione demo locale
-- Eventi, organizzatori, prenotazioni, recensioni, notifiche implicite e opportunità
+- Eventi, organizzatori, prenotazioni, recensioni, notifiche implicite e opportunitÃ 
 - QR code demo e mappa sintetica
 - Calendario concorrenza con dati aggregati fittizi
 - Upload immagini e foto recensioni predisposti ma non collegati a storage/API

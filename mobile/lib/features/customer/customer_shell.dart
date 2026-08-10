@@ -20,7 +20,7 @@ class CustomerShell extends StatelessWidget {
               selectedIcon: Icon(Icons.home_rounded),
               label: 'Home'),
           NavigationDestination(
-              icon: Icon(Icons.search_rounded), label: 'Tutti gli Eventi'),
+              icon: Icon(Icons.search_rounded), label: 'Eventi'),
           NavigationDestination(
               icon: Icon(Icons.workspace_premium_outlined),
               selectedIcon: Icon(Icons.workspace_premium_rounded),
