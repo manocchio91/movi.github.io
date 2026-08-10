@@ -51,14 +51,14 @@ class OrganizerProfileController extends Controller
                 }
                 $column = $field.'_path';
                 $oldPaths[] = $profile->{$column};
-                $stored[] = $profile->{$column} = $request->file($field)->store('organizers/'.$profile->ulid, 'public');
+                $stored[] = $profile->{$column} = $request->file($field)->store('organizers/'.$profile->ulid, (string) config('filesystems.public', 'public'));
             }
             $profile->save();
         } catch (Throwable $exception) {
-            Storage::disk('public')->delete($stored);
+            Storage::disk((string) config('filesystems.public', 'public'))->delete($stored);
             throw $exception;
         }
-        Storage::disk('public')->delete(array_filter($oldPaths));
+        Storage::disk((string) config('filesystems.public', 'public'))->delete(array_filter($oldPaths));
 
         return response()->json(['data' => $this->withImageUrls($profile->refresh())]);
     }
@@ -74,8 +74,8 @@ class OrganizerProfileController extends Controller
 
     private function withImageUrls(OrganizerProfile $profile): OrganizerProfile
     {
-        $profile->setAttribute('logo_url', $profile->logo_path ? Storage::disk('public')->url($profile->logo_path) : null);
-        $profile->setAttribute('cover_url', $profile->cover_path ? Storage::disk('public')->url($profile->cover_path) : null);
+        $profile->setAttribute('logo_url', $profile->logo_path ? Storage::disk((string) config('filesystems.public', 'public'))->url($profile->logo_path) : null);
+        $profile->setAttribute('cover_url', $profile->cover_path ? Storage::disk((string) config('filesystems.public', 'public'))->url($profile->cover_path) : null);
 
         return $profile;
     }

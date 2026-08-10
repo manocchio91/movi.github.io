@@ -2,11 +2,12 @@
 
 namespace App\Mail;
 
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 
-class OperationalMessage extends Mailable
+class OperationalMessage extends Mailable implements ShouldQueue
 {
     public function __construct(
         private readonly string $messageSubject,

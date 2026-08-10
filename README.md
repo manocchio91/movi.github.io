@@ -60,6 +60,7 @@ docker compose exec frontend npm run build
 - API/OpenAPI: `docs/api.md` e `docs/openapi.yaml`
 - Sicurezza e privacy: `docs/security-privacy.md`
 - Roadmap: `docs/roadmap.md`
+- Deploy staging/production, backup e restore: `docs/deployment.md`
 
 ## Stato implementazione
 Questa repository contiene lo scheletro operativo della prima vertical slice. Prenotazioni, QR check-in, lista d'attesa e notifiche sono documentati e predisposti nel dominio, ma non implementati nel codice applicativo iniziale.

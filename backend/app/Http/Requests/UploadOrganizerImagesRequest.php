@@ -16,8 +16,8 @@ class UploadOrganizerImagesRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'logo' => ['required_without:cover', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
-            'cover' => ['required_without:logo', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'logo' => ['required_without:cover', 'file', 'mimetypes:image/jpeg,image/png,image/webp', 'extensions:jpg,jpeg,png,webp', 'max:2048'],
+            'cover' => ['required_without:logo', 'file', 'mimetypes:image/jpeg,image/png,image/webp', 'extensions:jpg,jpeg,png,webp', 'max:5120'],
         ];
     }
 }

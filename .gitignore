@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+!.env.production.example
 *.pem
 *.key
 *.p12
@@ -51,3 +52,4 @@ Thumbs.db
 coverage/
 .phpunit.cache/
 .phpunit.result.cache
+backend/storage/

@@ -5,7 +5,9 @@ namespace App\Services;
 use App\Mail\OperationalMessage;
 use App\Models\Booking;
 use App\Models\OrganizerProfile;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Throwable;
 
 class OperationalEmailService
 {
@@ -29,6 +31,13 @@ class OperationalEmailService
 
     private function send(string $recipient, string $subject, string $body): void
     {
-        Mail::to($recipient)->send(new OperationalMessage($subject, $body));
+        try {
+            Mail::to($recipient)->queue(new OperationalMessage($subject, $body));
+        } catch (Throwable $exception) {
+            Log::error('Operational email could not be queued.', [
+                'mail_type' => $subject,
+                'exception' => $exception,
+            ]);
+        }
     }
 }

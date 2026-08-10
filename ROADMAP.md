@@ -24,6 +24,7 @@ APP EVENTI è una piattaforma territoriale per scoprire, pubblicare, prenotare e
 | v1.1 | Completata | Profili MVP, piani commerciali, ricerca Admin, email operative e regression gate |
 | v1.2 | Completata | Backoffice Admin e business, KPI economici teorici e gestione operativa completa |
 | v1.3 | Completata | Hardening MVP, eliminazione runtime demo e preparazione beta privata |
+| v1.4 | Completata | Production readiness tecnica per staging e private beta |
 
 ## v0.8 — Organizer Event Creation and Editing
 
@@ -61,7 +62,7 @@ Completata end-to-end sul frontend web:
 
 ## Prossima milestone
 
-Gestione beta privata e raccolta feedback su flussi Customer, Organizer web e Admin.
+Deploy in staging, smoke test operativo e avvio controllato della private beta.
 
 ## v1.1 - MVP Profiles, Commercial Plans and Operations
 
@@ -98,6 +99,17 @@ Completata end-to-end:
 6. OpenAPI Contract Cleanup completato: 111 route reali coperte, operationId univoci e Redocly a 0 errori/0 warning.
 7. Customer Booking Experience completata con telefono obbligatorio, riepilogo e conferma, modifica e annullamento, disponibilità atomica, QR e booking code invariati, aggiornamento degli strumenti Organizer e regression test frontend/backend.
 
+## v1.4 - Production Readiness
+
+Completata end-to-end:
+
+1. Configurazione distinta per local, testing e production/staging senza segreti versionati.
+2. Container production per Laravel, frontend statico, Nginx, PostgreSQL, Redis, queue worker e scheduler con volumi persistenti.
+3. Health check applicazione/database/Redis, rate limiting sensibile, error handling sicuro e logging ruotato.
+4. Upload Organizer limitati a JPEG, PNG e WebP con MIME reale, dimensioni e filesystem sostituibile con S3-compatible.
+5. Email operative accodate e predisposte per SMTP reale senza influire sulle transazioni business.
+6. Pagine legali placeholder, documentazione deploy, migrazioni, backup e restore PostgreSQL.
+7. Gate automatici e Browser QA Customer, Organizer, Admin e responsive completati.
 ## Attività future
 
 ### Organizer

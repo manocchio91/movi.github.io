@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
+use App\Mail\OperationalMessage;
 use App\Models\OrganizerProfile;
 use App\Models\User;
 use App\Services\OperationalEmailService;
@@ -92,7 +93,7 @@ class MvpProfilesCommercialOperationsTest extends TestCase
 
         app(OperationalEmailService::class)->organizerReviewed($profile);
 
-        Mail::assertSentCount(1);
+        Mail::assertQueued(OperationalMessage::class);
     }
 
     private function organizer(string $status): OrganizerProfile

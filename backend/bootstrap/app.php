@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         apiPrefix: 'api',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->trustProxies(at: array_filter(array_map('trim', explode(',', (string) env('TRUSTED_PROXIES', '127.0.0.1')))));
         $middleware->api(prepend: [
             RequestId::class,
         ]);
@@ -55,7 +56,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 409 => $exception->getMessage() ?: 'Conflitto con lo stato corrente della risorsa.',
                 422 => $exception->getMessage() ?: 'I dati forniti non sono validi.',
                 429 => 'Troppe richieste. Riprova più tardi.',
-                500 => 'Errore interno del server.',
+                500 => 'Non siamo riusciti a completare la richiesta. Riprova più tardi.',
                 default => $exception->getMessage() ?: 'Richiesta non completata.',
             };
 

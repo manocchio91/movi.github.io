@@ -4,11 +4,11 @@
 
 ## Riferimenti correnti
 
-- Versione corrente: `v1.3 - Hardened MVP for Private Beta`
-- Ultimo aggiornamento: 6 agosto 2026
+- Versione corrente: `v1.4 - Complete Production Readiness`
+- Ultimo aggiornamento: 10 agosto 2026
 - Repository: `manocchio91/app-eventi`
-- Branch corrente: `feat/mvp-beta-hardening`
-- Commit milestone: `v1.3 - Harden MVP and prepare private beta`
+- Branch corrente: `feat/production-readiness`
+- Commit milestone: `v1.4 - Complete production readiness`
 - Ultimo tag: `v0.5-customer-booking-qr`, verificato localmente sul commit `c5e9605`
 
 ## Stato delle aree
@@ -22,7 +22,7 @@
 - Customer web: profilo e password, cronologia prenotazioni, QR recuperabile, annullamento, preferiti e recensioni collegati alle API reali.
 - Organizer web: profilo pubblico/privato, logo e copertina, dati fiscali riservati e pagina pubblica con storico eventi.
 - Admin web: dashboard KPI reale, ricerca globale, gestione completa di Organizer, Customer ed eventi, catalogo piani e accordi commerciali senza pagamenti automatici.
-- Email operative: approvazione/revisione Organizer e conferma/annullamento booking tramite mailer configurabile e fake nei test.
+- Email operative: approvazione/revisione Organizer e conferma/annullamento booking accodate, configurabili via SMTP e isolate dalle transazioni business.
 - Organizer nella beta: disponibile esclusivamente sul web; il mobile mostra un avviso esplicito e consente il logout.
 
 ## Milestone completate
@@ -40,10 +40,11 @@
 - v1.1: profili MVP, piani commerciali, ricerca Admin, email operative e regressioni Customer risolte
 - v1.2: backoffice Admin e business completo con KPI economici teorici, transizioni protette e storico accordi
 - v1.3: hardening MVP, rimozione runtime demo e preparazione beta privata
+- v1.4: configurazione, container, sicurezza e operatività pronte per staging/private beta
 
 ## Task corrente
 
-OpenAPI Contract Cleanup completato: contratto allineato alle 111 route API reali e lint Redocly azzerato.
+Production Readiness completata e Browser QA approvato: applicazione tecnicamente pronta per staging/private beta, subordinatamente alla configurazione dei servizi esterni.
 
 ## Funzionalità completate
 
@@ -91,10 +92,13 @@ OpenAPI Contract Cleanup completato: contratto allineato alle 111 route API real
 - Browser QA finale Customer Booking Experience confermato: singola PATCH, payload completo, aggiornamento UI e disponibilità, QR e booking code invariati.
 - Regression gate Customer Booking Experience: test frontend 4/4, test backend mirati 3/3 con 71 asserzioni; suite Laravel 99 test e 715 asserzioni, Pint, PHPStan, ESLint, build e `git diff --check` verdi.
 - OpenAPI Contract Cleanup: 111/111 route documentate, operationId univoci e lint Redocly passato con 0 errori e 0 warning.
+- Production Readiness: health applicativo/DB/Redis, Docker production, queue e scheduler, upload hardening, SMTP, logging, CORS/proxy, pagine legali placeholder e procedure deploy/backup/restore verificati.
+- Gate v1.4: suite Laravel completata con unica regressione di aspettativa corretta e test mirato finale 4/4; Pint, PHPStan, ESLint, build frontend, Redocly 0/0 e git diff --check verdi.
+- Browser QA v1.4 confermato dal Product Owner su Customer, Organizer, Admin e responsive.
 
 ## Prossimo task
 
-Preparazione e gestione operativa della beta privata.
+Deploy in staging e avvio controllato della private beta.
 
 ## Debiti aperti
 
@@ -102,6 +106,7 @@ Preparazione e gestione operativa della beta privata.
 - La copertura frontend automatizzata resta limitata al flusso critico di modifica prenotazione; ampliare progressivamente agli altri componenti.
 - Upload immagini evento non incluso.
 - Redesign grafico generale non incluso.
+- Prima dello staging vanno forniti dominio/TLS, credenziali PostgreSQL e Redis, SMTP reale e testi legali definitivi.
 
 ## Come riprendere il lavoro
 

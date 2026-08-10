@@ -42,7 +42,7 @@ class ApiErrorAndCheckInTest extends TestCase
         Route::get('/api/v1/testing/internal-error', fn () => throw new \RuntimeException('SQLSTATE secret_table stack trace'));
 
         $this->getJson('/api/v1/testing/internal-error')->assertInternalServerError()
-            ->assertJsonPath('message', 'Errore interno del server.')
+            ->assertJsonPath('message', 'Non siamo riusciti a completare la richiesta. Riprova più tardi.')
             ->assertJsonMissing(['SQLSTATE secret_table stack trace'])
             ->assertJsonStructure(['message', 'errors', 'request_id']);
     }

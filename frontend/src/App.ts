@@ -255,6 +255,12 @@ class ApiError extends Error {
   }
 }
 
+const userMessage = (error: unknown, fallback: string): string => {
+  if (!(error instanceof Error)) return fallback;
+  if (/failed to fetch|networkerror|load failed/i.test(error.message)) return 'Servizio temporaneamente non raggiungibile. Verifica la connessione e riprova.';
+  return error.message || fallback;
+};
+
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api/v1';
 
 const organizerEventStatusLabels: Record<OrganizerEventStatus, string> = {
@@ -589,7 +595,7 @@ export default defineComponent({
           return;
         }
 
-        dashboardError.value = error instanceof Error ? error.message : 'Impossibile caricare la dashboard Organizer.';
+        dashboardError.value = userMessage(error, 'Impossibile caricare la dashboard Organizer.');
       } finally {
         dashboardLoading.value = false;
       }
@@ -641,7 +647,7 @@ export default defineComponent({
           return;
         }
 
-        organizerEventsError.value = error instanceof Error ? error.message : 'Impossibile caricare la lista eventi Organizer.';
+        organizerEventsError.value = userMessage(error, 'Impossibile caricare la lista eventi Organizer.');
       } finally {
         if (requestId === organizerEventsRequestId) organizerEventsLoading.value = false;
       }
@@ -824,7 +830,7 @@ export default defineComponent({
         selectedDay.value = calendarDays.value.find((day) => day.events_count > 0) ?? calendarDays.value[0] ?? null;
         opportunities.value = opportunityPayload ?? null;
       } catch (error) {
-        apiError.value = error instanceof Error ? error.message : 'API non disponibile';
+        apiError.value = userMessage(error, 'API non disponibile');
       } finally {
         loading.value = false;
       }
@@ -845,7 +851,7 @@ export default defineComponent({
         allCustomerEvents.value = eventPayload?.data?.data ?? eventPayload?.data ?? [];
         successfulEvents.value = successPayload?.data ?? [];
       } catch (error) {
-        apiError.value = error instanceof Error ? error.message : 'API customer non disponibile';
+        apiError.value = userMessage(error, 'API customer non disponibile');
       } finally {
         loading.value = false;
       }
@@ -871,7 +877,7 @@ export default defineComponent({
         customerBookingPhone.value = profileResponse?.data.phone ?? '';
         customerTicketQuantities.value = Object.fromEntries((eventResponse?.data.ticket_types ?? []).filter((ticket) => ticket.is_active).map((ticket) => [ticket.ulid, 0]));
       } catch (error) {
-        customerEventError.value = error instanceof Error ? error.message : 'Impossibile caricare il dettaglio evento.';
+        customerEventError.value = userMessage(error, 'Impossibile caricare il dettaglio evento.');
       } finally {
         customerEventLoading.value = false;
       }
@@ -883,14 +889,14 @@ export default defineComponent({
         if (section === 'profile') customerProfile.value = (await api<any>('/me/profile'))?.data ?? customerProfile.value;
         if (section === 'bookings') customerBookings.value = (await api<any>('/me/bookings'))?.data ?? [];
         if (section === 'favorites') customerFavorites.value = (await api<any>('/me/favorites'))?.data ?? [];
-      } catch (error) { customerSectionMessage.value = error instanceof Error ? error.message : 'Dati non disponibili.'; }
+      } catch (error) { customerSectionMessage.value = userMessage(error, 'Dati non disponibili.'); }
       finally { customerSectionLoading.value = false; }
     };
 
     const saveCustomerProfile = async () => {
       customerSectionLoading.value = true; customerSectionMessage.value = '';
       try { customerProfile.value = (await api<any>('/me/profile', { method: 'PATCH', body: JSON.stringify({ name: customerProfile.value.name, email: customerProfile.value.email, phone: customerProfile.value.phone }) }))?.data ?? customerProfile.value; customerSectionMessage.value = 'Profilo aggiornato.'; }
-      catch (error) { customerSectionMessage.value = error instanceof Error ? error.message : 'Salvataggio non riuscito.'; }
+      catch (error) { customerSectionMessage.value = userMessage(error, 'Salvataggio non riuscito.'); }
       finally { customerSectionLoading.value = false; }
     };
     const saveCustomerPassword = async () => {
@@ -900,7 +906,7 @@ export default defineComponent({
         customerPassword.value = { current_password: '', password: '', password_confirmation: '' };
         customerSectionMessage.value = 'Password aggiornata.';
       } catch (error) {
-        customerSectionMessage.value = error instanceof Error ? error.message : 'Aggiornamento password non riuscito.';
+        customerSectionMessage.value = userMessage(error, 'Aggiornamento password non riuscito.');
       } finally {
         customerSectionLoading.value = false;
       }
@@ -908,17 +914,17 @@ export default defineComponent({
 
     const loadPublicOrganizer = async (ulid: string) => {
       customerSectionLoading.value = true; customerSectionMessage.value = ''; publicOrganizer.value = null;
-      try { publicOrganizer.value = await api(`/organizers/${ulid}`); } catch (error) { customerSectionMessage.value = error instanceof Error ? error.message : 'Organizer non disponibile.'; }
+      try { publicOrganizer.value = await api(`/organizers/${ulid}`); } catch (error) { customerSectionMessage.value = userMessage(error, 'Organizer non disponibile.'); }
       finally { customerSectionLoading.value = false; }
     };
 
     const removeFavorite = async (ulid: string) => { await api(`/me/favorites/${ulid}`, { method: 'DELETE' }); await loadCustomerSection('favorites'); };
-    const reviewBooking = async (booking: any) => { const rating = Number(window.prompt('Valutazione da 1 a 5')); if (!Number.isInteger(rating) || rating < 1 || rating > 5) return; const comment = window.prompt('Recensione') ?? ''; try { await api(`/events/${booking.event.ulid}/reviews`, { method: 'POST', body: JSON.stringify({ rating, comment, would_recommend: rating >= 4 }) }); customerSectionMessage.value = 'Recensione pubblicata.'; } catch (error) { customerSectionMessage.value = error instanceof Error ? error.message : 'Recensione non pubblicata.'; } };
+    const reviewBooking = async (booking: any) => { const rating = Number(window.prompt('Valutazione da 1 a 5')); if (!Number.isInteger(rating) || rating < 1 || rating > 5) return; const comment = window.prompt('Recensione') ?? ''; try { await api(`/events/${booking.event.ulid}/reviews`, { method: 'POST', body: JSON.stringify({ rating, comment, would_recommend: rating >= 4 }) }); customerSectionMessage.value = 'Recensione pubblicata.'; } catch (error) { customerSectionMessage.value = userMessage(error, 'Recensione non pubblicata.'); } };
 
     const uploadOrganizerImage = async (kind: 'logo' | 'cover', file?: File) => {
       if (!file || !token.value) return; const form = new FormData(); form.append(kind, file); organizerProfileSaving.value = true;
       try { const response = await fetch(`${apiBase}/organizer/profile/images`, { method: 'POST', headers: { Accept: 'application/json', Authorization: `Bearer ${token.value}` }, body: form }); if (!response.ok) throw new Error((await response.json()).message); organizerProfile.value = (await response.json()).data; organizerProfileSuccess.value = 'Immagine aggiornata.'; }
-      catch (error) { organizerProfileError.value = error instanceof Error ? error.message : 'Caricamento non riuscito.'; } finally { organizerProfileSaving.value = false; }
+      catch (error) { organizerProfileError.value = userMessage(error, 'Caricamento non riuscito.'); } finally { organizerProfileSaving.value = false; }
     };
 
     const loadCustomerQrSafe = async (ulid: string) => {
@@ -939,7 +945,7 @@ export default defineComponent({
         await loadCustomerSection('bookings');
         customerSectionMessage.value = 'Prenotazione annullata.';
       } catch (error) {
-        customerSectionMessage.value = error instanceof Error ? error.message : 'Annullamento non riuscito.';
+        customerSectionMessage.value = userMessage(error, 'Annullamento non riuscito.');
       } finally {
         cancellingCustomerBooking.value = null;
       }
@@ -982,7 +988,7 @@ export default defineComponent({
       } catch (error) {
         customerBookingConfirmOpen.value = false;
         if (error instanceof ApiError && error.status === 422) { customerBookingFieldErrors.value = error.errors; customerBookingError.value = 'Correggi i campi evidenziati.'; }
-        else customerBookingError.value = error instanceof Error ? error.message : 'Prenotazione non completata.';
+        else customerBookingError.value = userMessage(error, 'Prenotazione non completata.');
       } finally { customerBookingLoading.value = false; }
     };
 
@@ -993,7 +999,7 @@ export default defineComponent({
         const event = response?.data;
         if (!event) throw new Error('Evento non disponibile.');
         customerBookingEdit.value = { booking, event, quantities: Object.fromEntries(event.ticket_types.map((ticket) => [ticket.ulid, booking.items.find((item) => item.ticket_type.ulid === ticket.ulid)?.quantity ?? 0])), phone: booking.contact_phone ?? customerProfile.value.phone ?? '', notes: booking.notes ?? '', savePhone: false, confirmOpen: false, error: '' };
-      } catch (error) { customerSectionMessage.value = error instanceof Error ? error.message : 'Modifica non disponibile.'; }
+      } catch (error) { customerSectionMessage.value = userMessage(error, 'Modifica non disponibile.'); }
     };
 
     const openCustomerBookingEditConfirmation = () => {
@@ -1057,7 +1063,7 @@ export default defineComponent({
         organizerBookingsMeta.value = response?.meta ?? null;
       } catch (error) {
         organizerBookings.value = [];
-        organizerBookingsError.value = error instanceof Error ? error.message : 'Impossibile caricare le prenotazioni.';
+        organizerBookingsError.value = userMessage(error, 'Impossibile caricare le prenotazioni.');
       } finally {
         organizerBookingsLoading.value = false;
       }
@@ -1071,7 +1077,7 @@ export default defineComponent({
         const response = await api<{ data: OrganizerBooking }>(`/organizer/bookings/${ulid}`);
         selectedOrganizerBooking.value = response?.data ?? null;
       } catch (error) {
-        organizerBookingsError.value = error instanceof Error ? error.message : 'Impossibile caricare il dettaglio.';
+        organizerBookingsError.value = userMessage(error, 'Impossibile caricare il dettaglio.');
       } finally {
         organizerBookingsLoading.value = false;
       }
@@ -1085,7 +1091,7 @@ export default defineComponent({
         const response = await api<OrganizerParticipantsResponse>(`/organizer/events/${eventUlid}/participants?${query}`);
         organizerParticipants.value = response?.data ?? []; organizerParticipantsMeta.value = response?.meta ?? null;
         organizerParticipantsSummary.value = response?.summary ?? { bookings_total: 0, people_total: 0, checked_in_total: 0 };
-      } catch (error) { organizerParticipants.value = []; organizerParticipantsError.value = error instanceof Error ? error.message : 'Impossibile caricare i partecipanti.'; }
+      } catch (error) { organizerParticipants.value = []; organizerParticipantsError.value = userMessage(error, 'Impossibile caricare i partecipanti.'); }
       finally { organizerParticipantsLoading.value = false; }
     };
 
@@ -1096,7 +1102,7 @@ export default defineComponent({
         await api(`/organizer/events/${eventUlid}/check-ins`, { method: 'POST', body: JSON.stringify({ [checkInMode.value]: checkInValue.value.trim() }) });
         checkInMessage.value = 'Check-in registrato correttamente.'; checkInValue.value = '';
         await loadOrganizerParticipants(eventUlid);
-      } catch (error) { checkInMessage.value = error instanceof Error ? error.message : 'Check-in non riuscito.'; }
+      } catch (error) { checkInMessage.value = userMessage(error, 'Check-in non riuscito.'); }
       finally { checkInLoading.value = false; }
     };
 
@@ -1126,7 +1132,7 @@ export default defineComponent({
           }] : [];
         }
       } catch (error) {
-        organizerProfileError.value = error instanceof Error ? error.message : 'Impossibile caricare il profilo Organizer.';
+        organizerProfileError.value = userMessage(error, 'Impossibile caricare il profilo Organizer.');
       } finally {
         organizerProfileLoading.value = false;
       }
@@ -1151,7 +1157,7 @@ export default defineComponent({
           organizerProfile.value.province = postalMunicipalities.value[0].province;
         }
       } catch (error) {
-        if (requestId === postalCodeRequestId) postalCodeError.value = error instanceof Error ? error.message : 'Impossibile cercare il Comune.';
+        if (requestId === postalCodeRequestId) postalCodeError.value = userMessage(error, 'Impossibile cercare il Comune.');
       } finally {
         if (requestId === postalCodeRequestId) postalCodeLoading.value = false;
       }
@@ -1198,7 +1204,7 @@ export default defineComponent({
         organizerProfileSuccess.value = 'Profilo salvato. Puoi continuare più tardi.';
       } catch (error) {
         if (error instanceof ApiError) organizerProfileErrors.value = error.errors;
-        organizerProfileError.value = error instanceof Error ? error.message : 'Impossibile salvare il profilo.';
+        organizerProfileError.value = userMessage(error, 'Impossibile salvare il profilo.');
       } finally {
         organizerProfileSaving.value = false;
       }
@@ -1217,7 +1223,7 @@ export default defineComponent({
         route.value = '/organizer/pending';
       } catch (error) {
         if (error instanceof ApiError) organizerProfileErrors.value = error.errors;
-        organizerProfileError.value = error instanceof Error ? error.message : 'Impossibile inviare la richiesta.';
+        organizerProfileError.value = userMessage(error, 'Impossibile inviare la richiesta.');
       } finally {
         organizerProfileSaving.value = false;
       }
@@ -1237,7 +1243,7 @@ export default defineComponent({
         adminOrganizerPendingCount.value = response?.pending_count ?? 0;
       } catch (error) {
         adminOrganizers.value = [];
-        adminOrganizerError.value = error instanceof Error ? error.message : 'Impossibile caricare le richieste Organizer.';
+        adminOrganizerError.value = userMessage(error, 'Impossibile caricare le richieste Organizer.');
       } finally {
         adminOrganizerLoading.value = false;
       }
@@ -1250,7 +1256,7 @@ export default defineComponent({
         const response = await api<{ data: OrganizerProfile }>(`/admin/organizers/${organizer.ulid}`);
         selectedAdminOrganizer.value = response?.data ?? null;
       } catch (error) {
-        adminOrganizerError.value = error instanceof Error ? error.message : 'Impossibile caricare il dettaglio.';
+        adminOrganizerError.value = userMessage(error, 'Impossibile caricare il dettaglio.');
       }
     };
 
@@ -1273,7 +1279,7 @@ export default defineComponent({
         selectedAdminOrganizer.value = response?.data ?? null;
         await loadAdminOrganizerRequests();
       } catch (error) {
-        adminOrganizerError.value = error instanceof Error ? error.message : 'Operazione non completata.';
+        adminOrganizerError.value = userMessage(error, 'Operazione non completata.');
       } finally {
         adminOrganizerActionLoading.value = false;
       }
@@ -1301,7 +1307,7 @@ export default defineComponent({
         adminOrganizerRankings.value = organizerRankings?.data ?? [];
         await loadAdminOrganizerRequests();
       } catch (error) {
-        apiError.value = error instanceof Error ? error.message : 'API admin non disponibile';
+        apiError.value = userMessage(error, 'API admin non disponibile');
       } finally {
         loading.value = false;
       }
@@ -1554,7 +1560,7 @@ export default defineComponent({
           organizerEvents.value = [];
           organizerEventsMeta.value = null;
         } else {
-          organizerEventsError.value = error instanceof Error ? error.message : 'Impossibile annullare l’evento.';
+          organizerEventsError.value = userMessage(error, 'Impossibile annullare l’evento.');
         }
       } finally {
         cancellingOrganizerEvent.value = null;

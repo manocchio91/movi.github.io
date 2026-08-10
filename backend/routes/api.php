@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\V1\CustomerProfileController;
 use App\Http\Controllers\Api\V1\CustomerSuccessfulEventController;
 use App\Http\Controllers\Api\V1\EventController;
 use App\Http\Controllers\Api\V1\FavoriteController;
+use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\NotificationPreferenceController;
@@ -36,6 +37,7 @@ use App\Http\Controllers\Api\V1\SubscriptionPlanController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
+    Route::get('/health', HealthController::class)->middleware('throttle:60,1');
     Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:auth');
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:auth');
 
@@ -72,13 +74,13 @@ Route::prefix('v1')->group(function (): void {
             Route::put('/me/preferences', [PreferenceController::class, 'update']);
             Route::get('/me/notification-preferences', [NotificationPreferenceController::class, 'show']);
             Route::put('/me/notification-preferences', [NotificationPreferenceController::class, 'update']);
-            Route::post('/events/{event:ulid}/bookings', [BookingController::class, 'store']);
+            Route::post('/events/{event:ulid}/bookings', [BookingController::class, 'store'])->middleware('throttle:sensitive');
             Route::post('/events/{event:ulid}/reviews', [ReviewController::class, 'store']);
             Route::get('/me/bookings', [BookingController::class, 'index']);
             Route::get('/me/bookings/{booking:ulid}', [BookingController::class, 'show']);
             Route::patch('/me/bookings/{booking:ulid}', [BookingController::class, 'update']);
             Route::get('/me/bookings/{booking:ulid}/qr', [BookingController::class, 'qr']);
-            Route::post('/me/bookings/{booking:ulid}/cancel', [BookingController::class, 'cancel']);
+            Route::post('/me/bookings/{booking:ulid}/cancel', [BookingController::class, 'cancel'])->middleware('throttle:sensitive');
             Route::get('/me/favorites', [FavoriteController::class, 'index']);
             Route::post('/me/favorites/{event:ulid}', [FavoriteController::class, 'store']);
             Route::delete('/me/favorites/{event:ulid}', [FavoriteController::class, 'destroy']);
@@ -92,7 +94,7 @@ Route::prefix('v1')->group(function (): void {
         Route::middleware('role:organizer')->group(function (): void {
             Route::get('/organizer/profile', [OrganizerProfileController::class, 'show']);
             Route::patch('/organizer/profile', [OrganizerProfileController::class, 'update']);
-            Route::post('/organizer/profile/images', [OrganizerProfileController::class, 'images']);
+            Route::post('/organizer/profile/images', [OrganizerProfileController::class, 'images'])->middleware('throttle:sensitive');
             Route::post('/organizer/profile/submit', [OrganizerProfileController::class, 'submit']);
 
             Route::middleware('organizer.approved')->group(function (): void {
@@ -125,7 +127,7 @@ Route::prefix('v1')->group(function (): void {
                 Route::post('/organizer/events/{event:ulid}/close-bookings', [OrganizerEventController::class, 'closeBookings']);
                 Route::post('/organizer/events/{event:ulid}/cancel', [OrganizerEventController::class, 'cancel']);
                 Route::get('/organizer/events/{event:ulid}/bookings', [OrganizerEventController::class, 'bookings']);
-                Route::post('/organizer/events/{event:ulid}/check-ins', [OrganizerCheckInController::class, 'store']);
+                Route::post('/organizer/events/{event:ulid}/check-ins', [OrganizerCheckInController::class, 'store'])->middleware('throttle:sensitive');
                 Route::get('/organizer/reviews/events', [OrganizerReviewController::class, 'events']);
                 Route::get('/organizer/reviews/events/{event:ulid}', [OrganizerReviewController::class, 'event']);
             });

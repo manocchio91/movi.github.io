@@ -67,7 +67,7 @@ class CustomerEventDetailBookingTest extends TestCase
             'total_people' => 1,
             'status' => 'confirmed',
         ]);
-        Mail::assertSent(OperationalMessage::class, fn (OperationalMessage $mail): bool => $mail->hasTo($customer->email));
+        Mail::assertQueued(OperationalMessage::class, fn (OperationalMessage $mail): bool => $mail->hasTo($customer->email));
 
         $this->getJson("/api/v1/me/bookings/{$bookingUlid}/qr")
             ->assertOk()->assertJsonPath('data.qr_token', $qrToken);
