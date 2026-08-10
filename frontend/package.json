@@ -6,7 +6,9 @@
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
     "lint": "eslint .",
-    "test:booking": "node --test src/bookingUpdate.test.ts"
+    "test": "node --test src/*.test.ts",
+    "test:booking": "node --test src/bookingUpdate.test.ts",
+    "test:ux": "node --test src/uxPolish.test.ts"
   },
   "dependencies": {
     "@vitejs/plugin-vue": "^5.2.4",

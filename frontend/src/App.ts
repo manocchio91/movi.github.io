@@ -1,4 +1,4 @@
-import { computed, defineComponent, h, onMounted, ref } from 'vue';
+import { cloneVNode, computed, defineComponent, h, onMounted, ref } from 'vue';
 import { buildBookingUpdatePayload, runBookingUpdate } from './bookingUpdate';
 
 type Role = 'guest' | 'customer' | 'organizer' | 'admin';
@@ -807,7 +807,7 @@ export default defineComponent({
         } else if (error instanceof ApiError && error.status === 404) {
           eventFormGeneralError.value = 'Evento non trovato.';
         } else {
-          eventFormGeneralError.value = 'Impossibile salvare l’evento. Riprova.';
+          eventFormGeneralError.value = 'Impossibile salvare l�?Tevento. Riprova.';
         }
       } finally {
         eventFormSubmitting.value = false;
@@ -936,7 +936,7 @@ export default defineComponent({
       }
     };
     const cancelCustomerBooking = async (booking: CustomerBooking) => {
-      if (!booking.can_cancel || cancellingCustomerBooking.value || !window.confirm('Confermi l’annullamento della prenotazione?')) return;
+      if (!booking.can_cancel || cancellingCustomerBooking.value || !window.confirm('Confermi l�?Tannullamento della prenotazione?')) return;
       cancellingCustomerBooking.value = booking.ulid;
       customerSectionMessage.value = '';
       try {
@@ -1394,6 +1394,7 @@ export default defineComponent({
       const action = event.status === 'suspended' ? 'reactivate' : 'suspend';
       const reason = action === 'suspend' ? window.prompt('Motivazione della sospensione')?.trim() : '';
       if (action === 'suspend' && !reason) return;
+      if (!window.confirm(action === 'suspend' ? 'Sospendere evento: ' + event.title + '?' : 'Riattivare evento: ' + event.title + '?')) return;
       await api(`/admin/events/${event.ulid}/${action}`, { method: 'POST', body: JSON.stringify(reason ? { reason } : {}) });
       await loadAdminData();
     };
@@ -1438,7 +1439,7 @@ export default defineComponent({
             method: 'POST',
             headers: { Accept: 'application/json', Authorization: `Bearer ${payload.token}` },
           }).catch(() => undefined);
-          authError.value = `Questo account non appartiene all’area ${authAudience.value}.`;
+          authError.value = `Questo account non appartiene all�?Tarea ${authAudience.value}.`;
           return;
         }
 
@@ -1532,7 +1533,7 @@ export default defineComponent({
     };
 
     const cancelOrganizerEvent = async (eventUlid: string) => {
-      if (cancellingOrganizerEvent.value || !window.confirm('Confermi l’annullamento di questo evento?')) return;
+      if (cancellingOrganizerEvent.value || !window.confirm('Confermi l�?Tannullamento di questo evento?')) return;
 
       cancellingOrganizerEvent.value = eventUlid;
       organizerEventsError.value = '';
@@ -1560,7 +1561,7 @@ export default defineComponent({
           organizerEvents.value = [];
           organizerEventsMeta.value = null;
         } else {
-          organizerEventsError.value = userMessage(error, 'Impossibile annullare l’evento.');
+          organizerEventsError.value = userMessage(error, 'Impossibile annullare l�?Tevento.');
         }
       } finally {
         cancellingOrganizerEvent.value = null;
@@ -1637,7 +1638,7 @@ export default defineComponent({
       h('div', { class: 'auth-panel' }, [
         h('span', { class: 'eyebrow' }, 'Scegli la tua area'),
         h('h1', 'Eventi Locali'),
-        h('p', 'La scelta apre soltanto l’autenticazione. Serve sempre una sessione backend valida per entrare.'),
+        h('p', 'La scelta apre soltanto l�?Tautenticazione. Serve sempre una sessione backend valida per entrare.'),
         h('div', { class: 'auth-role-grid' }, [
           h('button', { type: 'button', onClick: () => selectAuthAudience('customer') }, 'Customer'),
           h('button', { type: 'button', onClick: () => selectAuthAudience('organizer') }, 'Organizer'),
@@ -1652,7 +1653,7 @@ export default defineComponent({
     }, [
       authInput('Email', 'email', 'email', loginForm.value.email, (value) => { loginForm.value.email = value; }),
       authInput('Password', 'password', 'password', loginForm.value.password, (value) => { loginForm.value.password = value; }),
-      h('button', { class: 'auth-submit', type: 'submit', disabled: authLoading.value }, authLoading.value ? 'Accesso in corso…' : 'Accedi'),
+      h('button', { class: 'auth-submit', type: 'submit', disabled: authLoading.value }, authLoading.value ? 'Accesso in corso�?�' : 'Accedi'),
     ]);
 
     const renderCustomerRegistrationForm = () => h('form', {
@@ -1663,7 +1664,7 @@ export default defineComponent({
       authInput('Email', 'email', 'email', customerRegistrationForm.value.email, (value) => { customerRegistrationForm.value.email = value; }),
       authInput('Password', 'password', 'password', customerRegistrationForm.value.password, (value) => { customerRegistrationForm.value.password = value; }),
       authInput('Conferma password', 'password_confirmation', 'password', customerRegistrationForm.value.password_confirmation, (value) => { customerRegistrationForm.value.password_confirmation = value; }),
-      h('button', { class: 'auth-submit', type: 'submit', disabled: authLoading.value }, authLoading.value ? 'Registrazione in corso…' : 'Crea account Cliente'),
+      h('button', { class: 'auth-submit', type: 'submit', disabled: authLoading.value }, authLoading.value ? 'Registrazione in corso�?�' : 'Crea account Cliente'),
     ]);
 
     const renderOrganizerRegistrationForm = () => h('form', {
@@ -1676,7 +1677,7 @@ export default defineComponent({
       authInput('Conferma password', 'password_confirmation', 'password', organizerRegistrationForm.value.password_confirmation, (value) => { organizerRegistrationForm.value.password_confirmation = value; }),
       authInput('Nome organizzazione', 'organization_name', 'text', organizerRegistrationForm.value.organization_name, (value) => { organizerRegistrationForm.value.organization_name = value; }),
       authInput('Tipo organizzazione', 'organization_type', 'text', organizerRegistrationForm.value.organization_type, (value) => { organizerRegistrationForm.value.organization_type = value; }),
-      h('button', { class: 'auth-submit', type: 'submit', disabled: authLoading.value }, authLoading.value ? 'Registrazione in corso…' : 'Crea account Organizer'),
+      h('button', { class: 'auth-submit', type: 'submit', disabled: authLoading.value }, authLoading.value ? 'Registrazione in corso�?�' : 'Crea account Organizer'),
     ]);
 
     const renderLogin = () => authAudience.value === null ? renderRoleSelection() : h('section', { class: 'auth-screen' }, [
@@ -1692,7 +1693,7 @@ export default defineComponent({
         ]),
         authError.value ? h('p', { class: 'api-error', role: 'alert' }, authError.value) : null,
         authRestoring.value
-          ? h('p', { class: 'auth-restoring' }, 'Verifica della sessione in corso…')
+          ? h('p', { class: 'auth-restoring' }, 'Verifica della sessione in corso�?�')
           : authMode.value === 'login' || authAudience.value === 'admin'
             ? renderLoginForm()
             : authMode.value === 'register-customer'
@@ -1717,7 +1718,7 @@ export default defineComponent({
         organizerProfile.value.verification_status === 'changes_requested' ? h('div', { class: 'review-reason' }, [
           h('strong', 'Integrazione richiesta'), h('p', organizerProfile.value.review_notes ?? ''),
         ]) : null,
-        organizerProfileLoading.value ? h('p', 'Caricamento profilo…') : h('form', {
+        organizerProfileLoading.value ? h('p', 'Caricamento profilo�?�') : h('form', {
           class: 'onboarding-form',
           onSubmit: (event: Event) => { event.preventDefault(); route.value === '/organizer/profile' ? void saveOrganizerProfile() : void submitOrganizerProfile(); },
         }, [
@@ -1730,7 +1731,7 @@ export default defineComponent({
               h('label', { class: 'auth-field' }, [
                 h('span', 'CAP *'),
                 h('input', { name: 'postal_code', inputmode: 'numeric', maxlength: 5, value: organizerProfile.value.postal_code ?? '', disabled: organizerProfileSaving.value, onInput: (event: Event) => { changeOrganizerPostalCode((event.target as HTMLInputElement).value); } }),
-                postalCodeLoading.value ? h('small', 'Ricerca Comune…') : null,
+                postalCodeLoading.value ? h('small', 'Ricerca Comune�?�') : null,
                 postalCodeError.value ? h('small', { class: 'field-error', role: 'alert' }, postalCodeError.value) : null,
                 organizerProfileErrors.value.postal_code?.map((message) => h('small', { class: 'field-error' }, message)),
               ]),
@@ -1767,7 +1768,7 @@ export default defineComponent({
           organizerProfileSuccess.value ? h('p', { class: 'form-success' }, organizerProfileSuccess.value) : null,
           h('div', { class: 'onboarding-actions' }, [
             h('button', { type: 'button', disabled: organizerProfileSaving.value, onClick: () => { void saveOrganizerProfile(); } }, route.value === '/organizer/profile' ? 'Salva profilo' : 'Salva e continua più tardi'),
-            route.value === '/organizer/profile' ? h('button', { type: 'button', onClick: () => { void go('/organizer/dashboard'); } }, 'Torna alla dashboard') : h('button', { class: 'auth-submit', type: 'submit', disabled: organizerProfileSaving.value }, organizerProfileSaving.value ? 'Salvataggio…' : 'Invia richiesta di approvazione'),
+            route.value === '/organizer/profile' ? h('button', { type: 'button', onClick: () => { void go('/organizer/dashboard'); } }, 'Torna alla dashboard') : h('button', { class: 'auth-submit', type: 'submit', disabled: organizerProfileSaving.value }, organizerProfileSaving.value ? 'Salvataggio�?�' : 'Invia richiesta di approvazione'),
             h('button', { type: 'button', onClick: () => { void logout(); } }, 'Esci'),
           ]),
         ]),
@@ -1779,7 +1780,7 @@ export default defineComponent({
         h('span', { class: 'eyebrow' }, 'Profilo Organizer'),
         h('h1', 'Account in attesa di approvazione'),
         h('p', `Ciao ${currentUser.value?.name ?? ''}, abbiamo ricevuto la richiesta di registrazione di ${currentUser.value?.organizer_profile?.name ?? 'questa organizzazione'}.`),
-        h('p', 'Il nostro staff verificherà i dati dell’organizzazione. Potrai accedere alla dashboard e pubblicare eventi dopo l’approvazione.'),
+        h('p', 'Il nostro staff verificherà i dati dell�?Torganizzazione. Potrai accedere alla dashboard e pubblicare eventi dopo l�?Tapprovazione.'),
         h('strong', 'Stato: in revisione'),
         h('button', { class: 'auth-submit', type: 'button', onClick: () => { void logout(); } }, 'Esci'),
       ]),
@@ -1794,36 +1795,30 @@ export default defineComponent({
       ]),
     ]);
 
+    const roleNavIcon = (label: string) => ({ Home: '⌂', Eventi: '◫', Prenotazioni: '✓', Profilo: '◎', Dashboard: '⌂', Recensioni: '★', Opportunità: '↗' }[label] ?? '•');
     const renderHeader = (title: string, menu: readonly (readonly [string, AppRoute])[]) => h('header', { class: 'app-header' }, [
-      h('div', [
-        h('span', currentUser.value?.email ?? ''),
-        h('strong', title),
-      ]),
-      h('button', { type: 'button', onClick: logout }, 'Esci'),
-      h('nav', menu.map(([label, target]) => h('button', {
-        class: route.value === target ? 'active' : '',
-        type: 'button',
-        onClick: () => { void go(target); },
-      }, label))),
+      h('div', { class: 'role-brand' }, [h('span', { class: 'role-brand-mark', 'aria-hidden': 'true' }, 'EL'), h('div', [h('strong', 'Eventi Locali'), h('span', title)])]),
+      h('nav', { 'aria-label': title }, menu.map(([label, target]) => h('button', { class: route.value === target ? 'active' : '', type: 'button', 'aria-current': route.value === target ? 'page' : undefined, onClick: () => { void go(target); } }, [h('i', { 'aria-hidden': 'true' }, roleNavIcon(label)), h('span', label)]))),
+      h('div', { class: 'role-account' }, [h('span', { class: 'account-avatar', 'aria-hidden': 'true' }, (currentUser.value?.name ?? 'U').slice(0, 1).toUpperCase()), h('div', [h('strong', currentUser.value?.name ?? title), h('small', currentUser.value?.email ?? '')]), h('button', { type: 'button', onClick: logout, 'aria-label': 'Esci dal tuo account' }, 'Esci')]),
     ]);
 
-    const renderEventCard = (event: CustomerEvent) => h('article', { class: 'experience-card' }, [
-      h('span', event.category ?? event.categories?.[0]?.name ?? 'evento'),
-      h('h3', event.title),
-      h('p', `${event.municipality?.name ?? event.municipality ?? 'Molise'}${event.starts_at ? ` - ${new Date(event.starts_at).toLocaleDateString('it-IT')}` : ''}`),
-      h('div', [h('strong', event.is_free ? 'gratis' : 'prenotabile'), h('small', `${event.available_total ?? ''} posti`)]),
-      h('button', { type: 'button', onClick: () => { void go(`/customer/events/${event.ulid}`); } }, 'Dettaglio evento'),
-    ]);
-
+    const renderEventCard = (event: CustomerEvent) => {
+      const date = event.starts_at ? new Date(event.starts_at) : null;
+      const cover = event.organizer_profile?.cover_url;
+      return h('article', { class: 'experience-card event-card' }, [
+        h('div', { class: ['event-card-cover', cover ? 'has-image' : ''], style: cover ? { backgroundImage: `url(${cover})` } : undefined }, [h('span', { class: 'event-date' }, [h('strong', date ? String(date.getDate()).padStart(2, '0') : '—'), h('small', date ? date.toLocaleDateString('it-IT', { month: 'short' }) : '')]), h('span', { class: 'event-category' }, event.category ?? event.categories?.[0]?.name ?? 'Evento')]),
+        h('div', { class: 'event-card-content' }, [h('p', { class: 'event-place' }, `⌖ ${event.municipality?.name ?? event.municipality ?? 'Molise'}`), h('h3', event.title), h('div', { class: 'event-card-footer' }, [h('div', [h('strong', event.is_free ? 'Gratis' : 'Prenotabile'), h('small', `${event.available_total ?? 0} posti`)]), h('button', { type: 'button', 'aria-label': `Apri ${event.title}`, onClick: () => { void go(`/customer/events/${event.ulid}`); } }, 'Scopri →')])]),
+      ]);
+    };
     const renderBookingSummary = (event: CustomerEvent, quantities: Record<string, number>) => {
       const items = selectedBookingItems(event, quantities); const total = items.reduce((sum, item) => sum + item.subtotal, 0);
-      return h('section', { class: 'booking-summary', 'aria-live': 'polite' }, [h('h3', 'Riepilogo'), items.length ? h('ul', items.map((item) => h('li', [h('span', `${item.quantity} × ${item.ticket.name}`), h('strong', (item.subtotal / 100).toLocaleString('it-IT', { style: 'currency', currency: 'EUR' }))]))) : h('p', 'Seleziona i ticket per visualizzare il totale.'), h('div', { class: 'booking-total' }, [h('span', 'Totale'), h('strong', (total / 100).toLocaleString('it-IT', { style: 'currency', currency: 'EUR' }))])]);
+      return h('section', { class: 'booking-summary', 'aria-live': 'polite' }, [h('h3', 'Riepilogo'), items.length ? h('ul', items.map((item) => h('li', [h('span', `${item.quantity} �- ${item.ticket.name}`), h('strong', (item.subtotal / 100).toLocaleString('it-IT', { style: 'currency', currency: 'EUR' }))]))) : h('p', 'Seleziona i ticket per visualizzare il totale.'), h('div', { class: 'booking-total' }, [h('span', 'Totale'), h('strong', (total / 100).toLocaleString('it-IT', { style: 'currency', currency: 'EUR' }))])]);
     };
 
-    const renderConfirmDialog = (title: string, event: CustomerEvent, quantities: Record<string, number>, onCancel: () => void, onConfirm: () => void) => h('div', { class: 'dialog-backdrop', role: 'presentation' }, h('section', { class: 'booking-dialog', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'booking-dialog-title' }, [h('h2', { id: 'booking-dialog-title' }, title), renderBookingSummary(event, quantities), h('p', 'Controlla i dati: dopo la conferma la disponibilità verrà aggiornata.'), h('div', { class: 'action-row' }, [h('button', { type: 'button', onClick: onCancel }, 'Torna alla modifica'), h('button', { type: 'button', disabled: customerBookingLoading.value, onClick: onConfirm }, customerBookingLoading.value ? 'Salvataggio…' : 'Conferma')])]));
+    const renderConfirmDialog = (title: string, event: CustomerEvent, quantities: Record<string, number>, onCancel: () => void, onConfirm: () => void) => h('div', { class: 'dialog-backdrop', role: 'presentation' }, h('section', { class: 'booking-dialog', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'booking-dialog-title' }, [h('h2', { id: 'booking-dialog-title' }, title), renderBookingSummary(event, quantities), h('p', 'Controlla i dati: dopo la conferma la disponibilità verrà aggiornata.'), h('div', { class: 'action-row' }, [h('button', { type: 'button', onClick: onCancel }, 'Torna alla modifica'), h('button', { type: 'button', disabled: customerBookingLoading.value, onClick: onConfirm }, customerBookingLoading.value ? 'Salvataggio�?�' : 'Conferma')])]));
 
     const renderCustomerEventDetail = () => {
-      if (customerEventLoading.value) return [h('article', { class: 'wide-panel' }, 'Caricamento dettaglio evento…')];
+      if (customerEventLoading.value) return [h('article', { class: 'wide-panel' }, 'Caricamento dettaglio evento�?�')];
       if (customerEventError.value) return [h('article', { class: 'wide-panel dashboard-error' }, [h('p', customerEventError.value), h('button', { onClick: () => { void loadCustomerEvent(route.value.split('/')[3]); } }, 'Riprova')])];
       const event = selectedCustomerEvent.value;
       if (!event) return [emptyState('Evento non disponibile.')];
@@ -1852,14 +1847,16 @@ export default defineComponent({
       event.has_next_edition ? h('strong', { class: 'next-edition-badge' }, 'Nuova edizione disponibile') : null,
       event.next_edition ? h('p', `Prossima: ${event.next_edition.title} - ${new Date(event.next_edition.starts_at).toLocaleDateString('it-IT')} - ${event.next_edition.available_total} posti`) : null,
       h('div', { class: 'action-row' }, [
-        event.next_edition
-          ? h('button', { type: 'button', disabled: true, title: 'Azione non ancora collegata in questa console' }, 'Nuova edizione non disponibile')
-          : h('button', { type: 'button', disabled: true, title: 'Azione non ancora collegata in questa console' }, 'Eventi simili non disponibili'),
+        event.next_edition ? h('button', { type: 'button', onClick: () => { void go(('/customer/events/' + event.next_edition.ulid) as AppRoute); } }, 'Apri nuova edizione') : null,
         h('button', { type: 'button', onClick: () => { void notifySimilar(event.ulid); } }, 'Avvisami quando torna'),
       ]),
     ]);
 
     const renderCustomerDashboard = () => [
+      h('section', { class: 'customer-discovery-hero' }, [
+        h('div', [h('span', { class: 'eyebrow' }, 'Scopri il Molise'), h('h1', 'Eventi locali, esperienze autentiche.'), h('p', 'Cultura, sapori e incontri selezionati dagli organizer del territorio.'), h('button', { type: 'button', onClick: () => { void go('/customer/explore'); } }, 'Esplora gli eventi')]),
+        h('div', { class: 'discovery-signal', 'aria-label': 'Eventi disponibili' }, [h('strong', String(allCustomerEvents.value.length)), h('span', 'eventi da scoprire')]),
+      ]),
       h('div', { class: 'metric-grid' }, [
         card('Prenotazioni', `${customerDashboard.value?.bookings_count ?? 0}`, 'confermate'),
         card('Preferiti', `${customerDashboard.value?.favorites_count ?? 0}`, 'salvati'),
@@ -1894,15 +1891,15 @@ export default defineComponent({
       ]),
       h('form', { class: 'wide-panel booking-detail', onSubmit: (event: Event) => { event.preventDefault(); void saveCustomerPassword(); } }, [
         h('h3', 'Cambia password'),
-        h('input', { type: 'password', autocomplete: 'current-password', placeholder: 'Password attuale', value: customerPassword.value.current_password, onInput: (event: Event) => { customerPassword.value.current_password = (event.target as HTMLInputElement).value; } }),
-        h('input', { type: 'password', autocomplete: 'new-password', placeholder: 'Nuova password', value: customerPassword.value.password, onInput: (event: Event) => { customerPassword.value.password = (event.target as HTMLInputElement).value; } }),
-        h('input', { type: 'password', autocomplete: 'new-password', placeholder: 'Conferma nuova password', value: customerPassword.value.password_confirmation, onInput: (event: Event) => { customerPassword.value.password_confirmation = (event.target as HTMLInputElement).value; } }),
+        h('label', { class: 'auth-field' }, [h('span', 'Password attuale'), h('input', { type: 'password', autocomplete: 'current-password', value: customerPassword.value.current_password, onInput: (event: Event) => { customerPassword.value.current_password = (event.target as HTMLInputElement).value; } })]),
+        h('label', { class: 'auth-field' }, [h('span', 'Nuova password'), h('input', { type: 'password', autocomplete: 'new-password', value: customerPassword.value.password, onInput: (event: Event) => { customerPassword.value.password = (event.target as HTMLInputElement).value; } })]),
+        h('label', { class: 'auth-field' }, [h('span', 'Conferma nuova password'), h('input', { type: 'password', autocomplete: 'new-password', value: customerPassword.value.password_confirmation, onInput: (event: Event) => { customerPassword.value.password_confirmation = (event.target as HTMLInputElement).value; } })]),
         h('button', { disabled: customerSectionLoading.value, type: 'submit' }, 'Aggiorna password'),
       ]),
       customerSectionMessage.value ? h('p', { role: 'status' }, customerSectionMessage.value) : null,
     ];
     const renderCustomerFavorites = () => [h('div', { class: 'section-title' }, [h('h2', 'Eventi preferiti')]), customerFavorites.value.length === 0 ? emptyState('Nessun evento preferito.') : h('div', { class: 'event-grid' }, customerFavorites.value.map((event) => h('article', { class: 'experience-card' }, [h('h3', event.title), h('button', { onClick: () => { void go(`/customer/events/${event.ulid}`); } }, 'Apri'), h('button', { onClick: () => { void removeFavorite(event.ulid); } }, 'Rimuovi')])) )];
-    const renderPublicOrganizer = () => { const payload = publicOrganizer.value; if (customerSectionLoading.value) return [h('article', { class: 'wide-panel' }, 'Caricamento Organizer…')]; if (!payload) return [emptyState(customerSectionMessage.value || 'Organizer non disponibile.')]; const organizer = payload.data; return [h('article', { class: 'wide-panel organizer-public' }, [organizer.cover_url ? h('img', { src: organizer.cover_url, alt: '', class: 'organizer-cover' }) : null, organizer.logo_url ? h('img', { src: organizer.logo_url, alt: `Logo ${organizer.name}`, class: 'organizer-logo' }) : null, h('h2', organizer.name), h('p', organizer.description ?? ''), h('p', `${organizer.public_email ?? ''} ${organizer.phone ?? ''}`), h('div', { class: 'action-row' }, ['website_url', 'facebook_url', 'instagram_url', 'tiktok_url', 'youtube_url'].filter((key) => organizer[key]).map((key) => h('a', { href: organizer[key], target: '_blank', rel: 'noopener' }, key.replace('_url', '')))), h('strong', `${organizer.events_count ?? 0} eventi · ${payload.reviews_count ?? 0} recensioni`)]), h('h3', 'Eventi futuri'), h('div', { class: 'event-grid' }, (payload.future_experiences ?? []).map(renderEventCard)), h('h3', 'Eventi conclusi'), h('div', { class: 'event-grid' }, (payload.completed_experiences ?? []).map(renderEventCard))]; };
+    const renderPublicOrganizer = () => { const payload = publicOrganizer.value; if (customerSectionLoading.value) return [h('article', { class: 'wide-panel' }, 'Caricamento Organizer�?�')]; if (!payload) return [emptyState(customerSectionMessage.value || 'Organizer non disponibile.')]; const organizer = payload.data; return [h('article', { class: 'wide-panel organizer-public' }, [organizer.cover_url ? h('img', { src: organizer.cover_url, alt: '', class: 'organizer-cover' }) : null, organizer.logo_url ? h('img', { src: organizer.logo_url, alt: `Logo ${organizer.name}`, class: 'organizer-logo' }) : null, h('h2', organizer.name), h('p', organizer.description ?? ''), h('p', `${organizer.public_email ?? ''} ${organizer.phone ?? ''}`), h('div', { class: 'action-row' }, ['website_url', 'facebook_url', 'instagram_url', 'tiktok_url', 'youtube_url'].filter((key) => organizer[key]).map((key) => h('a', { href: organizer[key], target: '_blank', rel: 'noopener' }, key.replace('_url', '')))), h('strong', `${organizer.events_count ?? 0} eventi · ${payload.reviews_count ?? 0} recensioni`)]), h('h3', 'Eventi futuri'), h('div', { class: 'event-grid' }, (payload.future_experiences ?? []).map(renderEventCard)), h('h3', 'Eventi conclusi'), h('div', { class: 'event-grid' }, (payload.completed_experiences ?? []).map(renderEventCard))]; };
 
     const renderCustomerBookingEdit = () => {
       const draft = customerBookingEdit.value; if (!draft) return null;
@@ -1912,7 +1909,20 @@ export default defineComponent({
     const renderCustomerBookings = () => [
       h('div', { class: 'section-title' }, [h('h2', 'Cronologia prenotazioni')]),
       customerSectionMessage.value ? h('p', { role: 'status' }, customerSectionMessage.value) : null,
-      customerBookings.value.length === 0 ? emptyState('Nessuna prenotazione.') : h('div', { class: 'event-grid' }, customerBookings.value.map((booking) => h('article', { class: 'experience-card' }, [h('span', bookingStatusLabel(booking.status)), h('h3', booking.event.title), h('p', `${booking.booking_code} · ${booking.total_people} persone · ${booking.contact_phone}`), h('div', { class: 'action-row' }, [h('button', { type: 'button', onClick: () => { void loadCustomerQrSafe(booking.ulid); } }, customerQrTokens.value[booking.ulid] ? 'Aggiorna QR' : 'Mostra QR'), booking.can_edit ? h('button', { type: 'button', onClick: () => { void openCustomerBookingEdit(booking); } }, 'Modifica prenotazione') : null, booking.can_cancel ? h('button', { type: 'button', class: 'danger-button', disabled: cancellingCustomerBooking.value !== null, onClick: () => { void cancelCustomerBooking(booking); } }, cancellingCustomerBooking.value === booking.ulid ? 'Annullamento…' : 'Annulla prenotazione') : null, h('button', { type: 'button', onClick: () => { void reviewBooking(booking); } }, 'Lascia recensione')]), customerQrTokens.value[booking.ulid] ? h('div', { class: 'booking-qr', role: 'img', 'aria-label': 'Token QR della prenotazione' }, customerQrTokens.value[booking.ulid]) : null]))),
+      customerBookings.value.length === 0 ? emptyState('Nessuna prenotazione.') : h('div', { class: 'event-grid' }, customerBookings.value.map((booking) => h('article', { class: 'experience-card booking-history-card' }, [
+        h('span', { class: `booking-status status-${booking.status}` }, bookingStatusLabel(booking.status)),
+        h('h3', booking.event.title),
+        h('dl', { class: 'booking-facts' }, [
+          h('div', [h('dt', 'Data'), h('dd', new Date(booking.event.starts_at).toLocaleString('it-IT', { dateStyle: 'medium', timeStyle: 'short' }))]),
+          h('div', [h('dt', 'Biglietti'), h('dd', booking.items.map((item) => `${item.ticket_type.name} �- ${item.quantity}`).join(', '))]),
+          h('div', [h('dt', 'Quantità'), h('dd', `${booking.total_people} persone`)]),
+          h('div', [h('dt', 'Totale'), h('dd', (booking.total_price_cents / 100).toLocaleString('it-IT', { style: 'currency', currency: 'EUR' }))]),
+          h('div', [h('dt', 'Telefono'), h('dd', booking.contact_phone || 'Non indicato')]),
+          h('div', [h('dt', 'Codice'), h('dd', booking.booking_code)]),
+        ]),
+        h('div', { class: 'action-row' }, [h('button', { type: 'button', onClick: () => { void loadCustomerQrSafe(booking.ulid); } }, customerQrTokens.value[booking.ulid] ? 'Aggiorna QR' : 'Mostra QR'), booking.can_edit ? h('button', { type: 'button', onClick: () => { void openCustomerBookingEdit(booking); } }, 'Modifica prenotazione') : null, booking.can_cancel ? h('button', { type: 'button', class: 'danger-button', disabled: cancellingCustomerBooking.value !== null, onClick: () => { void cancelCustomerBooking(booking); } }, cancellingCustomerBooking.value === booking.ulid ? 'Annullamento�?�' : 'Annulla prenotazione') : null, h('button', { type: 'button', onClick: () => { void reviewBooking(booking); } }, 'Lascia recensione')]),
+        customerQrTokens.value[booking.ulid] ? h('div', { class: 'booking-qr', role: 'img', 'aria-label': 'Token QR della prenotazione' }, customerQrTokens.value[booking.ulid]) : null,
+      ]))),
       renderCustomerBookingEdit(),
     ];
     const CustomerLayout = () => h('main', { class: 'role-shell customer-layout' }, [
@@ -1961,7 +1971,11 @@ export default defineComponent({
       const bi = data.bi;
 
       return [
-        h('div', { class: 'metric-grid' }, [
+        h('section', { class: 'organizer-command-hero' }, [
+          h('div', [h('span', { class: 'eyebrow' }, 'Workspace organizer'), h('h1', 'La regia dei tuoi eventi.'), h('p', 'Numeri, operatività e prossime azioni in un unico spazio.')]),
+          h('div', { class: 'command-actions' }, [h('button', { type: 'button', onClick: () => { void go('/organizer/create-event'); } }, '＋ Crea evento'), h('button', { type: 'button', onClick: () => { void go('/organizer/bookings'); } }, 'Gestisci prenotazioni')]),
+        ]),
+        h('div', { class: 'metric-grid organizer-kpis' }, [
           card('Eventi futuri', `${bi.future_events}`, 'pubblicati o sold out'),
           card('Eventi conclusi', `${bi.completed_events}`, 'stato completed'),
           card('Eventi non pubblicati', `${bi.unpublished_events}`, 'bozze e stati non pubblici'),
@@ -1971,7 +1985,7 @@ export default defineComponent({
           card('Posti occupati', `${bi.occupied_places}`, 'eventi operativi futuri'),
           card('Follower', `${bi.followers_total}`, 'utenti che seguono'),
           card('Visualizzazioni', `${bi.views_total}`, 'esperienze visualizzate'),
-          card('Rating medio', bi.average_rating === null ? '—' : `${bi.average_rating}`, bi.average_rating === null ? 'Nessuna recensione' : 'recensioni approvate'),
+          card('Rating medio', bi.average_rating === null ? '�?"' : `${bi.average_rating}`, bi.average_rating === null ? 'Nessuna recensione' : 'recensioni approvate'),
           card('Numero recensioni', `${bi.review_analytics.reviews_count}`, 'recensioni approvate'),
         ]),
         h('article', { class: 'wide-panel dashboard-state' }, [
@@ -2090,12 +2104,12 @@ export default defineComponent({
       const retry = () => { void loadEventForm(eventUlid); };
 
       if (eventFormLoading.value) {
-        return [h('article', { class: 'wide-panel organizer-events-state' }, [h('strong', 'Caricamento evento…')])];
+        return [h('article', { class: 'wide-panel organizer-events-state' }, [h('strong', 'Caricamento evento�?�')])];
       }
 
       if (eventFormGeneralError.value && eventCategories.value.length === 0) {
         return [h('article', { class: 'wide-panel dashboard-error' }, [
-          h('strong', 'Impossibile caricare l’evento'),
+          h('strong', 'Impossibile caricare l�?Tevento'),
           h('p', eventFormGeneralError.value),
           h('button', { type: 'button', onClick: retry }, 'Riprova'),
           h('button', { type: 'button', onClick: () => { void go('/organizer/events'); } }, 'Torna ai miei eventi'),
@@ -2139,7 +2153,7 @@ export default defineComponent({
             ]),
           ]),
           h('label', { class: 'event-form-field' }, [
-            h('span', 'Prezzo (€)'),
+            h('span', 'Prezzo (�,�)'),
             h('input', { value: eventFormData.value.is_free ? '0,00' : ticket.price, disabled: eventFormSubmitting.value || eventFormData.value.is_free, inputmode: 'decimal', onInput: (event: Event) => { ticket.price = (event.target as HTMLInputElement).value; } }),
             ...eventFieldErrors(`ticket_types.${index}.price_cents`),
           ]),
@@ -2170,7 +2184,7 @@ export default defineComponent({
             h('label', { class: 'event-form-field' }, [
               h('span', 'Categoria'),
               h('select', { value: eventFormData.value.category_id, disabled: categoriesLoading.value || eventFormSubmitting.value, onChange: (event: Event) => { eventFormData.value.category_id = (event.target as HTMLSelectElement).value; } }, [
-                h('option', { value: '' }, categoriesLoading.value ? 'Caricamento…' : 'Seleziona categoria'),
+                h('option', { value: '' }, categoriesLoading.value ? 'Caricamento�?�' : 'Seleziona categoria'),
                 ...eventCategories.value.map((category) => h('option', { value: String(category.id) }, category.name)),
               ]),
               ...eventFieldErrors('category_ids'),
@@ -2191,7 +2205,7 @@ export default defineComponent({
               h('span', 'Svolgimento'),
               h('select', { value: eventFormData.value.indoor_outdoor, disabled: eventFormSubmitting.value, onChange: (event: Event) => { eventFormData.value.indoor_outdoor = (event.target as HTMLSelectElement).value as EventFormData['indoor_outdoor']; } }, [
                 h('option', { value: 'indoor' }, 'Al chiuso'),
-                h('option', { value: 'outdoor' }, 'All’aperto'),
+                h('option', { value: 'outdoor' }, 'All�?Taperto'),
                 h('option', { value: 'mixed' }, 'Misto'),
               ]),
             ]),
@@ -2206,8 +2220,8 @@ export default defineComponent({
           h('div', { class: 'ticket-editor-list' }, ticketCards),
           h('div', { class: 'event-form-actions' }, [
             h('button', { type: 'button', disabled: eventFormSubmitting.value, onClick: () => { void go('/organizer/events'); } }, 'Annulla'),
-            h('button', { type: 'button', disabled: eventFormSubmitting.value, onClick: () => { void submitEventForm(false); } }, eventFormSubmitting.value ? 'Salvataggio…' : 'Salva bozza'),
-            eventFormData.value.status === 'draft' ? h('button', { class: 'publish-button', type: 'button', disabled: eventFormSubmitting.value, onClick: () => { void submitEventForm(true); } }, eventFormSubmitting.value ? 'Pubblicazione…' : 'Pubblica evento') : null,
+            h('button', { type: 'button', disabled: eventFormSubmitting.value, onClick: () => { void submitEventForm(false); } }, eventFormSubmitting.value ? 'Salvataggio�?�' : 'Salva bozza'),
+            eventFormData.value.status === 'draft' ? h('button', { class: 'publish-button', type: 'button', disabled: eventFormSubmitting.value, onClick: () => { void submitEventForm(true); } }, eventFormSubmitting.value ? 'Pubblicazione�?�' : 'Pubblica evento') : null,
           ]),
         ]),
       ];
@@ -2319,12 +2333,15 @@ export default defineComponent({
       rows.length === 0 ? emptyState('Nessun dato disponibile.') : h('div', { class: 'admin-table-wrap' }, [
         h('table', { class: 'admin-table' }, [
           h('thead', [h('tr', headers.map((header) => h('th', header)))]),
-          h('tbody', rows.map((row, index) => h('tr', renderRow(row, index)))),
+          h('tbody', rows.map((row, index) => h('tr', renderRow(row, index).map((cell, cellIndex) => cloneVNode(cell, { 'data-label': headers[cellIndex] ?? '' }))))),
         ]),
       ]),
     ]);
 
-    const statusPill = (status: string) => h('span', { class: `admin-pill status-${String(status).replaceAll('_', '-')}` }, status);
+    const statusPill = (status: string) => {
+      const labels: Record<string, string> = { draft: 'Bozza', pending: 'In revisione', pending_review: 'In revisione', published: 'Pubblicato', sold_out: 'Esaurito', cancelled: 'Annullato', completed: 'Concluso', rejected: 'Rifiutato', suspended: 'Sospeso', archived: 'Archiviato', active: 'Attivo', inactive: 'Non attivo', verified: 'Approvato', changes_requested: 'Integrazione richiesta', hidden: 'Nascosto', approved: 'Approvato' };
+      return h('span', { class: `admin-pill status-${String(status).replaceAll('_', '-')}` }, labels[status] ?? status);
+    };
 
     const renderAdminDashboard = () => [
       h('section', { class: 'admin-hero' }, [
@@ -2346,7 +2363,7 @@ export default defineComponent({
         adminKpi('Prenotazioni valide', adminDashboard.value?.bookings?.valid, `${number(adminDashboard.value?.bookings?.cancelled)} annullate`, 'mint'),
         adminKpi('Partecipanti', adminDashboard.value?.participants, 'fatturabili sui piani PpB', 'blue'),
         adminKpi('Check-in', adminDashboard.value?.check_ins, 'registrati', 'gold'),
-        adminKpi('Ricavi teorici', `€ ${(Number(adminDashboard.value?.economics?.theoretical_revenue_cents ?? 0) / 100).toFixed(2)}`, 'nessun incasso online', 'mint'),
+        adminKpi('Ricavi teorici', `�,� ${(Number(adminDashboard.value?.economics?.theoretical_revenue_cents ?? 0) / 100).toFixed(2)}`, 'nessun incasso online', 'mint'),
       ]),
       h('section', { class: 'admin-chart-grid' }, [
         renderMiniBars('Eventi pubblicati per mese', chart('events_by_month')),
@@ -2407,7 +2424,7 @@ export default defineComponent({
       verified: 'Approvato', rejected: 'Rifiutato', suspended: 'Sospeso',
     };
 
-    const bookingStatusLabel = (status: string) => ({ confirmed: 'Confermata', checked_in: 'Check-in', completed: 'Completata', cancelled: 'Annullata', cancelled_by_customer: 'Annullata dal cliente', cancelled_by_organizer: 'Annullata dall’organizzatore' }[status] ?? status);
+    const bookingStatusLabel = (status: string) => ({ confirmed: 'Confermata', checked_in: 'Check-in', completed: 'Completata', cancelled: 'Annullata', cancelled_by_customer: 'Annullata dal cliente', cancelled_by_organizer: 'Annullata dall�?Torganizzatore' }[status] ?? status);
 
     const renderOrganizerBookings = () => {
       const filters: Array<[OrganizerBookingFilter, string]> = [['all', 'Tutte'], ['confirmed', 'Confermate'], ['checked_in', 'Check-in'], ['completed', 'Completate'], ['cancelled', 'Annullate']];
@@ -2423,7 +2440,7 @@ export default defineComponent({
         h('div', { class: 'filter-strip organizer-event-filters' }, filters.map(([value, label]) => h('button', { class: organizerBookingsFilter.value === value ? 'active' : '', disabled: organizerBookingsLoading.value, onClick: () => { organizerBookingsFilter.value = value; organizerBookingsPage.value = 1; void loadOrganizerBookings(); } }, label))),
       ]);
       const heading = h('div', { class: 'section-title' }, [h('div', [h('h2', 'Prenotazioni'), h('span', 'Prenotazioni ricevute per i tuoi eventi')])]);
-      if (organizerBookingsLoading.value) return [heading, controls, h('article', { class: 'wide-panel organizer-events-state' }, 'Caricamento prenotazioni…')];
+      if (organizerBookingsLoading.value) return [heading, controls, h('article', { class: 'wide-panel organizer-events-state' }, 'Caricamento prenotazioni�?�')];
       if (organizerBookingsError.value) return [heading, controls, h('article', { class: 'wide-panel dashboard-error' }, [h('p', organizerBookingsError.value), h('button', { onClick: () => { void loadOrganizerBookings(); } }, 'Riprova')])];
       if (!organizerBookings.value.length) return [heading, controls, h('article', { class: 'wide-panel empty-state' }, [h('strong', 'Nessuna prenotazione trovata'), h('p', 'Prova a modificare ricerca o filtri.')])];
       const table = h('div', { class: 'booking-table-wrap' }, h('table', { class: 'booking-table' }, [
@@ -2438,7 +2455,7 @@ export default defineComponent({
 
     const renderOrganizerBookingDetail = () => {
       const booking = selectedOrganizerBooking.value;
-      if (organizerBookingsLoading.value) return [h('article', { class: 'wide-panel' }, 'Caricamento dettaglio…')];
+      if (organizerBookingsLoading.value) return [h('article', { class: 'wide-panel' }, 'Caricamento dettaglio�?�')];
       if (organizerBookingsError.value || !booking) return [h('article', { class: 'wide-panel dashboard-error' }, [h('p', organizerBookingsError.value || 'Prenotazione non disponibile.'), h('button', { onClick: () => { void loadOrganizerBookingDetail(route.value.split('/')[3]); } }, 'Riprova')])];
       return [
         h('div', { class: 'section-title' }, [h('div', [h('h2', `Prenotazione ${booking.booking_code}`), h('span', booking.event.title)]), h('button', { onClick: () => { void go('/organizer/bookings'); } }, 'Torna alle prenotazioni')]),
@@ -2446,7 +2463,7 @@ export default defineComponent({
           h('div', { class: 'booking-detail-grid' }, [
             h('div', [h('small', 'Cliente'), h('strong', booking.customer.name)]), h('div', [h('small', 'Email'), h('strong', booking.customer.email)]),
             h('div', [h('small', 'Telefono'), h('strong', booking.customer.phone ?? 'Non disponibile')]), h('div', [h('small', 'Persone'), h('strong', String(booking.people))]),
-            h('div', [h('small', 'Ticket'), ...(booking.tickets ?? []).map((ticket) => h('strong', `${ticket.name} × ${ticket.quantity}`))]),
+            h('div', [h('small', 'Ticket'), ...(booking.tickets ?? []).map((ticket) => h('strong', `${ticket.name} �- ${ticket.quantity}`))]),
             h('div', [h('small', 'Data prenotazione'), h('strong', new Date(booking.booked_at).toLocaleString('it-IT'))]),
             h('div', [h('small', 'Stato'), h('strong', bookingStatusLabel(booking.status))]), h('div', [h('small', 'Check-in'), h('strong', booking.checked_in_at ? new Date(booking.checked_in_at).toLocaleString('it-IT') : 'Non effettuato')]),
             h('div', { class: 'booking-detail-wide' }, [h('small', 'Note'), h('p', booking.notes || 'Nessuna nota')]),
@@ -2464,9 +2481,9 @@ export default defineComponent({
         h('select', { value: organizerParticipantsFilter.value, onChange: (event: Event) => { organizerParticipantsFilter.value = (event.target as HTMLSelectElement).value; organizerParticipantsPage.value = 1; void loadOrganizerParticipants(eventUlid); } }, [h('option', { value: 'all' }, 'Tutti'), h('option', { value: 'pending' }, 'Da registrare'), h('option', { value: 'checked_in' }, 'Check-in effettuato')]),
         h('button', { onClick: () => { void exportParticipantsCsv(eventUlid); } }, 'Esporta CSV'), h('button', { onClick: () => { void go('/organizer/events'); } }, 'Torna agli eventi'),
       ]);
-      const checkIn = h('article', { class: 'wide-panel booking-detail' }, [h('h3', 'Check-in'), h('p', 'Inserisci il contenuto del QR oppure il codice prenotazione.'), h('form', { class: 'booking-toolbar', onSubmit: (event: Event) => { event.preventDefault(); void submitCheckIn(eventUlid); } }, [h('select', { value: checkInMode.value, onChange: (event: Event) => { checkInMode.value = (event.target as HTMLSelectElement).value as 'qr_token' | 'booking_code'; } }, [h('option', { value: 'qr_token' }, 'Token QR'), h('option', { value: 'booking_code' }, 'Codice prenotazione')]), h('input', { value: checkInValue.value, placeholder: checkInMode.value === 'qr_token' ? 'Incolla il token QR' : 'Es. EVT-XXXXXXXX', onInput: (event: Event) => { checkInValue.value = (event.target as HTMLInputElement).value; } }), h('button', { disabled: checkInLoading.value || !checkInValue.value.trim(), type: 'submit' }, checkInLoading.value ? 'Verifica…' : 'Registra check-in')]), checkInMessage.value ? h('p', { role: 'status', class: checkInMessage.value.includes('correttamente') ? '' : 'api-error' }, checkInMessage.value) : null]);
+      const checkIn = h('article', { class: 'wide-panel booking-detail' }, [h('h3', 'Check-in'), h('p', 'Inserisci il contenuto del QR oppure il codice prenotazione.'), h('form', { class: 'booking-toolbar', onSubmit: (event: Event) => { event.preventDefault(); void submitCheckIn(eventUlid); } }, [h('select', { value: checkInMode.value, onChange: (event: Event) => { checkInMode.value = (event.target as HTMLSelectElement).value as 'qr_token' | 'booking_code'; } }, [h('option', { value: 'qr_token' }, 'Token QR'), h('option', { value: 'booking_code' }, 'Codice prenotazione')]), h('input', { value: checkInValue.value, placeholder: checkInMode.value === 'qr_token' ? 'Incolla il token QR' : 'Es. EVT-XXXXXXXX', onInput: (event: Event) => { checkInValue.value = (event.target as HTMLInputElement).value; } }), h('button', { disabled: checkInLoading.value || !checkInValue.value.trim(), type: 'submit' }, checkInLoading.value ? 'Verifica�?�' : 'Registra check-in')]), checkInMessage.value ? h('p', { role: 'status', class: checkInMessage.value.includes('correttamente') ? '' : 'api-error' }, checkInMessage.value) : null]);
       const heading = [h('div', { class: 'section-title' }, [h('h2', 'Partecipanti evento'), h('span', 'Ogni riga rappresenta una prenotazione e il relativo numero di persone')]), h('div', { class: 'metric-grid' }, [card('Prenotazioni', String(summary.bookings_total), 'valide'), card('Persone', String(summary.people_total), 'nelle prenotazioni valide'), card('Check-in', String(summary.checked_in_total), 'persone registrate')]), controls, checkIn];
-      if (organizerParticipantsLoading.value) return [...heading, h('article', { class: 'wide-panel' }, 'Caricamento partecipanti…')];
+      if (organizerParticipantsLoading.value) return [...heading, h('article', { class: 'wide-panel' }, 'Caricamento partecipanti�?�')];
       if (organizerParticipantsError.value) return [...heading, h('article', { class: 'wide-panel dashboard-error' }, [h('p', organizerParticipantsError.value), h('button', { onClick: () => { void loadOrganizerParticipants(eventUlid); } }, 'Riprova')])];
       if (!organizerParticipants.value.length) return [...heading, emptyState('Nessuna prenotazione valida trovata.')];
       return [...heading, h('div', { class: 'booking-table-wrap' }, h('table', { class: 'booking-table' }, [h('thead', h('tr', ['Codice', 'Cliente', 'Telefono', 'Biglietti', 'Persone', 'Stato', 'Check-in'].map((label) => h('th', label)))), h('tbody', organizerParticipants.value.map((participant) => h('tr', { tabindex: 0, onClick: () => { void go(`/organizer/bookings/${participant.booking_ulid}`); }, onKeydown: (event: KeyboardEvent) => { if (event.key === 'Enter') void go(`/organizer/bookings/${participant.booking_ulid}`); } }, [h('td', participant.booking_code), h('td', [h('strong', participant.name), h('small', participant.email)]), h('td', participant.phone), h('td', participant.tickets), h('td', String(participant.people)), h('td', bookingStatusLabel(participant.status)), h('td', participant.checked_in_at ? new Date(participant.checked_in_at).toLocaleString('it-IT') : 'Da effettuare')])))])), meta ? h('nav', { class: 'organizer-events-pagination' }, [h('button', { disabled: meta.current_page <= 1, onClick: () => { organizerParticipantsPage.value--; void loadOrganizerParticipants(eventUlid); } }, 'Precedente'), h('span', `Pagina ${meta.current_page} di ${meta.last_page}`), h('button', { disabled: meta.current_page >= meta.last_page, onClick: () => { organizerParticipantsPage.value++; void loadOrganizerParticipants(eventUlid); } }, 'Successiva')]) : null];
@@ -2500,7 +2517,7 @@ export default defineComponent({
           h('label', ['Inizio accordo', h('input', { name: 'agreement_starts_at', type: 'date', value: organizer.subscription?.agreement_starts_at?.slice(0, 10) ?? '' })]),
           h('label', ['Fine accordo', h('input', { name: 'agreement_ends_at', type: 'date', value: organizer.subscription?.agreement_ends_at?.slice(0, 10) ?? '' })]),
           h('textarea', { name: 'agreement_notes', maxlength: 2000, placeholder: 'Note accordo offline', value: organizer.subscription?.agreement_notes ?? '' }),
-          h('label', ['Costo personalizzato per partecipante (€)', h('input', { name: 'booking_fee_euro', type: 'number', min: 0, step: '0.01', value: ((organizer.subscription?.booking_fee_cents ?? 0) / 100).toFixed(2) })]),
+          h('label', ['Costo personalizzato per partecipante (�,�)', h('input', { name: 'booking_fee_euro', type: 'number', min: 0, step: '0.01', value: ((organizer.subscription?.booking_fee_cents ?? 0) / 100).toFixed(2) })]),
           h('button', { type: 'submit' }, 'Salva accordo'),
         ]),
         organizer.verification_status === 'pending' ? h('div', { class: 'onboarding-actions' }, [
@@ -2512,7 +2529,7 @@ export default defineComponent({
     };
 
     const renderAdminOrganizers = () => [
-      h('div', { class: 'page-heading' }, [h('h1', 'Richieste Organizer'), h('p', 'Esamina i dati fiscali e gestisci l’abilitazione alle funzioni operative.')]),
+      h('div', { class: 'page-heading' }, [h('h1', 'Richieste Organizer'), h('p', 'Esamina i dati fiscali e gestisci l�?Tabilitazione alle funzioni operative.')]),
       h('div', { class: 'filter-strip' }, [
         h('form', { onSubmit: (event: Event) => { event.preventDefault(); adminOrganizerPage.value = 1; void loadAdminOrganizerRequests(); } }, [h('input', { value: adminOrganizerSearch.value, placeholder: 'Cerca nome o email', onInput: (event: Event) => { adminOrganizerSearch.value = (event.target as HTMLInputElement).value; } }), h('button', { type: 'submit' }, 'Cerca')]),
         h('label', [h('span', 'Stato '), h('select', {
@@ -2526,7 +2543,7 @@ export default defineComponent({
         ]),
         h('strong', `${adminOrganizerPendingCount.value} in revisione`),
       ]),
-      adminOrganizerLoading.value ? h('article', { class: 'admin-panel' }, 'Caricamento richieste…') : null,
+      adminOrganizerLoading.value ? h('article', { class: 'admin-panel' }, 'Caricamento richieste�?�') : null,
       adminOrganizerError.value ? h('article', { class: 'admin-panel dashboard-error' }, [h('p', adminOrganizerError.value), h('button', { onClick: () => { void loadAdminOrganizerRequests(); } }, 'Riprova')]) : null,
       !adminOrganizerLoading.value && !adminOrganizerError.value ? adminTable(
         ['Denominazione', 'Referente', 'Email account', 'Partita IVA', 'PEC', 'Codice SDI', 'Stato', 'Invio', ''],
@@ -2631,8 +2648,8 @@ export default defineComponent({
           h('label', { class: 'full-row' }, [h('span', 'Descrizione'), h('textarea', { value: plan.description ?? '', placeholder: 'Descrizione', onInput: (event: Event) => { plan.description = (event.target as HTMLTextAreaElement).value; } })]),
           h('label', [h('span', 'Modello'), h('select', { value: plan.billing_model, onChange: (event: Event) => { plan.billing_model = (event.target as HTMLSelectElement).value; } }, [h('option', { value: 'unlimited' }, 'UNLIMITED'), h('option', { value: 'pay_per_booking' }, 'PAY PER BOOKING')])]),
           h('label', [h('span', 'Periodicità'), h('select', { value: plan.billing_interval ?? 'monthly', onChange: (event: Event) => { plan.billing_interval = (event.target as HTMLSelectElement).value; } }, [h('option', { value: 'monthly' }, 'Mensile'), h('option', { value: 'yearly' }, 'Annuale')])]),
-          h('label', [h('span', 'Canone (€)'), h('input', { type: 'number', min: 0, step: '0.01', value: (Number(plan.monthly_price_cents || 0) / 100).toFixed(2), onInput: (event: Event) => { plan.monthly_price_cents = Math.round(Number((event.target as HTMLInputElement).value || 0) * 100); } })]),
-          h('label', [h('span', 'Tariffa per prenotazione (€)'), h('input', { type: 'number', min: 0, step: '0.01', disabled: plan.billing_model !== 'pay_per_booking', value: (Number(plan.booking_fee_cents || 0) / 100).toFixed(2), onInput: (event: Event) => { plan.booking_fee_cents = Math.round(Number((event.target as HTMLInputElement).value || 0) * 100); } })]),
+          h('label', [h('span', 'Canone (�,�)'), h('input', { type: 'number', min: 0, step: '0.01', value: (Number(plan.monthly_price_cents || 0) / 100).toFixed(2), onInput: (event: Event) => { plan.monthly_price_cents = Math.round(Number((event.target as HTMLInputElement).value || 0) * 100); } })]),
+          h('label', [h('span', 'Tariffa per prenotazione (�,�)'), h('input', { type: 'number', min: 0, step: '0.01', disabled: plan.billing_model !== 'pay_per_booking', value: (Number(plan.booking_fee_cents || 0) / 100).toFixed(2), onInput: (event: Event) => { plan.booking_fee_cents = Math.round(Number((event.target as HTMLInputElement).value || 0) * 100); } })]),
           h('label', { class: 'full-row checkbox-row' }, [h('input', { type: 'checkbox', checked: plan.is_active, onChange: (event: Event) => { plan.is_active = (event.target as HTMLInputElement).checked; } }), ' Piano attivo']),
           h('button', { class: 'full-row', type: 'submit', disabled: !plan.name }, plan.ulid ? 'Aggiorna piano' : 'Crea piano'),
         ]))),
