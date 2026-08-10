@@ -203,3 +203,15 @@ Contesto: rigenerare `APP_KEY` a ogni avvio locale rende indecifrabili i token Q
 Decisione: generare `APP_KEY` esclusivamente quando manca. Se un QR persistito non è più decifrabile, rigenerare sotto lock un token imprevedibile aggiornando atomicamente ciphertext e hash, senza modificare la prenotazione o creare un secondo flusso di check-in.
 
 Conseguenze: i riavvii non invalidano più i dati cifrati; i record già danneggiati vengono recuperati alla prima richiesta autorizzata e il frontend non espone errori crittografici.
+
+## ADR-018
+
+### Deploy remoto dopo il completamento locale del prodotto
+
+Stato: Accepted
+
+Contesto: la staging readiness tecnica è completa, ma acquistare e configurare ora hosting, dominio, DNS, TLS e SMTP introdurrebbe costi e attività operative prima della conclusione funzionale e UX/UI del prodotto.
+
+Decisione: conservare versionata e verificata tutta la preparazione staging, posticipando il deploy remoto e l’acquisto/configurazione dei servizi esterni alla fase finale. La prossima macrofase si svolge integralmente in locale ed è `Final Product Completion & UX/UI Polish`.
+
+Conseguenze: script, env example, container, seed beta, smoke test e runbook restano il percorso ufficiale di deploy; nessun ambiente remoto viene dichiarato attivo finché non saranno forniti e verificati i dati esterni reali.

@@ -25,6 +25,7 @@ APP EVENTI è una piattaforma territoriale per scoprire, pubblicare, prenotare e
 | v1.2 | Completata | Backoffice Admin e business, KPI economici teorici e gestione operativa completa |
 | v1.3 | Completata | Hardening MVP, eliminazione runtime demo e preparazione beta privata |
 | v1.4 | Completata | Production readiness tecnica per staging e private beta |
+| v1.5 | Completata | Staging readiness e preparazione tecnica del deploy/private beta, senza deploy remoto |
 
 ## v0.8 — Organizer Event Creation and Editing
 
@@ -62,7 +63,7 @@ Completata end-to-end sul frontend web:
 
 ## Prossima milestone
 
-Deploy in staging, smoke test operativo e avvio controllato della private beta.
+Final Product Completion & UX/UI Polish in ambiente locale; deploy remoto posticipato alla fase finale.
 
 ## v1.1 - MVP Profiles, Commercial Plans and Operations
 
@@ -110,6 +111,18 @@ Completata end-to-end:
 5. Email operative accodate e predisposte per SMTP reale senza influire sulle transazioni business.
 6. Pagine legali placeholder, documentazione deploy, migrazioni, backup e restore PostgreSQL.
 7. Gate automatici e Browser QA Customer, Organizer, Admin e responsive completati.
+
+## v1.5 - Staging Readiness
+
+Completata senza deploy remoto:
+
+1. Ambiente staging distinto con `APP_ENV=staging`, debug disabilitato e nessun segreto versionato.
+2. Deploy Docker ripetibile con migrazioni non distruttive, volumi persistenti e controlli per worker e scheduler.
+3. Seeder beta opzionale e idempotente con credenziali esterne, smoke test leggero e preflight della configurazione.
+4. Template TLS/HTTPS, procedure operative, backup/restore e checklist private beta pronti per la fase finale.
+5. Artifact backend/frontend e gate automatici verificati localmente.
+6. Hosting, dominio, DNS, TLS e SMTP reali intenzionalmente posticipati fino al completamento locale del prodotto.
+
 ## Attività future
 
 ### Organizer

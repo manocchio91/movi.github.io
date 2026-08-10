@@ -4,11 +4,11 @@
 
 ## Riferimenti correnti
 
-- Versione corrente: `v1.4 - Complete Production Readiness`
+- Versione corrente: `v1.5 - Staging Readiness`
 - Ultimo aggiornamento: 10 agosto 2026
 - Repository: `manocchio91/app-eventi`
-- Branch corrente: `feat/production-readiness`
-- Commit milestone: `v1.4 - Complete production readiness`
+- Branch corrente: `feat/staging-private-beta`
+- Commit milestone: `v1.5 - Prepare staging and private beta deployment`
 - Ultimo tag: `v0.5-customer-booking-qr`, verificato localmente sul commit `c5e9605`
 
 ## Stato delle aree
@@ -41,10 +41,11 @@
 - v1.2: backoffice Admin e business completo con KPI economici teorici, transizioni protette e storico accordi
 - v1.3: hardening MVP, rimozione runtime demo e preparazione beta privata
 - v1.4: configurazione, container, sicurezza e operatività pronte per staging/private beta
+- v1.5: staging readiness, deploy ripetibile, seed beta sicuro, smoke test e runbook operativo
 
 ## Task corrente
 
-Production Readiness completata e Browser QA approvato: applicazione tecnicamente pronta per staging/private beta, subordinatamente alla configurazione dei servizi esterni.
+Staging Readiness completata: il deploy remoto è posticipato alla fase finale; configurazione, artifact, runbook e gate restano pronti per la futura attivazione.
 
 ## Funzionalità completate
 
@@ -95,10 +96,12 @@ Production Readiness completata e Browser QA approvato: applicazione tecnicament
 - Production Readiness: health applicativo/DB/Redis, Docker production, queue e scheduler, upload hardening, SMTP, logging, CORS/proxy, pagine legali placeholder e procedure deploy/backup/restore verificati.
 - Gate v1.4: suite Laravel completata con unica regressione di aspettativa corretta e test mirato finale 4/4; Pint, PHPStan, ESLint, build frontend, Redocly 0/0 e git diff --check verdi.
 - Browser QA v1.4 confermato dal Product Owner su Customer, Organizer, Admin e responsive.
+- Staging Readiness v1.5: build Docker backend/frontend, Compose staging/production, seeder beta, script deploy/smoke, template TLS e runbook verificati.
+- Gate v1.5: 103 test e 725 asserzioni, Pint, PHPStan, ESLint, build frontend, Redocly 0/0, Compose staging/production e git diff --check verdi.
 
 ## Prossimo task
 
-Deploy in staging e avvio controllato della private beta.
+Final Product Completion & UX/UI Polish in ambiente locale.
 
 ## Debiti aperti
 
@@ -106,7 +109,7 @@ Deploy in staging e avvio controllato della private beta.
 - La copertura frontend automatizzata resta limitata al flusso critico di modifica prenotazione; ampliare progressivamente agli altri componenti.
 - Upload immagini evento non incluso.
 - Redesign grafico generale non incluso.
-- Prima dello staging vanno forniti dominio/TLS, credenziali PostgreSQL e Redis, SMTP reale e testi legali definitivi.
+- Deploy remoto, hosting, dominio/DNS, TLS, credenziali PostgreSQL/Redis, SMTP reale e testi legali definitivi sono posticipati alla fase finale dopo il completamento locale del prodotto.
 
 ## Come riprendere il lavoro
 
