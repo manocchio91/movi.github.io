@@ -531,7 +531,14 @@ class _HeroPanel extends StatelessWidget {
     return Container(
         padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [colors.primary, colors.tertiary]),
+            gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF312E81),
+                  Color(0xFF7C3AED),
+                  Color(0xFFEC4899)
+                ]),
             borderRadius: BorderRadius.circular(24)),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(
@@ -592,7 +599,13 @@ class _ActionCard extends StatelessWidget {
   Widget build(BuildContext context) => Card(
       child: ListTile(
           contentPadding: const EdgeInsets.all(16),
-          leading: CircleAvatar(child: Icon(icon)),
+          leading: Container(
+              padding: const EdgeInsets.all(11),
+              decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                      colors: [Color(0xFF7C3AED), Color(0xFFEC4899)]),
+                  borderRadius: BorderRadius.circular(14)),
+              child: Icon(icon, color: Colors.white)),
           title: Text(title),
           subtitle: Text(subtitle),
           trailing: const Icon(Icons.chevron_right_rounded),

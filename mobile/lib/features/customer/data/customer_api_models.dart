@@ -115,6 +115,7 @@ class ApiEvent {
 class TicketType {
   const TicketType({
     required this.id,
+    required this.ulid,
     required this.name,
     required this.description,
     required this.priceCents,
@@ -125,6 +126,7 @@ class TicketType {
 
   factory TicketType.fromJson(Map<String, dynamic> json) => TicketType(
         id: _int(json['id']),
+        ulid: _string(json['ulid']),
         name: _string(json['name']),
         description: _string(json['description']),
         priceCents: _int(json['price_cents']),
@@ -134,6 +136,7 @@ class TicketType {
       );
 
   final int id;
+  final String ulid;
   final String name;
   final String description;
   final int priceCents;

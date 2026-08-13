@@ -1,10 +1,10 @@
 class BookingItemRequest {
   const BookingItemRequest(
-      {required this.ticketTypeId, required this.quantity});
-  final int ticketTypeId;
+      {required this.ticketTypeUlid, required this.quantity});
+  final String ticketTypeUlid;
   final int quantity;
   Map<String, dynamic> toJson() => {
-        'ticket_type_id': ticketTypeId,
+        'ticket_type_ulid': ticketTypeUlid,
         'quantity': quantity,
       };
 }
@@ -14,6 +14,7 @@ class CreateBookingRequest {
     required this.adultsCount,
     required this.childrenCount,
     required this.items,
+    required this.contactPhone,
     this.childrenAgeRanges = const [],
     this.dietaryNeeds,
     this.accessibilityNeeds,
@@ -22,6 +23,7 @@ class CreateBookingRequest {
   final int adultsCount;
   final int childrenCount;
   final List<BookingItemRequest> items;
+  final String contactPhone;
   final List<String> childrenAgeRanges;
   final String? dietaryNeeds;
   final String? accessibilityNeeds;
@@ -29,6 +31,8 @@ class CreateBookingRequest {
 
   Map<String, dynamic> toJson() => {
         'adults_count': adultsCount,
+        'contact_phone': contactPhone.trim(),
+        'phone': contactPhone.trim(),
         'children_count': childrenCount,
         if (childrenAgeRanges.isNotEmpty)
           'children_age_ranges': childrenAgeRanges,

@@ -7,7 +7,11 @@ import '../models/app_role.dart';
 import '../network/api_client.dart';
 
 class AuthUser {
-  const AuthUser({required this.name, required this.email, required this.role});
+  const AuthUser(
+      {required this.name,
+      required this.email,
+      required this.role,
+      this.phone = ''});
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {
     final role = AppRoleLabel.fromApi(json['role'] as String?);
@@ -19,12 +23,14 @@ class AuthUser {
       name: json['name'] as String? ?? '',
       email: json['email'] as String? ?? '',
       role: role,
+      phone: json['phone'] as String? ?? '',
     );
   }
 
   final String name;
   final String email;
   final AppRole role;
+  final String phone;
 }
 
 class AuthenticationException implements Exception {

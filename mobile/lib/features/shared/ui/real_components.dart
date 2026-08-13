@@ -86,10 +86,18 @@ class MetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Icon(icon, color: Theme.of(context).colorScheme.primary),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                    colors: [Color(0xFF7C3AED), Color(0xFFEC4899)]),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: Colors.white, size: 18),
+            ),
             const SizedBox(height: 12),
             Text(value, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 3),
@@ -140,10 +148,10 @@ class LoadingSkeleton extends StatelessWidget {
             (_) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Container(
-                height: 92,
+                height: 116,
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(20),
                 ),
               ),
             ),
@@ -193,4 +201,60 @@ class StatusBadge extends StatelessWidget {
               color: foreground, fontSize: 11, fontWeight: FontWeight.w800)),
     );
   }
+}
+
+class PremiumHero extends StatelessWidget {
+  const PremiumHero(
+      {super.key,
+      required this.eyebrow,
+      required this.title,
+      required this.message,
+      this.icon = Icons.auto_awesome_rounded});
+  final String eyebrow, title, message;
+  final IconData icon;
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF4C1D95),
+                Color(0xFF7C3AED),
+                Color(0xFFBE185D)
+              ]),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+                color: const Color(0xFF7C3AED).withValues(alpha: .25),
+                blurRadius: 28,
+                offset: const Offset(0, 12))
+          ],
+        ),
+        child: Stack(children: [
+          Positioned(
+              right: -12,
+              top: -18,
+              child: Icon(icon,
+                  size: 112, color: Colors.white.withValues(alpha: .1))),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(eyebrow.toUpperCase(),
+                style: const TextStyle(
+                    color: Color(0xFFFBCFE8),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.4)),
+            const SizedBox(height: 10),
+            Text(title,
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineSmall
+                    ?.copyWith(color: Colors.white, height: 1.05)),
+            const SizedBox(height: 10),
+            Text(message,
+                style: const TextStyle(color: Color(0xFFEDE9FE), height: 1.4)),
+          ]),
+        ]),
+      );
 }

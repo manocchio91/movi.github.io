@@ -61,7 +61,7 @@ void main() {
 
   test('controller validates ticket sum and maximum quantity', () {
     final repository = _FakeBookingRepository();
-    final controller = BookingFlowController(repository, 'event-ulid');
+    final controller = _bookingController(repository, 'event-ulid');
     final ticket = _ticket(maximum: 2);
     expect(controller.validate([ticket]), 'Seleziona almeno un biglietto.');
     controller.setQuantity(ticket, 2, eventAvailable: 20);
@@ -76,7 +76,7 @@ void main() {
   test(
       'ticket limit uses ticket and event availability without hardcoded three',
       () {
-    final controller = BookingFlowController(_FakeBookingRepository(), 'event');
+    final controller = _bookingController(_FakeBookingRepository(), 'event');
     final ticket = _ticket(maximum: 12);
     controller.setQuantity(ticket, 8, eventAvailable: 9);
     expect(controller.state.quantities[ticket.id], 8);
@@ -85,7 +85,7 @@ void main() {
   });
 
   test('adults and children cannot exceed selected tickets', () {
-    final controller = BookingFlowController(_FakeBookingRepository(), 'event');
+    final controller = _bookingController(_FakeBookingRepository(), 'event');
     final ticket = _ticket(maximum: 10);
     controller.setQuantity(ticket, 4, eventAvailable: 10);
     controller.setAdults(3);
@@ -96,8 +96,49 @@ void main() {
     expect(controller.state.adults, 3);
   });
 
+  test('checkout maps real ticket ULID, phone, people and notes', () async {
+    final repository = _FakeBookingRepository();
+    final controller = _bookingController(repository, 'event-checkout');
+    final ticket = _ticket(maximum: 6);
+    controller.setContactPhone('+393331234567');
+    controller.setQuantity(ticket, 3, eventAvailable: 6);
+    controller.setAdults(2);
+    controller.setChildren(1);
+    controller.setNotes('Arriveremo dieci minuti prima');
+
+    await controller.submit([ticket]);
+
+    final payload = repository.lastRequest!.toJson();
+    expect(payload['contact_phone'], '+393331234567');
+    expect(payload['phone'], '+393331234567');
+    expect(payload['adults_count'], 2);
+    expect(payload['children_count'], 1);
+    expect(payload['notes'], 'Arriveremo dieci minuti prima');
+    expect(payload['items'], [
+      {'ticket_type_ulid': ticket.ulid, 'quantity': 3}
+    ]);
+    expect(controller.state.qr?.qrToken, 'secure-token');
+  });
+
+  test('phone and notes survive a controlled checkout error', () async {
+    final repository = _FakeBookingRepository(errorStatus: 422);
+    final controller = _bookingController(repository, 'event-error');
+    final ticket = _ticket();
+    controller.setContactPhone('+393339998887');
+    controller.setNotes('Nota da preservare');
+    controller.setQuantity(ticket, 1, eventAvailable: 5);
+
+    await controller.submit([ticket]);
+
+    expect(controller.state.contactPhone, '+393339998887');
+    expect(controller.state.notes, 'Nota da preservare');
+    expect(controller.state.error, 'Controlla i dati evidenziati e riprova.');
+    expect(controller.state.fieldErrors['tickets'],
+        ['Seleziona nuovamente i biglietti disponibili.']);
+    expect(controller.state.fieldErrors.keys, isNot(contains('items')));
+  });
   test('free event estimate is zero', () {
-    final controller = BookingFlowController(_FakeBookingRepository(), 'event');
+    final controller = _bookingController(_FakeBookingRepository(), 'event');
     final free = _ticket(price: 0);
     controller.setQuantity(free, 1, eventAvailable: 20);
     expect(controller.state.estimateTotal([free]), 0);
@@ -106,7 +147,7 @@ void main() {
   test('same idempotency key is reused and double submit sends one request',
       () async {
     final repository = _FakeBookingRepository(delay: true);
-    final controller = BookingFlowController(repository, 'event-ulid');
+    final controller = _bookingController(repository, 'event-ulid');
     final ticket = _ticket();
     controller.setQuantity(ticket, 1, eventAvailable: 20);
     final key = controller.idempotencyKey;
@@ -124,8 +165,8 @@ void main() {
   test('two event controllers keep separate state and post correct ULIDs',
       () async {
     final repository = _FakeBookingRepository();
-    final first = BookingFlowController(repository, 'event-one');
-    final second = BookingFlowController(repository, 'event-two');
+    final first = _bookingController(repository, 'event-one');
+    final second = _bookingController(repository, 'event-two');
     final ticket = _ticket();
     first.setQuantity(ticket, 1, eventAvailable: 5);
     second.setQuantity(ticket, 2, eventAvailable: 5);
@@ -141,7 +182,7 @@ void main() {
 
   test('successful creation invalidates bookings list', () async {
     var invalidations = 0;
-    final controller = BookingFlowController(_FakeBookingRepository(), 'event',
+    final controller = _bookingController(_FakeBookingRepository(), 'event',
         onBookingCreated: () => invalidations++);
     final ticket = _ticket();
     controller.setQuantity(ticket, 1, eventAvailable: 5);
@@ -302,11 +343,12 @@ void main() {
   for (final status in [409, 422]) {
     test('surfaces controlled $status booking error', () async {
       final repository = _FakeBookingRepository(errorStatus: status);
-      final controller = BookingFlowController(repository, 'event');
+      final controller = _bookingController(repository, 'event');
       final ticket = _ticket();
       controller.setQuantity(ticket, 1, eventAvailable: 20);
       await controller.submit([ticket]);
-      expect(controller.state.error, contains('$status'));
+      expect(controller.state.error, isNot(contains('$status')));
+      expect(controller.state.error, isNot(contains('items.')));
       expect(controller.state.isSubmitting, isFalse);
     });
   }
@@ -320,6 +362,8 @@ void main() {
       bookingRepositoryProvider.overrideWithValue(repository),
     ], child: const MaterialApp(home: BookingFlowScreen(id: 'event-ulid'))));
     await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byKey(const Key('contact-phone')), '+393331234567');
     await tester.tap(find.byKey(const Key('ticket-1-plus')));
     await tester.pump();
     await tester.scrollUntilVisible(
@@ -343,6 +387,7 @@ void main() {
 
 TicketType _ticket({int price = 1500, int maximum = 5}) => TicketType(
       id: 1,
+      ulid: '01JTESTTICKETTYPE000000001',
       name: 'Ingresso',
       description: '',
       priceCents: price,
@@ -362,6 +407,7 @@ ApiEvent _event() => ApiEvent.fromJson({
       'ticket_types': [
         {
           'id': 1,
+          'ulid': '01JTESTTICKETTYPE000000001',
           'name': 'Ingresso',
           'price_cents': 1500,
           'max_quantity': 5,
@@ -384,6 +430,7 @@ ApiEvent _eventWithAvailability(
       'ticket_types': [
         {
           'id': 1,
+          'ulid': '01JTESTTICKETTYPE000000001',
           'name': 'Ingresso',
           'price_cents': 1500,
           'max_quantity': maximum,
@@ -432,6 +479,7 @@ class _FakeBookingRepository extends BookingRepository {
   int createCalls = 0;
   int cancelCalls = 0;
   CustomerBooking? currentBooking;
+  CreateBookingRequest? lastRequest;
   Completer<CustomerBooking>? _completer;
 
   @override
@@ -441,6 +489,7 @@ class _FakeBookingRepository extends BookingRepository {
   Future<CustomerBooking> createBooking(
       String eventUlid, CreateBookingRequest request, String idempotencyKey) {
     createCalls++;
+    lastRequest = request;
     eventIds.add(eventUlid);
     keys.add(idempotencyKey);
     if (errorStatus != null) {
@@ -482,3 +531,15 @@ class _FakeBookingRepository extends BookingRepository {
     return currentBooking!;
   }
 }
+
+BookingFlowController _bookingController(
+  BookingRepository repository,
+  String eventUlid, {
+  void Function()? onBookingCreated,
+}) =>
+    BookingFlowController(
+      repository,
+      eventUlid,
+      initialPhone: '3331234567',
+      onBookingCreated: onBookingCreated,
+    );

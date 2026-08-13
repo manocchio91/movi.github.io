@@ -65,7 +65,14 @@ class _CustomerApiHomeScreenState extends ConsumerState<CustomerApiHomeScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
           children: [
-            const SizedBox(height: 16),
+            const PremiumHero(
+              eyebrow: 'Scopri il Molise',
+              title: 'Il prossimo ricordo inizia qui.',
+              message:
+                  'Esperienze selezionate, luoghi autentici e storie da vivere.',
+              icon: Icons.explore_rounded,
+            ),
+            const SizedBox(height: 18),
             TextField(
               controller: _search,
               decoration: const InputDecoration(
@@ -483,10 +490,23 @@ class NeutralEventImage extends StatelessWidget {
       borderRadius: BorderRadius.circular(22),
       child: Container(
           height: height,
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF312E81), Color(0xFF7C3AED), Color(0xFFBE185D)],
+            ),
+          ),
           alignment: Alignment.center,
-          child: Icon(Icons.image_outlined,
-              size: 48, color: Theme.of(context).colorScheme.outline)));
+          child: Stack(alignment: Alignment.center, children: [
+            Positioned(
+                right: -18,
+                top: -28,
+                child: Icon(Icons.local_activity_rounded,
+                    size: 140, color: Colors.white.withValues(alpha: .08))),
+            const Icon(Icons.auto_awesome_rounded,
+                size: 48, color: Colors.white),
+          ])));
 }
 
 class _RetryState extends StatelessWidget {

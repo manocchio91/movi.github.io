@@ -58,6 +58,7 @@ final bookingCancellationProvider = StateNotifierProvider.autoDispose
 class BookingFlowState {
   const BookingFlowState({
     this.quantities = const {},
+    this.contactPhone = '',
     this.adults = 1,
     this.children = 0,
     this.childrenAgeRanges = const [],
@@ -71,6 +72,7 @@ class BookingFlowState {
     this.fieldErrors = const {},
   });
   final Map<int, int> quantities;
+  final String contactPhone;
   final int adults;
   final int children;
   final List<String> childrenAgeRanges;
@@ -90,6 +92,7 @@ class BookingFlowState {
 
   BookingFlowState copyWith({
     Map<int, int>? quantities,
+    String? contactPhone,
     int? adults,
     int? children,
     List<String>? childrenAgeRanges,
@@ -105,6 +108,7 @@ class BookingFlowState {
   }) =>
       BookingFlowState(
         quantities: quantities ?? this.quantities,
+        contactPhone: contactPhone ?? this.contactPhone,
         adults: adults ?? this.adults,
         children: children ?? this.children,
         childrenAgeRanges: childrenAgeRanges ?? this.childrenAgeRanges,
@@ -121,10 +125,10 @@ class BookingFlowState {
 
 class BookingFlowController extends StateNotifier<BookingFlowState> {
   BookingFlowController(this._repository, this.eventUlid,
-      {void Function()? onBookingCreated})
+      {void Function()? onBookingCreated, String initialPhone = ''})
       : _idempotencyKey = _repository.newIdempotencyKey(),
         _onBookingCreated = onBookingCreated,
-        super(const BookingFlowState());
+        super(BookingFlowState(contactPhone: initialPhone));
   final BookingRepository _repository;
   final String eventUlid;
   final void Function()? _onBookingCreated;
@@ -174,6 +178,8 @@ class BookingFlowController extends StateNotifier<BookingFlowState> {
     state = state.copyWith(childrenAgeRanges: ages);
   }
 
+  void setContactPhone(String value) =>
+      state = state.copyWith(contactPhone: value, clearError: true);
   void setDietaryNeeds(String value) =>
       state = state.copyWith(dietaryNeeds: value);
   void setAccessibilityNeeds(String value) =>
@@ -181,6 +187,12 @@ class BookingFlowController extends StateNotifier<BookingFlowState> {
   void setNotes(String value) => state = state.copyWith(notes: value);
 
   String? validate(List<TicketType> tickets) {
+    final phone = state.contactPhone.trim();
+    if (!RegExp(r'^\+?[0-9]{7,15}$').hasMatch(phone)) {
+      return phone.isEmpty
+          ? 'Inserisci il numero di telefono.'
+          : 'Inserisci un numero di telefono valido.';
+    }
     if (state.selectedTickets < 1) return 'Seleziona almeno un biglietto.';
     if (state.selectedTickets != state.adults + state.children) {
       return 'La somma dei biglietti deve coincidere con adulti e bambini.';
@@ -201,7 +213,16 @@ class BookingFlowController extends StateNotifier<BookingFlowState> {
     if (state.isSubmitting || state.booking != null) return;
     final validation = validate(tickets);
     if (validation != null) {
-      state = state.copyWith(error: validation, fieldErrors: const {});
+      final phoneInvalid =
+          !RegExp(r'^\+?[0-9]{7,15}$').hasMatch(state.contactPhone.trim());
+      state = state.copyWith(
+          error: phoneInvalid ? null : validation,
+          clearError: phoneInvalid,
+          fieldErrors: phoneInvalid
+              ? {
+                  'contact_phone': [validation]
+                }
+              : const {});
       return;
     }
     state = state
@@ -209,6 +230,7 @@ class BookingFlowController extends StateNotifier<BookingFlowState> {
     try {
       final request = CreateBookingRequest(
         adultsCount: state.adults,
+        contactPhone: state.contactPhone,
         childrenCount: state.children,
         childrenAgeRanges: state.childrenAgeRanges
             .where((age) => age.trim().isNotEmpty)
@@ -218,9 +240,11 @@ class BookingFlowController extends StateNotifier<BookingFlowState> {
         notes: state.notes,
         items: state.quantities.entries
             .where((entry) => entry.value > 0)
-            .map((entry) => BookingItemRequest(
-                ticketTypeId: entry.key, quantity: entry.value))
-            .toList(),
+            .map((entry) {
+          final ticket = tickets.firstWhere((item) => item.id == entry.key);
+          return BookingItemRequest(
+              ticketTypeUlid: ticket.ulid, quantity: entry.value);
+        }).toList(),
       );
       final booking =
           await _repository.createBooking(eventUlid, request, _idempotencyKey);
@@ -230,7 +254,9 @@ class BookingFlowController extends StateNotifier<BookingFlowState> {
       await recoverQr();
     } on BookingApiException catch (error) {
       state = state.copyWith(
-          isSubmitting: false, error: error.message, fieldErrors: error.errors);
+          isSubmitting: false,
+          error: _checkoutError(error.statusCode),
+          fieldErrors: _localizedErrors(error.errors));
     } catch (_) {
       state = state.copyWith(
           isSubmitting: false,
@@ -257,4 +283,31 @@ class BookingFlowController extends StateNotifier<BookingFlowState> {
 final bookingFlowProvider = StateNotifierProvider.autoDispose
     .family<BookingFlowController, BookingFlowState, String>((ref, eventUlid) =>
         BookingFlowController(ref.watch(bookingRepositoryProvider), eventUlid,
+            initialPhone: ref.watch(authControllerProvider).user?.phone ?? '',
             onBookingCreated: () => ref.invalidate(customerBookingsProvider)));
+
+String _checkoutError(int status) => status == 422
+    ? 'Controlla i dati evidenziati e riprova.'
+    : status == 409
+        ? 'La disponibilita e cambiata. Aggiorna le quantita e riprova.'
+        : 'Impossibile completare la prenotazione. Riprova.';
+
+Map<String, List<String>> _localizedErrors(Map<String, List<String>> errors) {
+  final result = <String, List<String>>{};
+  for (final key in errors.keys) {
+    if (key == 'phone' || key == 'contact_phone') {
+      result['contact_phone'] = ['Inserisci un numero di telefono valido.'];
+    } else if (key.startsWith('items')) {
+      result['tickets'] = ['Seleziona nuovamente i biglietti disponibili.'];
+    } else if (key.startsWith('children_age_ranges')) {
+      result['children'] = ['Controlla le fasce di eta dei bambini.'];
+    } else if (key == 'dietary_needs') {
+      result[key] = ['Controlla le esigenze alimentari inserite.'];
+    } else if (key == 'accessibility_needs') {
+      result[key] = ['Controlla le esigenze di accessibilita inserite.'];
+    } else if (key == 'notes') {
+      result[key] = ['Le note inserite sono troppo lunghe.'];
+    }
+  }
+  return result;
+}

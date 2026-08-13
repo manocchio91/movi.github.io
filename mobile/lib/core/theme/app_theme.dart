@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const _primary = Color(0xFF0F766E);
-  static const _secondary = Color(0xFF8E5B3F);
+  static const _primary = Color(0xFF7C3AED);
+  static const _secondary = Color(0xFFEC4899);
 
   static ThemeData light() => _base(ColorScheme.fromSeed(
         seedColor: _primary,
         brightness: Brightness.light,
         primary: _primary,
         secondary: _secondary,
-        tertiary: const Color(0xFFB7791F),
-        surface: const Color(0xFFF7FAF9),
+        tertiary: const Color(0xFFF97316),
+        surface: const Color(0xFFF8F7FC),
         error: const Color(0xFFA63224),
       ));
 
   static ThemeData dark() => _base(ColorScheme.fromSeed(
         seedColor: _primary,
         brightness: Brightness.dark,
-        primary: const Color(0xFF75D6C9),
-        secondary: const Color(0xFFE1B39A),
+        primary: const Color(0xFFA78BFA),
+        secondary: const Color(0xFFF472B6),
       ));
 
   static ThemeData _base(ColorScheme scheme) {
@@ -28,7 +28,9 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor: scheme.surface,
+      scaffoldBackgroundColor: scheme.brightness == Brightness.dark
+          ? const Color(0xFF09070F)
+          : scheme.surface,
       visualDensity: VisualDensity.standard,
       textTheme: const TextTheme(
         headlineLarge:
@@ -45,10 +47,10 @@ class AppTheme {
       ),
       appBarTheme: AppBarTheme(
         centerTitle: false,
-        backgroundColor: scheme.surface,
+        backgroundColor: Colors.transparent,
         foregroundColor: scheme.onSurface,
         elevation: 0,
-        scrolledUnderElevation: 1,
+        scrolledUnderElevation: 0,
         titleTextStyle: TextStyle(
           color: scheme.onSurface,
           fontSize: 21,
@@ -61,7 +63,7 @@ class AppTheme {
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(20),
           side: BorderSide(color: scheme.outlineVariant),
         ),
       ),

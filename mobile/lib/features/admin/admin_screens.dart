@@ -549,11 +549,24 @@ class _AdminHero extends StatelessWidget {
   final IconData icon;
   @override
   Widget build(BuildContext context) {
-    final c = Theme.of(context).colorScheme;
     return Container(
         padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
-            color: c.primaryContainer, borderRadius: BorderRadius.circular(24)),
+            gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF312E81),
+                  Color(0xFF7C3AED),
+                  Color(0xFFEC4899)
+                ]),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                  color: const Color(0xFF7C3AED).withValues(alpha: .22),
+                  blurRadius: 24,
+                  offset: const Offset(0, 10))
+            ]),
         child: Row(children: [
           Expanded(
               child: Column(
@@ -563,11 +576,11 @@ class _AdminHero extends StatelessWidget {
                     style: Theme.of(context)
                         .textTheme
                         .headlineSmall
-                        ?.copyWith(color: c.onPrimaryContainer)),
+                        ?.copyWith(color: Colors.white)),
                 const SizedBox(height: 8),
-                Text(message, style: TextStyle(color: c.onPrimaryContainer))
+                Text(message, style: const TextStyle(color: Color(0xFFEDE9FE)))
               ])),
-          Icon(icon, size: 48, color: c.primary)
+          Icon(icon, size: 48, color: Colors.white)
         ]));
   }
 }

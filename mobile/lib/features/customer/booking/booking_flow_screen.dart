@@ -63,7 +63,28 @@ class _BookingForm extends ConsumerWidget {
               .textTheme
               .titleLarge
               ?.copyWith(fontWeight: FontWeight.w800)),
+      const SectionTitle('Contatti'),
+      TextFormField(
+        key: const Key('contact-phone'),
+        initialValue: state.contactPhone,
+        keyboardType: TextInputType.phone,
+        textInputAction: TextInputAction.next,
+        autofillHints: const [AutofillHints.telephoneNumber],
+        decoration: InputDecoration(
+          labelText: 'Numero di telefono',
+          hintText: '+39 333 1234567',
+          prefixIcon: const Icon(Icons.phone_rounded),
+          errorText: state.fieldErrors['contact_phone']?.firstOrNull,
+        ),
+        onChanged: controller.setContactPhone,
+      ),
       const SectionTitle('Biglietti disponibili'),
+      if (state.fieldErrors['tickets'] case final errors?)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Text(errors.first,
+              style: TextStyle(color: Theme.of(context).colorScheme.error)),
+        ),
       if (activeTickets.isEmpty)
         const Text('Nessuna tipologia di biglietto disponibile.'),
       ...activeTickets.map((ticket) => _TicketSelector(
@@ -93,18 +114,23 @@ class _BookingForm extends ConsumerWidget {
       const SectionTitle('Esigenze e note'),
       TextFormField(
           maxLines: 2,
-          decoration: const InputDecoration(labelText: 'Esigenze alimentari'),
+          decoration: InputDecoration(
+              labelText: 'Esigenze alimentari',
+              errorText: state.fieldErrors['dietary_needs']?.firstOrNull),
           onChanged: controller.setDietaryNeeds),
       const SizedBox(height: 10),
       TextFormField(
           maxLines: 2,
-          decoration:
-              const InputDecoration(labelText: 'Esigenze di accessibilità'),
+          decoration: InputDecoration(
+              labelText: 'Esigenze di accessibilità',
+              errorText: state.fieldErrors['accessibility_needs']?.firstOrNull),
           onChanged: controller.setAccessibilityNeeds),
       const SizedBox(height: 10),
       TextFormField(
           maxLines: 2,
-          decoration: const InputDecoration(labelText: 'Note'),
+          decoration: InputDecoration(
+              labelText: 'Note',
+              errorText: state.fieldErrors['notes']?.firstOrNull),
           onChanged: controller.setNotes),
       if (state.error != null) ...[
         const SizedBox(height: 14),
@@ -112,25 +138,25 @@ class _BookingForm extends ConsumerWidget {
             key: const Key('booking-error'),
             style: TextStyle(color: Theme.of(context).colorScheme.error)),
       ],
-      if (state.fieldErrors.isNotEmpty) ...[
-        const SizedBox(height: 8),
-        ...state.fieldErrors.values.expand((messages) => messages).map(
-            (message) => Text(message,
-                style: TextStyle(color: Theme.of(context).colorScheme.error))),
-      ],
       const SectionTitle('Riepilogo'),
-      ListTile(
-        contentPadding: EdgeInsets.zero,
-        title: Text(
-            '${state.selectedTickets} biglietti · ${state.adults} adulti · ${state.children} bambini'),
-        subtitle: const Text(
-            'Totale stimato; il totale definitivo è calcolato dal server.'),
-        trailing: Text(_money(estimate),
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(fontWeight: FontWeight.w900)),
+      Card(
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(
+                '${state.selectedTickets} biglietti · ${state.adults} adulti · ${state.children} bambini'),
+            subtitle: const Text(
+                'Totale stimato; il totale definitivo è calcolato dal server.'),
+            trailing: Text(_money(estimate),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w900)),
+          ),
+        ),
       ),
+      const SizedBox(height: 8),
       FilledButton(
         key: const Key('confirm-booking'),
         onPressed: soldOut || activeTickets.isEmpty || state.isSubmitting
