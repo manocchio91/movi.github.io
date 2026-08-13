@@ -4,6 +4,8 @@
 
 Copiare `.env.production.example` in `.env.production` fuori dal versionamento, sostituire ogni placeholder e generare `APP_KEY` in modo sicuro. In produzione sono obbligatori `APP_ENV=production`, `APP_DEBUG=false`, URL HTTPS espliciti, SMTP reale, password PostgreSQL/Redis non predefinite e proxy fidati limitati.
 
+Impostare `VITE_API_BASE_URL` sull'URL HTTPS pubblico completo delle API prima della build web. Per Android compilare Flutter passando lo stesso endpoint: `flutter build apk --release --dart-define=API_BASE_URL=https://api.example.com/api/v1`. I fallback `localhost`/`10.0.2.2` sono esclusivamente locali.
+
 ## Deploy
 
 ```bash

@@ -14,7 +14,7 @@ services:
     volumes: [./infra/nginx/production.conf:/etc/nginx/conf.d/default.conf:ro, ./backend/public:/var/www/html/public:ro, app-storage:/var/www/html/storage:ro]
     depends_on: [app]
   frontend:
-    build: { context: ., dockerfile: frontend/Dockerfile.production, args: { VITE_API_BASE_URL: /api/v1 } }
+    build: { context: ., dockerfile: frontend/Dockerfile.production, args: { VITE_API_BASE_URL: "${VITE_API_BASE_URL:?Set VITE_API_BASE_URL in the production environment}" } }
     restart: unless-stopped
     ports: ["${FRONTEND_PORT:-8081}:80"]
   queue:

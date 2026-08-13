@@ -15,6 +15,8 @@ class ApiClient {
         _client = client ?? http.Client();
 
   static String get _defaultBaseUrl {
+    const configured = String.fromEnvironment('API_BASE_URL');
+    if (configured.isNotEmpty) return configured;
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.0.2.2:8080/api/v1';
     }
