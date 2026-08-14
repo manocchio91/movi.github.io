@@ -1,6 +1,6 @@
 {
   "name": "eventi-locali/backend",
-  "description": "API Laravel per la piattaforma Eventi Locali.",
+  "description": "API Laravel per la piattaforma MòVi.",
   "type": "project",
   "license": "proprietary",
   "require": {

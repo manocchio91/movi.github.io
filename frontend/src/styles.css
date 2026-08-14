@@ -1781,7 +1781,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand-600); box-
 .discovery-signal span { color: #9fd9d1; font-size: .78rem; font-weight: 800; text-transform: uppercase; }
 @media (max-width: 600px) { .customer-discovery-hero { grid-template-columns: 1fr; padding: 28px 22px; } .discovery-signal { display: none; } .customer-discovery-hero h1 { font-size: 2.25rem; } }
 
-/* ===== Eventi Locali Premium UI — mockup-inspired structural redesign ===== */
+/* ===== MòVi Premium UI — mockup-inspired structural redesign ===== */
 :root {
   --premium-bg: #0b0d17;
   --premium-panel: #111522;
@@ -1968,3 +1968,14 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand-600); box-
   .organizer-layout .metric-grid { grid-template-columns: 1fr; }
   .command-actions { display: grid; }
 }
+.auth-brand-logo{width:min(360px,90%);height:auto;display:block;margin:0 auto 1rem}
+.role-brand-logo,.admin-brand-logo{width:42px;height:42px;border-radius:13px;object-fit:cover}
+.admin-brand-logo{width:48px;height:48px}
+.event-competition{padding:16px;border-radius:18px;background:rgba(13,24,48,.7)}
+.event-competition-legend{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.event-competition-legend span{padding:6px 10px;border-radius:999px;font-size:.78rem}
+.competition-yellow{background:#facc15;color:#352900}
+.competition-red{background:#ef4444;color:#fff}
+.competition-calendar{display:grid;grid-template-columns:repeat(7,minmax(34px,1fr));gap:6px}
+.competition-day{min-height:44px;padding:6px;border:1px solid rgba(255,255,255,.12);border-radius:10px;display:flex;justify-content:space-between}
+.competition-none{opacity:.55}

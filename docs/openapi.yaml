@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: Eventi Locali API
+  title: MòVi API
   version: 0.2.0
   license: { name: Proprietary, identifier: LicenseRef-Proprietary }
 servers:
@@ -669,9 +669,28 @@ paths:
     get:
       operationId: get_organizer_calendar_availability
       security: [{ bearerAuth: [] }]
-      summary: Disponibilita mensile con livello empty, low o crowded
+      summary: Concorrenza mensile per Comune e categoria
+      description: Giallo con almeno un altro evento nello stesso Comune; rosso con almeno due eventi nella stessa categoria. Rosso ha precedenza e l'evento in modifica può essere escluso.
+      parameters:
+        - name: month
+          in: query
+          required: true
+          schema: { type: integer, minimum: 1, maximum: 12 }
+        - name: year
+          in: query
+          required: true
+          schema: { type: integer, minimum: 2024, maximum: 2035 }
+        - name: municipality_id
+          in: query
+          schema: { type: integer }
+        - name: category_id
+          in: query
+          schema: { type: integer }
+        - name: exclude_event_ulid
+          in: query
+          schema: { type: string, minLength: 26, maxLength: 26 }
       responses:
-        "200": { description: Giorni con conteggio eventi pubblici e colore logico }
+        "200": { description: "Giorni con conteggio totale, conteggio stessa categoria e colore yellow/red/none" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "500": { $ref: "#/components/responses/InternalServerError" }
   /organizer/calendar/events:

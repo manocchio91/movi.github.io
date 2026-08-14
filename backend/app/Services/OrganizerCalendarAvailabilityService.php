@@ -17,17 +17,31 @@ class OrganizerCalendarAvailabilityService
         $year = (int) ($filters['year'] ?? now()->year);
         $start = CarbonImmutable::create($year, $month, 1)->startOfDay();
         $end = $start->endOfMonth();
-        $events = $this->publicEvents($profile, $filters, $start, $end)->get()->groupBy(fn (Event $event) => $event->starts_at->toDateString());
+        $events = $this->publicEvents($profile, $filters, $start, $end)
+            ->get()
+            ->groupBy(fn (Event $event) => $event->starts_at->toDateString());
+        $categoryId = isset($filters['category_id']) ? (int) $filters['category_id'] : null;
 
-        return collect(CarbonPeriod::create($start, $end))->map(function ($date) use ($events): array {
+        return collect(CarbonPeriod::create($start, $end))->map(function ($date) use ($events, $categoryId): array {
             $dayEvents = $events->get($date->toDateString(), collect());
             $count = $dayEvents->count();
+            $sameCategoryCount = $categoryId === null
+                ? 0
+                : $dayEvents->filter(fn (Event $event) => $event->categories->contains('id', $categoryId))->count();
+            $level = $sameCategoryCount >= 2
+                ? 'high_same_category'
+                : ($count >= 1 ? 'same_municipality' : 'empty');
 
             return [
                 'date' => $date->toDateString(),
                 'events_count' => $count,
-                'crowding_level' => $this->level($count),
-                'color' => $this->color($count),
+                'same_category_count' => $sameCategoryCount,
+                'crowding_level' => $level,
+                'color' => match ($level) {
+                    'high_same_category' => 'red',
+                    'same_municipality' => 'yellow',
+                    default => 'none',
+                },
                 'events' => $dayEvents->map(fn (Event $event) => $this->publicEventPayload($event))->values(),
             ];
         })->all();
@@ -46,12 +60,11 @@ class OrganizerCalendarAvailabilityService
     {
         return Event::query()
             ->with(['categories', 'organizerProfile:id,name,type', 'municipality.province'])
-            ->where('organizer_profile_id', '!=', $profile->id)
             ->whereIn('status', [EventStatus::Published->value, EventStatus::SoldOut->value])
             ->whereBetween('starts_at', [$start, $end])
+            ->when($filters['exclude_event_ulid'] ?? null, fn ($query, $ulid) => $query->where('ulid', '!=', $ulid))
             ->when($filters['municipality_id'] ?? null, fn ($query, $id) => $query->where('municipality_id', $id))
             ->when(($filters['province_id'] ?? null) && ! ($filters['municipality_id'] ?? null), fn ($query, $id) => $query->whereHas('municipality', fn ($municipality) => $municipality->where('province_id', $id)))
-            ->when($filters['category_id'] ?? null, fn ($query, $id) => $query->whereHas('categories', fn ($category) => $category->whereKey($id)))
             ->orderBy('starts_at');
     }
 
@@ -70,23 +83,5 @@ class OrganizerCalendarAvailabilityService
             'sold_out' => $event->status === EventStatus::SoldOut,
             'distance_km' => null,
         ];
-    }
-
-    private function level(int $count): string
-    {
-        return match (true) {
-            $count === 0 => 'empty',
-            $count === 1 => 'low',
-            default => 'crowded',
-        };
-    }
-
-    private function color(int $count): string
-    {
-        return match ($this->level($count)) {
-            'empty' => 'green',
-            'low' => 'yellow',
-            default => 'red',
-        };
     }
 }

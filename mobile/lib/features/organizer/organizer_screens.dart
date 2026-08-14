@@ -140,7 +140,8 @@ class _OrganizerEventsScreenState extends ConsumerState<OrganizerEventsScreen> {
                         title: '${event['title'] ?? 'Evento'}',
                         subtitle: _date(event['starts_at']),
                         status: '${event['status'] ?? 'draft'}',
-                        details: '${event['capacity'] ?? 0} posti',
+                        details:
+                            '${_map(event['summary'])['booked_people'] ?? 0} / ${_map(event['summary'])['capacity_total'] ?? event['capacity_total'] ?? 0} prenotati · ${_map(event['summary'])['available_total'] ?? event['available_total'] ?? 0} disponibili',
                         onTap: () =>
                             context.push('/organizer/events/${event['ulid']}'),
                       ))
@@ -179,12 +180,26 @@ class _OrganizerEventDetailScreenState
           _DetailTile(
               icon: Icons.groups_rounded,
               label: 'Capienza',
-              value: '${event['capacity'] ?? 0} persone'),
+              value:
+                  '${_map(event['summary_metrics'])['capacity_total'] ?? event['capacity_total'] ?? 0} totali · ${_map(event['summary_metrics'])['booked_people'] ?? 0} prenotati · ${_map(event['summary_metrics'])['available_total'] ?? event['available_total'] ?? 0} disponibili'),
           _DetailTile(
               icon: Icons.schedule_rounded,
               label: 'Chiusura prenotazioni',
               value: _date(event['booking_closes_at'])),
           const SectionTitle('OperativitÃ '),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: () async {
+                final changed = await context
+                    .push<bool>('/organizer/events/${widget.id}/edit');
+                if (changed == true && mounted) setState(() => refresh++);
+              },
+              icon: const Icon(Icons.edit_rounded),
+              label: const Text('Modifica evento'),
+            ),
+          ),
+          const SizedBox(height: 12),
           _ActionCard(
               icon: Icons.groups_rounded,
               title: 'Partecipanti e check-in',
@@ -224,6 +239,7 @@ class _OrganizerBookingsScreenState
     extends ConsumerState<OrganizerBookingsScreen> {
   final search = TextEditingController();
   int refresh = 0;
+  String filter = 'confirmed';
   @override
   void dispose() {
     search.dispose();
@@ -236,14 +252,29 @@ class _OrganizerBookingsScreenState
         title: 'Prenotazioni',
         future: ref
             .read(roleApiRepositoryProvider)
-            .organizerBookings(query: search.text),
-        header: TextField(
-            controller: search,
-            textInputAction: TextInputAction.search,
-            onSubmitted: (_) => setState(() => refresh++),
-            decoration: const InputDecoration(
-                hintText: 'Cerca cliente o codice',
-                prefixIcon: Icon(Icons.search_rounded))),
+            .organizerBookings(query: search.text, filter: filter),
+        header: Column(children: [
+          SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(value: 'confirmed', label: Text('Confermate')),
+              ButtonSegment(value: 'cancelled', label: Text('Cancellate')),
+              ButtonSegment(value: 'all', label: Text('Tutte')),
+            ],
+            selected: {filter},
+            onSelectionChanged: (value) => setState(() {
+              filter = value.first;
+              refresh++;
+            }),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+              controller: search,
+              textInputAction: TextInputAction.search,
+              onSubmitted: (_) => setState(() => refresh++),
+              decoration: const InputDecoration(
+                  hintText: 'Cerca cliente o codice',
+                  prefixIcon: Icon(Icons.search_rounded))),
+        ]),
         builder: (items) => items.isEmpty
             ? const [
                 EmptyState(

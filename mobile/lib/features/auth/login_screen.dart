@@ -59,7 +59,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     left: 22,
                     bottom: 22,
                     child: Text(
-                      'Eventi Locali\nMolise',
+                      'MòVi\nVivi quello che succede.',
                       style:
                           Theme.of(context).textTheme.headlineMedium?.copyWith(
                                 fontWeight: FontWeight.w900,

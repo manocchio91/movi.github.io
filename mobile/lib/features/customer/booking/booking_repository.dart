@@ -67,20 +67,26 @@ class BookingRepository {
   }
 
   Future<CustomerBooking> updateBooking(
-      CustomerBooking booking, String phone, String notes) async {
+    CustomerBooking booking,
+    String phone,
+    String notes, {
+    Map<String, int>? quantities,
+    int? adultsCount,
+    int? childrenCount,
+  }) async {
     final response = await _client.patch(
       '/me/bookings/${booking.ulid}',
       token: await _requiredToken(),
       body: {
-        'adults_count': booking.adultsCount,
-        'children_count': booking.childrenCount,
+        'adults_count': adultsCount ?? booking.adultsCount,
+        'children_count': childrenCount ?? booking.childrenCount,
         'phone': phone.trim(),
         'notes': notes.trim(),
         'items': booking.items
             .where((item) => item.ticketTypeUlid.isNotEmpty)
             .map((item) => {
                   'ticket_type_ulid': item.ticketTypeUlid,
-                  'quantity': item.quantity,
+                  'quantity': quantities?[item.ticketTypeUlid] ?? item.quantity,
                 })
             .toList(),
       },

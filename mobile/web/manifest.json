@@ -1,6 +1,6 @@
 {
-    "name": "eventi_locali_mobile",
-    "short_name": "eventi_locali_mobile",
+    "name": "MòVi",
+    "short_name": "MòVi",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

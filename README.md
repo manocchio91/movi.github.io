@@ -1,4 +1,4 @@
-# Eventi Locali Molise
+# MòVi
 
 Piattaforma territoriale per scoprire, pubblicare e moderare eventi ed esperienze locali a numero chiuso. La prima vertical slice copre autenticazione, ruoli, territori del Molise, categorie, profilo organizzatore, creazione evento in bozza, invio in moderazione, approvazione amministrativa e pubblicazione nell'elenco pubblico.
 

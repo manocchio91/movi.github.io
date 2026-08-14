@@ -74,6 +74,7 @@ class OrganizerPlanningController extends Controller
             'longitude' => ['nullable', 'numeric'],
             'radius' => ['nullable', 'numeric', 'min:1', 'max:200'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'exclude_event_ulid' => ['nullable', 'string', 'size:26', 'exists:events,ulid'],
         ]);
 
         return response()->json(['data' => $availability->availability($profile, $filters)]);
@@ -89,6 +90,7 @@ class OrganizerPlanningController extends Controller
             'municipality_id' => ['nullable', 'integer', 'exists:municipalities,id'],
             'province_id' => ['nullable', 'integer', 'exists:provinces,id'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'exclude_event_ulid' => ['nullable', 'string', 'size:26', 'exists:events,ulid'],
         ]);
 
         return response()->json(['data' => $availability->events($profile, $filters)]);

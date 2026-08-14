@@ -1,4 +1,4 @@
-# Eventi Locali Molise Mobile
+# MòVi Mobile
 
 Prototipo Flutter Material 3 per smartphone Android e iOS, con due esperienze separate:
 

@@ -1,5 +1,5 @@
 name: eventi_locali_mobile
-description: Complete Eventi Locali Molise mobile experience for Customer, Organizer and Admin.
+description: Complete MòVi mobile experience for Customer, Organizer and Admin.
 publish_to: "none"
 version: 0.1.0+1
 
@@ -22,3 +22,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/branding/

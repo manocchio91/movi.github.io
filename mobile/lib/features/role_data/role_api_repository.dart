@@ -53,9 +53,9 @@ class RoleApiRepository {
   Future<Map<String, dynamic>> organizerEvent(String id) async =>
       _map((await get('/organizer/events/$id'))['data']);
   Future<List<Map<String, dynamic>>> organizerBookings(
-          {String query = ''}) async =>
+          {String query = '', String filter = 'confirmed'}) async =>
       _list((await get(
-              '/organizer/bookings?per_page=50${query.trim().isEmpty ? '' : '&q=${Uri.encodeQueryComponent(query.trim())}'}'))[
+              '/organizer/bookings?per_page=50&filter=$filter${query.trim().isEmpty ? '' : '&search=${Uri.encodeQueryComponent(query.trim())}'}'))[
           'data']);
   Future<Map<String, dynamic>> organizerBooking(String id) async =>
       _map((await get('/organizer/bookings/$id'))['data']);

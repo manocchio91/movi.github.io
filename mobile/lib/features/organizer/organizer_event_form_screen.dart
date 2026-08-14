@@ -6,7 +6,8 @@ import '../role_data/role_api_repository.dart';
 import '../shared/ui/real_components.dart';
 
 class OrganizerEventFormScreen extends ConsumerStatefulWidget {
-  const OrganizerEventFormScreen({super.key});
+  const OrganizerEventFormScreen({super.key, this.eventId});
+  final String? eventId;
 
   @override
   ConsumerState<OrganizerEventFormScreen> createState() =>
@@ -28,18 +29,52 @@ class _OrganizerEventFormScreenState
   int? _categoryId;
   DateTime? _startsAt;
   String _audience = 'generic';
+  String? _ticketUlid;
   bool _isFree = true;
   bool _familyFriendly = true;
   bool _saving = false;
   String? _error;
+  Future<List<Map<String, dynamic>>>? _competition;
 
   @override
   void initState() {
     super.initState();
-    _categories = ref
-        .read(roleApiRepositoryProvider)
-        .get('/categories')
-        .then((body) => _list(body['data']));
+    _categories = _loadInitial();
+  }
+
+  Future<List<Map<String, dynamic>>> _loadInitial() async {
+    final repository = ref.read(roleApiRepositoryProvider);
+    final categories = _list((await repository.get('/categories'))['data']);
+    if (widget.eventId != null) {
+      final event = await repository.organizerEvent(widget.eventId!);
+      final ticketTypes = _list(event['ticket_types']);
+      final categoriesForEvent = _list(event['categories']);
+      if (mounted) {
+        setState(() {
+          _title.text = '${event['title'] ?? ''}';
+          _summary.text = '${event['summary'] ?? ''}';
+          _description.text = '${event['description'] ?? ''}';
+          _capacity.text = '${event['capacity_total'] ?? 0}';
+          _municipality = _map(event['municipality']);
+          _categoryId = categoriesForEvent.isEmpty
+              ? null
+              : categoriesForEvent.first['id'] as int?;
+          _startsAt = DateTime.tryParse('${event['starts_at']}')?.toLocal();
+          _isFree = event['is_free'] == true;
+          _familyFriendly = event['family_friendly'] == true;
+          if (ticketTypes.isNotEmpty) {
+            final ticket = ticketTypes.first;
+            _ticketUlid = '${ticket['ulid']}';
+            _ticketName.text = '${ticket['name'] ?? ''}';
+            _ticketPrice.text =
+                ((_asNum(ticket['price_cents']) / 100)).toStringAsFixed(2);
+            _ticketQuantity.text = '${ticket['max_quantity'] ?? 1}';
+            _audience = '${ticket['audience'] ?? 'generic'}';
+          }
+        });
+      }
+    }
+    return categories;
   }
 
   @override
@@ -56,7 +91,7 @@ class _OrganizerEventFormScreenState
 
   @override
   Widget build(BuildContext context) => ScreenScaffold(
-        title: 'Crea evento',
+        title: widget.eventId == null ? 'Crea evento' : 'Modifica evento',
         children: [
           Container(
             padding: const EdgeInsets.all(20),
@@ -64,18 +99,21 @@ class _OrganizerEventFormScreenState
               color: Theme.of(context).colorScheme.primaryContainer,
               borderRadius: BorderRadius.circular(22),
             ),
-            child: const Row(children: [
-              Icon(Icons.add_circle_rounded, size: 42),
-              SizedBox(width: 14),
+            child: Row(children: [
+              const Icon(Icons.add_circle_rounded, size: 42),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Nuova esperienza',
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.w900)),
-                    SizedBox(height: 4),
                     Text(
+                        widget.eventId == null
+                            ? 'Nuova esperienza'
+                            : 'Modifica esperienza',
+                        style: const TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 4),
+                    const Text(
                         'Salva una bozza e completala prima della pubblicazione.'),
                   ],
                 ),
@@ -138,7 +176,10 @@ class _OrganizerEventFormScreenState
                                 child: Text('${item['name']}'),
                               ))
                           .toList(),
-                      onChanged: (value) => setState(() => _categoryId = value),
+                      onChanged: (value) {
+                        setState(() => _categoryId = value);
+                        _refreshCompetition();
+                      },
                       validator: (value) =>
                           value == null ? 'Seleziona una categoria.' : null,
                     );
@@ -155,11 +196,11 @@ class _OrganizerEventFormScreenState
                 if (_municipality == null)
                   const Padding(
                     padding: EdgeInsets.only(top: 6, left: 12),
-                    child: Text('Il Comune è obbligatorio.',
+                    child: Text('Il Comune ÃƒÂ¨ obbligatorio.',
                         style:
                             TextStyle(color: Colors.redAccent, fontSize: 12)),
                   ),
-                const SectionTitle('Data e disponibilità'),
+                const SectionTitle('Data e disponibilitÃƒÂ '),
                 OutlinedButton.icon(
                   onPressed: _chooseDateTime,
                   icon: const Icon(Icons.calendar_month_rounded),
@@ -168,6 +209,67 @@ class _OrganizerEventFormScreenState
                       : _dateTimeLabel(_startsAt!)),
                 ),
                 const SizedBox(height: 12),
+                if (_competition != null) ...[
+                  FutureBuilder<List<Map<String, dynamic>>>(
+                    future: _competition,
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const LoadingSkeleton();
+                      }
+                      final busy = snapshot.data!.where(
+                          (day) => (day['events_count'] as num? ?? 0) > 0);
+                      return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Wrap(spacing: 8, children: [
+                              Chip(
+                                  backgroundColor: Color(0xffffd54f),
+                                  label: Text('Giallo: stesso Comune')),
+                              Chip(
+                                  backgroundColor: Color(0xffef5350),
+                                  label: Text('Rosso: forte concorrenza')),
+                            ]),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                                height: 58,
+                                child: ListView(
+                                    scrollDirection: Axis.horizontal,
+                                    children: [
+                                      for (final day in busy)
+                                        Container(
+                                            width: 54,
+                                            margin:
+                                                const EdgeInsets.only(right: 6),
+                                            decoration: BoxDecoration(
+                                                color: day['color'] == 'red'
+                                                    ? const Color(0xffef5350)
+                                                    : const Color(0xffffd54f),
+                                                borderRadius:
+                                                    BorderRadius.circular(12)),
+                                            child: Center(
+                                                child: Column(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                  Text(
+                                                      DateTime.parse(
+                                                              '${day['date']}')
+                                                          .day
+                                                          .toString(),
+                                                      style: const TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.w900)),
+                                                  Text(
+                                                      '${day['events_count']} ev.',
+                                                      style: const TextStyle(
+                                                          fontSize: 11)),
+                                                ]))),
+                                    ])),
+                          ]);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 TextFormField(
                   controller: _capacity,
                   keyboardType: TextInputType.number,
@@ -182,8 +284,8 @@ class _OrganizerEventFormScreenState
                   contentPadding: EdgeInsets.zero,
                   value: _isFree,
                   title: const Text('Evento gratuito'),
-                  subtitle:
-                      const Text('Il prezzo del ticket sarà impostato a zero.'),
+                  subtitle: const Text(
+                      'Il prezzo del ticket sarÃƒÂ  impostato a zero.'),
                   onChanged: (value) => setState(() => _isFree = value),
                 ),
                 TextFormField(
@@ -216,7 +318,7 @@ class _OrganizerEventFormScreenState
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(
-                          labelText: 'Prezzo €', prefixText: '€ '),
+                          labelText: 'Prezzo Ã¢â€šÂ¬', prefixText: 'Ã¢â€šÂ¬ '),
                       validator: (value) => _isFree
                           ? null
                           : _nonNegative(value, 'Inserisci un prezzo valido.'),
@@ -227,9 +329,10 @@ class _OrganizerEventFormScreenState
                     child: TextFormField(
                       controller: _ticketQuantity,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Quantità'),
+                      decoration:
+                          const InputDecoration(labelText: 'QuantitÃƒÂ '),
                       validator: (value) =>
-                          _positive(value, 'Quantità non valida.'),
+                          _positive(value, 'QuantitÃƒÂ  non valida.'),
                     ),
                   ),
                 ]),
@@ -276,7 +379,10 @@ class _OrganizerEventFormScreenState
       context: context,
       builder: (_) => const _MunicipalityPicker(),
     );
-    if (value != null) setState(() => _municipality = value);
+    if (value != null) {
+      setState(() => _municipality = value);
+      _refreshCompetition();
+    }
   }
 
   Future<void> _chooseDateTime() async {
@@ -296,6 +402,20 @@ class _OrganizerEventFormScreenState
     if (time == null) return;
     setState(() => _startsAt =
         DateTime(date.year, date.month, date.day, time.hour, time.minute));
+  }
+
+  void _refreshCompetition() {
+    if (_municipality == null || _categoryId == null) return;
+    final date = _startsAt ?? DateTime.now();
+    final exclude =
+        widget.eventId == null ? '' : '&exclude_event_ulid=${widget.eventId}';
+    setState(() {
+      _competition = ref
+          .read(roleApiRepositoryProvider)
+          .get(
+              '/organizer/calendar/availability?month=${date.month}&year=${date.year}&municipality_id=${_municipality!['id']}&category_id=$_categoryId$exclude')
+          .then((body) => _list(body['data']));
+    });
   }
 
   Future<void> _save() async {
@@ -319,7 +439,8 @@ class _OrganizerEventFormScreenState
         : ((double.tryParse(_ticketPrice.text.replaceAll(',', '.')) ?? 0) * 100)
             .round();
     try {
-      await ref.read(roleApiRepositoryProvider).post('/organizer/events', {
+      final repository = ref.read(roleApiRepositoryProvider);
+      final payload = {
         'title': _title.text.trim(),
         'summary': _summary.text.trim(),
         'description': _description.text.trim(),
@@ -332,6 +453,7 @@ class _OrganizerEventFormScreenState
         'indoor_outdoor': 'mixed',
         'ticket_types': [
           {
+            if (_ticketUlid != null) 'ulid': _ticketUlid,
             'name': _ticketName.text.trim(),
             'audience': _audience,
             'price_cents': priceCents,
@@ -339,7 +461,12 @@ class _OrganizerEventFormScreenState
             'is_active': true,
           }
         ],
-      });
+      };
+      if (widget.eventId == null) {
+        await repository.post('/organizer/events', payload);
+      } else {
+        await repository.patch('/organizer/events/${widget.eventId}', payload);
+      }
       if (mounted) context.pop(true);
     } catch (error) {
       if (mounted) {
@@ -448,8 +575,9 @@ String? _nonNegative(String? value, String message) =>
     (double.tryParse((value ?? '').replaceAll(',', '.')) ?? -1) < 0
         ? message
         : null;
+num _asNum(Object? value) => value is num ? value : num.tryParse('$value') ?? 0;
 String _dateTimeLabel(DateTime value) =>
-    '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year} · ${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+    '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year} Ã‚Â· ${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
 Map<String, dynamic> _map(Object? value) =>
     value is Map<String, dynamic> ? value : <String, dynamic>{};
 List<Map<String, dynamic>> _list(Object? value) => value is List

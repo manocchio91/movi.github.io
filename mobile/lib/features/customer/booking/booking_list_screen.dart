@@ -153,7 +153,7 @@ class CustomerBookingDetailScreen extends ConsumerWidget {
               child: OutlinedButton.icon(
                 onPressed: () => editBooking(context, ref, value),
                 icon: const Icon(Icons.edit_rounded),
-                label: const Text('Modifica telefono e note'),
+                label: const Text('Modifica prenotazione'),
               ),
             ),
             const SizedBox(height: 10),
@@ -247,53 +247,139 @@ Future<void> editBooking(
     BuildContext context, WidgetRef ref, CustomerBooking booking) async {
   final phone = TextEditingController(text: booking.contactPhone);
   final notes = TextEditingController(text: booking.notes);
+  final adults = TextEditingController(text: '${booking.adultsCount}');
+  final children = TextEditingController(text: '${booking.childrenCount}');
+  final quantities = <String, int>{
+    for (final item in booking.items) item.ticketTypeUlid: item.quantity
+  };
   final confirmed = await showDialog<bool>(
         context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Modifica prenotazione'),
-          content: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              TextField(
-                controller: phone,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                    labelText: 'Telefono',
-                    prefixIcon: Icon(Icons.phone_rounded)),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: notes,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                    labelText: 'Note', prefixIcon: Icon(Icons.notes_rounded)),
-              ),
-            ]),
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: const Text('Modifica prenotazione'),
+            content: SingleChildScrollView(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                for (final item in booking.items)
+                  ListTile(
+                    title: Text(item.ticketName),
+                    subtitle: Text(_money(item.unitPriceCents)),
+                    trailing: SizedBox(
+                        width: 92,
+                        child: TextFormField(
+                          initialValue:
+                              '${quantities[item.ticketTypeUlid] ?? 0}',
+                          keyboardType: TextInputType.number,
+                          decoration:
+                              const InputDecoration(labelText: 'Quantità'),
+                          onChanged: (value) => setDialogState(() =>
+                              quantities[item.ticketTypeUlid] =
+                                  int.tryParse(value) ?? 0),
+                        )),
+                  ),
+                Row(children: [
+                  Expanded(
+                      child: TextField(
+                          controller: adults,
+                          keyboardType: TextInputType.number,
+                          decoration:
+                              const InputDecoration(labelText: 'Adulti'))),
+                  const SizedBox(width: 8),
+                  Expanded(
+                      child: TextField(
+                          controller: children,
+                          keyboardType: TextInputType.number,
+                          decoration:
+                              const InputDecoration(labelText: 'Bambini'))),
+                ]),
+                const SizedBox(height: 12),
+                TextField(
+                    controller: phone,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                        labelText: 'Telefono',
+                        prefixIcon: Icon(Icons.phone_rounded))),
+                const SizedBox(height: 12),
+                TextField(
+                    controller: notes,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                        labelText: 'Note',
+                        prefixIcon: Icon(Icons.notes_rounded))),
+                const SizedBox(height: 16),
+                Card(
+                    child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(children: [
+                          Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Partecipanti'),
+                                Text(
+                                    '${quantities.values.fold<int>(0, (sum, value) => sum + value)}')
+                              ]),
+                          Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Nuovo totale'),
+                                Text(_money(booking.items.fold<int>(
+                                    0,
+                                    (sum, item) =>
+                                        sum +
+                                        item.unitPriceCents *
+                                            (quantities[item.ticketTypeUlid] ??
+                                                0))))
+                              ]),
+                        ]))),
+              ]),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text('Annulla')),
+              FilledButton(
+                  onPressed: () {
+                    final people = quantities.values
+                        .fold<int>(0, (sum, value) => sum + value);
+                    if (people < 1 ||
+                        (int.tryParse(adults.text) ?? 0) +
+                                (int.tryParse(children.text) ?? 0) !=
+                            people ||
+                        phone.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text(
+                              'Controlla quantità, partecipanti e telefono.')));
+                      return;
+                    }
+                    Navigator.pop(dialogContext, true);
+                  },
+                  child: const Text('Conferma modifica')),
+            ],
           ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('Annulla')),
-            FilledButton(
-                onPressed: () => Navigator.pop(dialogContext, true),
-                child: const Text('Salva')),
-          ],
         ),
       ) ??
       false;
   if (!confirmed || !context.mounted) {
     phone.dispose();
     notes.dispose();
+    adults.dispose();
+    children.dispose();
     return;
   }
   try {
-    await ref
-        .read(bookingRepositoryProvider)
-        .updateBooking(booking, phone.text, notes.text);
+    await ref.read(bookingRepositoryProvider).updateBooking(
+          booking,
+          phone.text,
+          notes.text,
+          quantities: quantities,
+          adultsCount: int.tryParse(adults.text) ?? 0,
+          childrenCount: int.tryParse(children.text) ?? 0,
+        );
     ref.invalidate(customerBookingsProvider);
     ref.invalidate(customerBookingDetailProvider(booking.ulid));
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Prenotazione aggiornata.')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content:
+              Text('Prenotazione aggiornata. Codice e QR sono invariati.')));
     }
   } on BookingApiException catch (error) {
     if (context.mounted) {
@@ -303,5 +389,7 @@ Future<void> editBooking(
   } finally {
     phone.dispose();
     notes.dispose();
+    adults.dispose();
+    children.dispose();
   }
 }

@@ -18,6 +18,7 @@ class UpdateBooking
             $lockedBooking = Booking::query()->whereKey($booking->id)->lockForUpdate()->firstOrFail();
             abort_unless($lockedBooking->user_id === $user->id, 403);
             abort_unless($lockedBooking->status === 'confirmed', 422, 'Prenotazione non modificabile.');
+            abort_if($lockedBooking->checkIns()->exists(), 422, 'Una prenotazione con check-in non può essere modificata.');
 
             /** @var Event $event */
             $event = Event::query()->whereKey($lockedBooking->event_id)->lockForUpdate()->firstOrFail();

@@ -272,6 +272,39 @@ class OrganizerEventManagementTest extends TestCase
         $this->assertNotSame('Titolo da annullare', $event->refresh()->title);
     }
 
+    public function test_competition_calendar_marks_yellow_red_and_excludes_current_event(): void
+    {
+        [$organizer, $profile, $municipality, $category] = $this->domain();
+        $otherCategory = Category::query()->create(['name' => 'Teatro', 'slug' => 'teatro', 'is_active' => true]);
+        $yellowDate = now()->addMonth()->startOfMonth()->addDays(5)->setTime(18, 0);
+        $redDate = $yellowDate->copy()->addDay();
+
+        $yellow = $this->event($profile, $municipality, $otherCategory, EventStatus::Published, 'Concorrenza generica');
+        $yellow->forceFill(['starts_at' => $yellowDate, 'ends_at' => $yellowDate->addHours(2)])->save();
+        foreach (['Concorrenza categoria uno', 'Concorrenza categoria due'] as $title) {
+            $event = $this->event($profile, $municipality, $category, EventStatus::Published, $title);
+            $event->forceFill(['starts_at' => $redDate, 'ends_at' => $redDate->addHours(2)])->save();
+        }
+
+        $response = $this->actingAs($organizer, 'sanctum')->getJson('/api/v1/organizer/calendar/availability?'.http_build_query([
+            'month' => $yellowDate->month, 'year' => $yellowDate->year,
+            'municipality_id' => $municipality->id, 'category_id' => $category->id,
+            'exclude_event_ulid' => $yellow->ulid,
+        ]))->assertOk();
+
+        $days = collect($response->json('data'))->keyBy('date');
+        $this->assertSame('none', $days[$yellowDate->toDateString()]['color']);
+        $this->assertSame('red', $days[$redDate->toDateString()]['color']);
+        $this->assertSame(2, $days[$redDate->toDateString()]['same_category_count']);
+
+        $withoutExclusion = $this->actingAs($organizer, 'sanctum')->getJson('/api/v1/organizer/calendar/availability?'.http_build_query([
+            'month' => $yellowDate->month, 'year' => $yellowDate->year,
+            'municipality_id' => $municipality->id, 'category_id' => $category->id,
+        ]))->assertOk();
+        $allDays = collect($withoutExclusion->json('data'))->keyBy('date');
+        $this->assertSame('yellow', $allDays[$yellowDate->toDateString()]['color']);
+    }
+
     /** @return array{User, OrganizerProfile, Municipality, Category} */
     private function domain(): array
     {

@@ -457,14 +457,14 @@ class EventPlatformTest extends TestCase
         ]);
 
         $response = $this->actingAs($organizer, 'sanctum')
-            ->getJson('/api/v1/organizer/calendar/availability?month='.$yellowDay->month.'&year='.$yellowDay->year.'&municipality_id='.$municipality->id)
+            ->getJson('/api/v1/organizer/calendar/availability?month='.$yellowDay->month.'&year='.$yellowDay->year.'&municipality_id='.$municipality->id.'&category_id='.$categories['cene']->id)
             ->assertOk();
 
         $days = collect($response->json('data'))->keyBy('date');
-        $this->assertSame('low', $days[$yellowDay->toDateString()]['crowding_level']);
+        $this->assertSame('same_municipality', $days[$yellowDay->toDateString()]['crowding_level']);
         $this->assertSame('yellow', $days[$yellowDay->toDateString()]['color']);
         $this->assertSame(1, $days[$yellowDay->toDateString()]['events_count']);
-        $this->assertSame('crowded', $days[$redDay->toDateString()]['crowding_level']);
+        $this->assertSame('high_same_category', $days[$redDay->toDateString()]['crowding_level']);
         $this->assertSame('red', $days[$redDay->toDateString()]['color']);
     }
 

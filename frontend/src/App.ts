@@ -425,7 +425,7 @@ export default defineComponent({
     const organizerBookingsLoading = ref(false);
     const organizerBookingsError = ref('');
     const organizerBookingsPage = ref(1);
-    const organizerBookingsFilter = ref<OrganizerBookingFilter>('all');
+    const organizerBookingsFilter = ref<OrganizerBookingFilter>('confirmed');
     const organizerBookingsSearch = ref('');
     const organizerBookingsSort = ref('booked_at:desc');
     const selectedOrganizerBooking = ref<OrganizerBooking | null>(null);
@@ -457,6 +457,8 @@ export default defineComponent({
     let sessionVersion = 0;
     const reviewEvents = ref<any[]>([]);
     const calendarDays = ref<any[]>([]);
+    const eventCompetitionDays = ref<any[]>([]);
+    const eventCompetitionLoading = ref(false);
     const selectedDay = ref<any | null>(null);
     const opportunities = ref<any>(null);
     const customerDashboard = ref<any>(null);
@@ -723,6 +725,23 @@ export default defineComponent({
       }
     };
 
+    const loadEventCompetition = async () => {
+      const municipalityId = Number(eventFormData.value.municipality_id);
+      const categoryId = Number(eventFormData.value.category_id);
+      if (!municipalityId || !categoryId) { eventCompetitionDays.value = []; return; }
+      const date = eventFormData.value.starts_at ? new Date(eventFormData.value.starts_at) : new Date();
+      const query = new URLSearchParams({ month: String(date.getMonth() + 1), year: String(date.getFullYear()), municipality_id: String(municipalityId), category_id: String(categoryId) });
+      if (eventFormData.value.ulid) query.set('exclude_event_ulid', eventFormData.value.ulid);
+      eventCompetitionLoading.value = true;
+      try {
+        const response = await api<{ data: any[] }>(`/organizer/calendar/availability?${query}`);
+        eventCompetitionDays.value = response?.data ?? [];
+      } catch {
+        eventCompetitionDays.value = [];
+      } finally {
+        eventCompetitionLoading.value = false;
+      }
+    };
     const eventPayload = () => {
       const errors: Record<string, string[]> = {};
       const ticketPayload = tickets.value.map((ticket, index) => {
@@ -1637,7 +1656,7 @@ export default defineComponent({
     const renderRoleSelection = () => h('section', { class: 'auth-screen' }, [
       h('div', { class: 'auth-panel' }, [
         h('span', { class: 'eyebrow' }, 'Scegli la tua area'),
-        h('h1', 'Eventi Locali'),
+        h('img', { class: 'auth-brand-logo', src: '/branding/movi-logo-full.png', alt: 'MòVi — Vivi quello che succede.' }),
         h('p', 'La scelta apre soltanto l�?Tautenticazione. Serve sempre una sessione backend valida per entrare.'),
         h('div', { class: 'auth-role-grid' }, [
           h('button', { type: 'button', onClick: () => selectAuthAudience('customer') }, 'Customer'),
@@ -1797,7 +1816,7 @@ export default defineComponent({
 
     const roleNavIcon = (label: string) => ({ Home: '⌂', Eventi: '◫', Prenotazioni: '✓', Profilo: '◎', Dashboard: '⌂', Recensioni: '★', Opportunità: '↗' }[label] ?? '•');
     const renderHeader = (title: string, menu: readonly (readonly [string, AppRoute])[]) => h('header', { class: 'app-header' }, [
-      h('div', { class: 'role-brand' }, [h('span', { class: 'role-brand-mark', 'aria-hidden': 'true' }, 'EL'), h('div', [h('strong', 'Eventi Locali'), h('span', title)])]),
+      h('div', { class: 'role-brand' }, [h('img', { class: 'role-brand-logo', src: '/branding/movi-icon.png', alt: '' }), h('div', [h('strong', 'MòVi'), h('span', title)])]),
       h('nav', { 'aria-label': title }, menu.map(([label, target]) => h('button', { class: route.value === target ? 'active' : '', type: 'button', 'aria-current': route.value === target ? 'page' : undefined, onClick: () => { void go(target); } }, [h('i', { 'aria-hidden': 'true' }, roleNavIcon(label)), h('span', label)]))),
       h('div', { class: 'role-account' }, [h('span', { class: 'account-avatar', 'aria-hidden': 'true' }, (currentUser.value?.name ?? 'U').slice(0, 1).toUpperCase()), h('div', [h('strong', currentUser.value?.name ?? title), h('small', currentUser.value?.email ?? '')]), h('button', { type: 'button', onClick: logout, 'aria-label': 'Esci dal tuo account' }, 'Esci')]),
     ]);
@@ -2122,7 +2141,7 @@ export default defineComponent({
           type,
           value: String(eventFormData.value[name] ?? ''),
           disabled: eventFormSubmitting.value,
-          onInput: (event: Event) => { (eventFormData.value[name] as string) = (event.target as HTMLInputElement).value; },
+          onInput: (event: Event) => { (eventFormData.value[name] as string) = (event.target as HTMLInputElement).value; if (name === 'starts_at') void loadEventCompetition(); },
         }),
         ...eventFieldErrors(name),
       ]);
@@ -2183,7 +2202,7 @@ export default defineComponent({
             ]),
             h('label', { class: 'event-form-field' }, [
               h('span', 'Categoria'),
-              h('select', { value: eventFormData.value.category_id, disabled: categoriesLoading.value || eventFormSubmitting.value, onChange: (event: Event) => { eventFormData.value.category_id = (event.target as HTMLSelectElement).value; } }, [
+              h('select', { value: eventFormData.value.category_id, disabled: categoriesLoading.value || eventFormSubmitting.value, onChange: (event: Event) => { eventFormData.value.category_id = (event.target as HTMLSelectElement).value; void loadEventCompetition(); } }, [
                 h('option', { value: '' }, categoriesLoading.value ? 'Caricamento�?�' : 'Seleziona categoria'),
                 ...eventCategories.value.map((category) => h('option', { value: String(category.id) }, category.name)),
               ]),
@@ -2192,7 +2211,7 @@ export default defineComponent({
             ]),
             h('label', { class: 'event-form-field' }, [
               h('span', 'Luogo'),
-              h('select', { value: eventFormData.value.municipality_id, disabled: eventFormSubmitting.value, onChange: (event: Event) => { eventFormData.value.municipality_id = (event.target as HTMLSelectElement).value; } }, [
+              h('select', { value: eventFormData.value.municipality_id, disabled: eventFormSubmitting.value, onChange: (event: Event) => { eventFormData.value.municipality_id = (event.target as HTMLSelectElement).value; void loadEventCompetition(); } }, [
                 h('option', { value: '' }, 'Seleziona comune'),
                 ...eventMunicipalities.value.map((municipality) => h('option', { value: String(municipality.id) }, `${municipality.name}${municipality.province?.code ? ` (${municipality.province.code})` : ''}`)),
               ]),
@@ -2200,6 +2219,20 @@ export default defineComponent({
             ]),
             input('Data e ora di inizio', 'starts_at', 'datetime-local'),
             input('Data e ora di fine', 'ends_at', 'datetime-local'),
+            h('section', { class: 'event-competition event-form-wide', 'aria-label': 'Concorrenza nel Comune' }, [
+              h('div', { class: 'event-competition-legend' }, [
+                h('strong', 'Concorrenza nel Comune'),
+                h('span', { class: 'competition-yellow' }, 'Giallo: altri eventi nello stesso Comune'),
+                h('span', { class: 'competition-red' }, 'Rosso: almeno 2 eventi nella stessa categoria'),
+              ]),
+              eventCompetitionLoading.value ? h('small', 'Aggiornamento calendario...') :
+              eventCompetitionDays.value.length === 0 ? h('small', 'Seleziona Comune e categoria per vedere la concorrenza.') :
+              h('div', { class: 'competition-calendar' }, eventCompetitionDays.value.map((day) =>
+                h('div', { class: `competition-day competition-${day.color}`, title: `${day.events_count} eventi nel Comune, ${day.same_category_count} nella categoria` }, [
+                  h('strong', String(new Date(`${day.date}T12:00:00`).getDate())),
+                  day.events_count ? h('small', `${day.events_count}`) : null,
+                ]))),
+            ]),
             input('Capienza generale', 'capacity_total', 'number'),
             h('label', { class: 'event-form-field' }, [
               h('span', 'Svolgimento'),
@@ -2714,7 +2747,7 @@ export default defineComponent({
 
     const AdminLayout = () => h('main', { class: 'admin-console' }, [
       h('aside', { class: 'admin-sidebar' }, [
-        h('div', { class: 'admin-brand' }, [h('strong', 'EL'), h('span', 'Eventi Locali')]),
+        h('div', { class: 'admin-brand' }, [h('img', { class: 'admin-brand-logo', src: '/branding/movi-icon.png', alt: '' }), h('span', 'MòVi')]),
         h('nav', adminMenu.map(([label, target]) => h('button', {
           class: route.value === target ? 'active' : '',
           type: 'button',
