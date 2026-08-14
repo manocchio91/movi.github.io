@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/auth/auth_controller.dart';
+import '../../shared/state/event_data_revision.dart';
 import 'customer_api_models.dart';
 import 'customer_repositories.dart';
 
@@ -8,17 +9,24 @@ final eventRepositoryProvider =
     Provider<EventRepository>((ref) => EventRepository(
           ref.watch(apiClientProvider),
           ref.watch(authenticationRepositoryProvider),
+          ref.read(eventDomainStoreProvider.notifier),
         ));
 final categoryRepositoryProvider = Provider<CategoryRepository>(
     (ref) => CategoryRepository(ref.watch(apiClientProvider)));
 final categoriesProvider = FutureProvider<List<EventCategory>>(
     (ref) => ref.watch(categoryRepositoryProvider).categories());
-final recommendedEventsProvider = FutureProvider<EventPage>(
-    (ref) => ref.watch(eventRepositoryProvider).events());
-final successfulEventsProvider = FutureProvider<List<SuccessfulEvent>>(
-    (ref) => ref.watch(eventRepositoryProvider).successfulEvents());
-final eventDetailProvider = FutureProvider.family<ApiEvent, String>(
-    (ref, id) => ref.watch(eventRepositoryProvider).event(id));
+final recommendedEventsProvider = FutureProvider<EventPage>((ref) {
+  ref.watch(eventDomainStoreProvider.select((state) => state.revision));
+  return ref.watch(eventRepositoryProvider).events();
+});
+final successfulEventsProvider = FutureProvider<List<SuccessfulEvent>>((ref) {
+  ref.watch(eventDomainStoreProvider.select((state) => state.revision));
+  return ref.watch(eventRepositoryProvider).successfulEvents();
+});
+final eventDetailProvider = FutureProvider.family<ApiEvent, String>((ref, id) {
+  ref.watch(eventDomainStoreProvider.select((state) => state.revision));
+  return ref.watch(eventRepositoryProvider).event(id);
+});
 
 class EventSearchQuery {
   const EventSearchQuery({this.text = '', this.categoryId});
@@ -32,6 +40,7 @@ final eventSearchQueryProvider =
 class EventListController extends AsyncNotifier<EventPage> {
   @override
   Future<EventPage> build() {
+    ref.watch(eventDomainStoreProvider.select((state) => state.revision));
     final query = ref.watch(eventSearchQueryProvider);
     return ref
         .watch(eventRepositoryProvider)

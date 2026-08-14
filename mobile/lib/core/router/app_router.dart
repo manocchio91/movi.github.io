@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -109,6 +109,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       path: 'create',
                       parentNavigatorKey: _rootKey,
                       builder: (_, __) => const OrganizerEventFormScreen()),
+                  GoRoute(
+                      path: ':id/edit',
+                      parentNavigatorKey: _rootKey,
+                      builder: (_, s) => OrganizerEventFormScreen(
+                          eventId: s.pathParameters['id']!)),
                   GoRoute(
                       path: ':id',
                       parentNavigatorKey: _rootKey,

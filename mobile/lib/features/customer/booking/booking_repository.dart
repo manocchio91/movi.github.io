@@ -145,8 +145,8 @@ class BookingRepository {
   String _fallback(int status) => switch (status) {
         401 => 'Sessione scaduta. Accedi di nuovo.',
         403 => 'Non puoi accedere a questa prenotazione.',
-        409 => 'Il QR non Ã¨ disponibile per questa prenotazione.',
-        422 => 'Controlla i dati e la disponibilitÃ  dei biglietti.',
+        409 => 'Il QR non è disponibile per questa prenotazione.',
+        422 => 'Controlla i dati e la disponibilità dei biglietti.',
         _ => 'Impossibile completare la prenotazione.',
       };
 }

@@ -20,7 +20,9 @@ class UpdateEvent
             $ticketTypes = $data['ticket_types'] ?? [];
             unset($data['category_ids'], $data['ticket_types']);
 
-            $bookedPlaces = $lockedEvent->capacity_total - $lockedEvent->available_total;
+            $bookedPlaces = (int) $lockedEvent->bookings()
+                ->whereIn('status', ['confirmed', 'checked_in', 'completed'])
+                ->sum('total_people');
             if ($data['capacity_total'] < $bookedPlaces) {
                 throw ValidationException::withMessages([
                     'capacity_total' => ["La capienza non può essere inferiore ai $bookedPlaces posti già prenotati."],

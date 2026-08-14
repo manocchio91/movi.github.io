@@ -63,6 +63,8 @@ class _BookingForm extends ConsumerWidget {
               .textTheme
               .titleLarge
               ?.copyWith(fontWeight: FontWeight.w800)),
+      const SizedBox(height: 6),
+      Text('${event.availableSeats} posti disponibili su ${event.capacity}'),
       const SectionTitle('Contatti'),
       TextFormField(
         key: const Key('contact-phone'),
@@ -89,6 +91,7 @@ class _BookingForm extends ConsumerWidget {
         const Text('Nessuna tipologia di biglietto disponibile.'),
       ...activeTickets.map((ticket) => _TicketSelector(
             ticket: ticket,
+            eventAvailable: event.availableSeats,
             value: state.quantities[ticket.id] ?? 0,
             onChanged: (value) => controller.setQuantity(ticket, value,
                 eventAvailable: event.availableSeats),
@@ -172,15 +175,26 @@ class _BookingForm extends ConsumerWidget {
 }
 
 class _TicketSelector extends StatelessWidget {
-  const _TicketSelector(
-      {required this.ticket, required this.value, required this.onChanged});
+  const _TicketSelector({
+    required this.ticket,
+    required this.eventAvailable,
+    required this.value,
+    required this.onChanged,
+  });
   final TicketType ticket;
+  final int eventAvailable;
   final int value;
   final ValueChanged<int> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final enabled = ticket.isAvailable;
+    final ticketAvailable = ticket.availableQuantity;
+    final purchasable = ticketAvailable == null
+        ? eventAvailable
+        : (ticketAvailable < eventAvailable ? ticketAvailable : eventAvailable);
+    final ticketIsLimiting =
+        ticketAvailable != null && ticketAvailable < eventAvailable;
+    final enabled = ticket.isActive && purchasable > 0;
     return Card(
         child: Padding(
       padding: const EdgeInsets.all(12),
@@ -192,10 +206,12 @@ class _TicketSelector extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.w800)),
           if (ticket.description.isNotEmpty) Text(ticket.description),
           Text(ticket.priceCents == 0 ? 'Gratis' : _money(ticket.priceCents)),
-          Text(ticket.availableQuantity == null
-              ? 'Disponibilità secondo i posti evento'
-              : '${ticket.availableQuantity} disponibili'),
-          if (!enabled) const Text('Non disponibile'),
+          Text('$purchasable biglietti disponibili'),
+          if (ticketIsLimiting)
+            const Text(
+              'Disponibilità limitata per questa tipologia di biglietto.',
+            ),
+          if (!enabled) const Text('Tipologia esaurita'),
         ])),
         IconButton(
             key: Key('ticket-${ticket.id}-minus'),
@@ -204,9 +220,7 @@ class _TicketSelector extends StatelessWidget {
         Text('$value', key: Key('ticket-${ticket.id}-quantity')),
         IconButton(
             key: Key('ticket-${ticket.id}-plus'),
-            onPressed: enabled &&
-                    (ticket.availableQuantity == null ||
-                        value < ticket.availableQuantity!)
+            onPressed: enabled && value < purchasable
                 ? () => onChanged(value + 1)
                 : null,
             icon: const Icon(Icons.add_circle_outline)),
@@ -284,5 +298,6 @@ class _Confirmation extends StatelessWidget {
   }
 }
 
-String _money(int cents) =>
-    cents == 0 ? 'Gratis' : '€${(cents / 100).toStringAsFixed(2)}';
+String _money(int cents) => cents == 0
+    ? 'Gratis'
+    : '€${(cents / 100).toStringAsFixed(2).replaceAll('.', ',')}';

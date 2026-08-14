@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/auth/auth_controller.dart';
 import '../../core/auth/authentication_repository.dart';
 import '../../core/network/api_client.dart';
+import '../shared/state/event_data_revision.dart';
 
 class RoleApiException implements Exception {
   const RoleApiException(this.message);
@@ -12,9 +13,10 @@ class RoleApiException implements Exception {
 }
 
 class RoleApiRepository {
-  RoleApiRepository(this._client, this._auth);
+  RoleApiRepository(this._client, this._auth, this._events);
   final ApiClient _client;
   final AuthenticationRepository _auth;
+  final EventDomainStore _events;
 
   Future<Map<String, dynamic>> get(String path) => _request('GET', path);
   Future<Map<String, dynamic>> post(String path,
@@ -46,12 +48,12 @@ class RoleApiRepository {
   Future<List<Map<String, dynamic>>> organizerEvents(
           {String filter = 'all'}) async =>
       _list((await get('/organizer/events?filter=$filter&per_page=50'))['data'])
-          .map((row) => _map(row['event']).isEmpty
+          .map((row) => _events.ingest(_map(row['event']).isEmpty
               ? row
-              : {..._map(row['event']), 'summary': row['summary']})
+              : {..._map(row['event']), 'summary': row['summary']}))
           .toList();
   Future<Map<String, dynamic>> organizerEvent(String id) async =>
-      _map((await get('/organizer/events/$id'))['data']);
+      _events.ingest(_map((await get('/organizer/events/$id'))['data']));
   Future<List<Map<String, dynamic>>> organizerBookings(
           {String query = '', String filter = 'confirmed'}) async =>
       _list((await get(
@@ -123,5 +125,7 @@ List<Map<String, dynamic>> _paginated(Object? value) {
 }
 
 final roleApiRepositoryProvider = Provider<RoleApiRepository>((ref) =>
-    RoleApiRepository(ref.watch(apiClientProvider),
-        ref.watch(authenticationRepositoryProvider)));
+    RoleApiRepository(
+        ref.watch(apiClientProvider),
+        ref.watch(authenticationRepositoryProvider),
+        ref.read(eventDomainStoreProvider.notifier)));

@@ -4,74 +4,80 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_controller.dart';
 import '../role_data/role_api_repository.dart';
+import '../shared/state/event_data_revision.dart';
 import '../shared/ui/real_components.dart';
 
 class OrganizerDashboardScreen extends ConsumerWidget {
   const OrganizerDashboardScreen({super.key});
   @override
-  Widget build(BuildContext context, WidgetRef ref) => _RoleFutureScreen(
-        title: 'Dashboard',
-        future: ref.read(roleApiRepositoryProvider).organizerDashboard(),
-        builder: (data) {
-          final bi = _map(data['bi']);
-          return [
-            const _HeroPanel(
-              eyebrow: 'AREA ORGANIZER',
-              title: 'La tua attivitÃ , sempre sotto controllo',
-              message:
-                  'Eventi, partecipanti e risultati in unâ€™unica vista operativa.',
-              icon: Icons.insights_rounded,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final eventRevision =
+        ref.watch(eventDomainStoreProvider.select((state) => state.revision));
+    return _RoleFutureScreen(
+      key: ValueKey(eventRevision),
+      title: 'Dashboard',
+      future: ref.read(roleApiRepositoryProvider).organizerDashboard(),
+      builder: (data) {
+        final bi = _map(data['bi']);
+        return [
+          const _HeroPanel(
+            eyebrow: 'AREA ORGANIZER',
+            title: 'La tua attività, sempre sotto controllo',
+            message:
+                'Eventi, partecipanti e risultati in un’unica vista operativa.',
+            icon: Icons.insights_rounded,
+          ),
+          const SectionTitle('Panoramica'),
+          _MetricGrid(items: [
+            (
+              'Eventi futuri',
+              _value(data, bi, 'future_experiences', 'future_events'),
+              Icons.event_available_rounded
             ),
-            const SectionTitle('Panoramica'),
-            _MetricGrid(items: [
-              (
-                'Eventi futuri',
-                _value(data, bi, 'future_experiences', 'future_events'),
-                Icons.event_available_rounded
-              ),
-              (
-                'Prenotazioni',
-                _value(data, bi, 'bookings_total', 'bookings_received'),
-                Icons.confirmation_number_rounded
-              ),
-              (
-                'Partecipanti',
-                _value(data, bi, 'participants_total', 'participants_total'),
-                Icons.groups_rounded
-              ),
-              (
-                'Posti disponibili',
-                _value(data, bi, 'available_places', 'available_places'),
-                Icons.event_seat_rounded
-              ),
-              (
-                'Follower',
-                _value(data, bi, 'followers', 'followers_total'),
-                Icons.favorite_rounded
-              ),
-              ('Recensioni', '${data['reviews'] ?? 0}', Icons.star_rounded),
-            ]),
-            const SectionTitle('Azioni rapide'),
-            _ActionCard(
-                icon: Icons.add_circle_rounded,
-                title: 'Crea evento',
-                subtitle: 'Inserisci i dati e salva una nuova bozza',
-                onTap: () => context.push('/organizer/events/create')),
-            const SizedBox(height: 12),
-            _ActionCard(
-                icon: Icons.event_note_rounded,
-                title: 'Gestisci eventi',
-                subtitle: 'Controlla stato, pubblicazione e partecipanti',
-                onTap: () => context.go('/organizer/events')),
-            const SizedBox(height: 12),
-            _ActionCard(
-                icon: Icons.qr_code_scanner_rounded,
-                title: 'Check-in',
-                subtitle: 'Apri una prenotazione e registra lâ€™ingresso',
-                onTap: () => context.go('/organizer/bookings')),
-          ];
-        },
-      );
+            (
+              'Prenotazioni',
+              _value(data, bi, 'bookings_total', 'bookings_received'),
+              Icons.confirmation_number_rounded
+            ),
+            (
+              'Partecipanti',
+              _value(data, bi, 'participants_total', 'participants_total'),
+              Icons.groups_rounded
+            ),
+            (
+              'Posti disponibili',
+              _value(data, bi, 'available_places', 'available_places'),
+              Icons.event_seat_rounded
+            ),
+            (
+              'Follower',
+              _value(data, bi, 'followers', 'followers_total'),
+              Icons.favorite_rounded
+            ),
+            ('Recensioni', '${data['reviews'] ?? 0}', Icons.star_rounded),
+          ]),
+          const SectionTitle('Azioni rapide'),
+          _ActionCard(
+              icon: Icons.add_circle_rounded,
+              title: 'Crea evento',
+              subtitle: 'Inserisci i dati e salva una nuova bozza',
+              onTap: () => context.push('/organizer/events/create')),
+          const SizedBox(height: 12),
+          _ActionCard(
+              icon: Icons.event_note_rounded,
+              title: 'Gestisci eventi',
+              subtitle: 'Controlla stato, pubblicazione e partecipanti',
+              onTap: () => context.go('/organizer/events')),
+          const SizedBox(height: 12),
+          _ActionCard(
+              icon: Icons.qr_code_scanner_rounded,
+              title: 'Check-in',
+              subtitle: 'Apri una prenotazione e registra l’ingresso',
+              onTap: () => context.go('/organizer/bookings')),
+        ];
+      },
+    );
+  }
 }
 
 class OrganizerEventsScreen extends ConsumerStatefulWidget {
@@ -85,68 +91,74 @@ class _OrganizerEventsScreenState extends ConsumerState<OrganizerEventsScreen> {
   String filter = 'all';
   int refresh = 0;
   @override
-  Widget build(BuildContext context) => _RoleFutureScreen(
-        key: ValueKey('$filter-$refresh'),
-        title: 'Eventi',
-        future:
-            ref.read(roleApiRepositoryProvider).organizerEvents(filter: filter),
-        header:
-            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          FilledButton.icon(
-            onPressed: () async {
-              final created =
-                  await context.push<bool>('/organizer/events/create');
-              if (created == true && mounted) {
-                setState(() => refresh++);
-              }
-            },
-            icon: const Icon(Icons.add_rounded),
-            label: const Text('Crea evento'),
-          ),
-          const SizedBox(height: 14),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(children: [
-              for (final item in const [
-                ('all', 'Tutti'),
-                ('future', 'Futuri'),
-                ('unpublished', 'Bozze'),
-                ('completed', 'Conclusi')
-              ])
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    label: Text(item.$2),
-                    selected: filter == item.$1,
-                    onSelected: (_) => setState(() => filter = item.$1),
-                  ),
+  Widget build(BuildContext context) {
+    final eventRevision =
+        ref.watch(eventDomainStoreProvider.select((state) => state.revision));
+    return _RoleFutureScreen(
+      key: ValueKey('$filter-$refresh-$eventRevision'),
+      title: 'Eventi',
+      future:
+          ref.read(roleApiRepositoryProvider).organizerEvents(filter: filter),
+      header: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        FilledButton.icon(
+          onPressed: () async {
+            final created =
+                await context.push<bool>('/organizer/events/create');
+            if (created == true && mounted) {
+              setState(() => refresh++);
+            }
+          },
+          icon: const Icon(Icons.add_rounded),
+          label: const Text('Crea evento'),
+        ),
+        const SizedBox(height: 14),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(children: [
+            for (final item in const [
+              ('all', 'Tutti'),
+              ('future', 'Futuri'),
+              ('unpublished', 'Bozze'),
+              ('completed', 'Conclusi')
+            ])
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ChoiceChip(
+                  label: Text(item.$2),
+                  selected: filter == item.$1,
+                  onSelected: (_) => setState(() => filter = item.$1),
                 ),
-            ]),
-          ),
-        ]),
-        builder: (items) => items.isEmpty
-            ? const [
-                EmptyState(
-                    title: 'Nessun evento',
-                    message: 'Non ci sono eventi per questo filtro.',
-                    icon: Icons.event_busy_rounded)
-              ]
-            : [
-                for (final event in items)
-                  Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _EntityCard(
-                        icon: Icons.local_activity_rounded,
-                        title: '${event['title'] ?? 'Evento'}',
-                        subtitle: _date(event['starts_at']),
-                        status: '${event['status'] ?? 'draft'}',
-                        details:
-                            '${_map(event['summary'])['booked_people'] ?? 0} / ${_map(event['summary'])['capacity_total'] ?? event['capacity_total'] ?? 0} prenotati · ${_map(event['summary'])['available_total'] ?? event['available_total'] ?? 0} disponibili',
-                        onTap: () =>
-                            context.push('/organizer/events/${event['ulid']}'),
-                      ))
-              ],
-      );
+              ),
+          ]),
+        ),
+      ]),
+      builder: (items) => items.isEmpty
+          ? const [
+              EmptyState(
+                  title: 'Nessun evento',
+                  message: 'Non ci sono eventi per questo filtro.',
+                  icon: Icons.event_busy_rounded)
+            ]
+          : [
+              for (final event in items)
+                Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _EntityCard(
+                      icon: Icons.local_activity_rounded,
+                      title: '${event['title'] ?? 'Evento'}',
+                      subtitle: _date(event['starts_at']),
+                      status: '${event['status'] ?? 'draft'}',
+                      details:
+                          '${_map(event['summary'])['booked_people'] ?? 0} / ${_map(event['summary'])['capacity_total'] ?? event['capacity_total'] ?? 0} prenotati · ${_map(event['summary'])['available_total'] ?? event['available_total'] ?? 0} disponibili',
+                      onTap: () async {
+                        await context
+                            .push('/organizer/events/${event['ulid']}');
+                        if (mounted) setState(() => refresh++);
+                      },
+                    ))
+            ],
+    );
+  }
 }
 
 class OrganizerEventDetailScreen extends ConsumerStatefulWidget {
@@ -160,11 +172,14 @@ class OrganizerEventDetailScreen extends ConsumerStatefulWidget {
 class _OrganizerEventDetailScreenState
     extends ConsumerState<OrganizerEventDetailScreen> {
   int refresh = 0;
+  Map<String, dynamic>? updatedEvent;
   @override
   Widget build(BuildContext context) => _RoleFutureScreen(
         key: ValueKey(refresh),
         title: 'Dettaglio evento',
-        future: ref.read(roleApiRepositoryProvider).organizerEvent(widget.id),
+        future: updatedEvent == null
+            ? ref.read(roleApiRepositoryProvider).organizerEvent(widget.id)
+            : Future.value(updatedEvent!),
         builder: (event) => [
           _HeroPanel(
               eyebrow: _statusLabel('${event['status'] ?? ''}'),
@@ -182,18 +197,34 @@ class _OrganizerEventDetailScreenState
               label: 'Capienza',
               value:
                   '${_map(event['summary_metrics'])['capacity_total'] ?? event['capacity_total'] ?? 0} totali · ${_map(event['summary_metrics'])['booked_people'] ?? 0} prenotati · ${_map(event['summary_metrics'])['available_total'] ?? event['available_total'] ?? 0} disponibili'),
+          ..._list(event['ticket_types']).map((ticket) {
+            final maximum = _integer(ticket['max_quantity']);
+            final sold = _integer(ticket['booked_quantity']);
+            return _DetailTile(
+              icon: Icons.confirmation_number_rounded,
+              label: '${ticket['name'] ?? 'Ticket'}',
+              value: 'Quantità massima ticket: $maximum · '
+                  'Biglietti venduti: $sold · '
+                  'Biglietti disponibili: ${(maximum - sold).clamp(0, maximum)}',
+            );
+          }),
           _DetailTile(
               icon: Icons.schedule_rounded,
               label: 'Chiusura prenotazioni',
               value: _date(event['booking_closes_at'])),
-          const SectionTitle('OperativitÃ '),
+          const SectionTitle('Operatività'),
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
               onPressed: () async {
-                final changed = await context
-                    .push<bool>('/organizer/events/${widget.id}/edit');
-                if (changed == true && mounted) setState(() => refresh++);
+                final changed = await context.push<Map<String, dynamic>>(
+                    '/organizer/events/${widget.id}/edit');
+                if (changed != null && mounted) {
+                  setState(() {
+                    updatedEvent = changed;
+                    refresh++;
+                  });
+                }
               },
               icon: const Icon(Icons.edit_rounded),
               label: const Text('Modifica evento'),
@@ -214,8 +245,80 @@ class _OrganizerEventDetailScreenState
                 icon: const Icon(Icons.publish_rounded),
                 label: const Text('Invia in pubblicazione')),
           ],
+          if (!const ['cancelled', 'completed', 'archived']
+              .contains('${event['status']}')) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => _cancelEvent(context),
+              icon: const Icon(Icons.event_busy_rounded),
+              label: const Text('Annulla evento'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error,
+              ),
+            ),
+          ],
         ],
       );
+
+  Future<void> _cancelEvent(BuildContext context) async {
+    final reason = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Annullare questo evento?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Le prenotazioni saranno annullate e tutti i partecipanti riceveranno una notifica diretta con il motivo.',
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: reason,
+              autofocus: true,
+              minLines: 2,
+              maxLines: 4,
+              maxLength: 1000,
+              decoration: const InputDecoration(
+                labelText: 'Motivo dell’annullamento',
+                hintText: 'Spiega ai partecipanti perché l’evento è annullato',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Torna indietro'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (reason.text.trim().isEmpty) return;
+              Navigator.pop(dialogContext, true);
+            },
+            child: const Text('Conferma annullamento'),
+          ),
+        ],
+      ),
+    );
+    final message = reason.text.trim();
+    reason.dispose();
+    if (confirmed != true || message.isEmpty || !mounted) return;
+
+    try {
+      await ref.read(roleApiRepositoryProvider).post(
+        '/organizer/events/${widget.id}/cancel',
+        {'reason_code': 'ORGANIZER_CANCELLATION', 'reason': message},
+      );
+      if (!context.mounted) return;
+      setState(() => refresh++);
+      _snack(context, 'Evento annullato. I partecipanti sono stati avvisati.');
+    } catch (error) {
+      if (context.mounted) _snack(context, '$error', error: true);
+    }
+  }
+
   Future<void> _eventAction(BuildContext context, String action) async {
     try {
       await ref
@@ -474,7 +577,7 @@ class OrganizerProfileScreen extends ConsumerWidget {
               title: '${profile['name'] ?? 'Organizer'}',
               message: '${profile['public_email'] ?? profile['email'] ?? ''}',
               icon: Icons.storefront_rounded),
-          const SectionTitle('AttivitÃ '),
+          const SectionTitle('Attività'),
           _DetailTile(
               icon: Icons.category_rounded,
               label: 'Tipologia',
@@ -493,7 +596,7 @@ class OrganizerProfileScreen extends ConsumerWidget {
               onPressed: () =>
                   ref.read(authControllerProvider.notifier).logout(),
               icon: const Icon(Icons.logout_rounded),
-              label: const Text('Esci dallâ€™account')),
+              label: const Text('Esci dall’account')),
         ],
       );
 }
@@ -704,12 +807,14 @@ Map<String, dynamic> _map(Object? value) =>
 List<Map<String, dynamic>> _list(Object? value) => value is List
     ? value.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
     : [];
+int _integer(Object? value) =>
+    value is num ? value.toInt() : int.tryParse('$value') ?? 0;
 String _date(Object? value) {
   if (value == null) return 'Data non disponibile';
   final date = DateTime.tryParse('$value')?.toLocal();
   return date == null
       ? '$value'
-      : '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} Â· ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+      : '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} · ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
 }
 
 String _value(Map<String, dynamic> data, Map<String, dynamic> bi, String a,

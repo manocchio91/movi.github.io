@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../shared/state/event_data_revision.dart';
 import '../role_data/role_api_repository.dart';
 import '../shared/ui/real_components.dart';
 
@@ -30,6 +31,9 @@ class _OrganizerEventFormScreenState
   DateTime? _startsAt;
   String _audience = 'generic';
   String? _ticketUlid;
+  List<Map<String, dynamic>> _existingTicketTypes = const [];
+  int _bookedPlaces = 0;
+  int _ticketBooked = 0;
   bool _isFree = true;
   bool _familyFriendly = true;
   bool _saving = false;
@@ -55,6 +59,8 @@ class _OrganizerEventFormScreenState
           _summary.text = '${event['summary'] ?? ''}';
           _description.text = '${event['description'] ?? ''}';
           _capacity.text = '${event['capacity_total'] ?? 0}';
+          _bookedPlaces =
+              _asNum(_map(event['summary_metrics'])['booked_people']).toInt();
           _municipality = _map(event['municipality']);
           _categoryId = categoriesForEvent.isEmpty
               ? null
@@ -62,6 +68,7 @@ class _OrganizerEventFormScreenState
           _startsAt = DateTime.tryParse('${event['starts_at']}')?.toLocal();
           _isFree = event['is_free'] == true;
           _familyFriendly = event['family_friendly'] == true;
+          _existingTicketTypes = ticketTypes;
           if (ticketTypes.isNotEmpty) {
             final ticket = ticketTypes.first;
             _ticketUlid = '${ticket['ulid']}';
@@ -69,6 +76,7 @@ class _OrganizerEventFormScreenState
             _ticketPrice.text =
                 ((_asNum(ticket['price_cents']) / 100)).toStringAsFixed(2);
             _ticketQuantity.text = '${ticket['max_quantity'] ?? 1}';
+            _ticketBooked = _asNum(ticket['booked_quantity']).toInt();
             _audience = '${ticket['audience'] ?? 'generic'}';
           }
         });
@@ -196,11 +204,11 @@ class _OrganizerEventFormScreenState
                 if (_municipality == null)
                   const Padding(
                     padding: EdgeInsets.only(top: 6, left: 12),
-                    child: Text('Il Comune ÃƒÂ¨ obbligatorio.',
+                    child: Text('Il Comune è obbligatorio.',
                         style:
                             TextStyle(color: Colors.redAccent, fontSize: 12)),
                   ),
-                const SectionTitle('Data e disponibilitÃƒÂ '),
+                const SectionTitle('Data e disponibilità'),
                 OutlinedButton.icon(
                   onPressed: _chooseDateTime,
                   icon: const Icon(Icons.calendar_month_rounded),
@@ -276,16 +284,38 @@ class _OrganizerEventFormScreenState
                   decoration: const InputDecoration(
                       labelText: 'Capienza totale',
                       prefixIcon: Icon(Icons.groups_rounded)),
-                  validator: (value) =>
-                      _positive(value, 'Inserisci la capienza.'),
+                  onChanged: (_) => setState(() {}),
+                  validator: (value) {
+                    final error = _positive(value, 'Inserisci la capienza.');
+                    if (error != null) return error;
+                    final capacity = int.parse(value!);
+                    if (capacity < _bookedPlaces) {
+                      return 'La capienza non può essere inferiore ai '
+                          '$_bookedPlaces posti già prenotati.';
+                    }
+                    return null;
+                  },
                 ),
+                const SizedBox(height: 8),
+                Text(
+                  '$_bookedPlaces prenotati · $_availablePlaces posti disponibili',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                if (_bookedPlaces > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text('Capienza minima consentita: $_bookedPlaces'),
+                  ),
                 const SectionTitle('Ticket'),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   value: _isFree,
                   title: const Text('Evento gratuito'),
-                  subtitle: const Text(
-                      'Il prezzo del ticket sarÃƒÂ  impostato a zero.'),
+                  subtitle:
+                      const Text('Il prezzo del ticket sarà impostato a zero.'),
                   onChanged: (value) => setState(() => _isFree = value),
                 ),
                 TextFormField(
@@ -318,7 +348,7 @@ class _OrganizerEventFormScreenState
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(
-                          labelText: 'Prezzo Ã¢â€šÂ¬', prefixText: 'Ã¢â€šÂ¬ '),
+                          labelText: 'Prezzo €', prefixText: '€ '),
                       validator: (value) => _isFree
                           ? null
                           : _nonNegative(value, 'Inserisci un prezzo valido.'),
@@ -329,13 +359,32 @@ class _OrganizerEventFormScreenState
                     child: TextFormField(
                       controller: _ticketQuantity,
                       keyboardType: TextInputType.number,
-                      decoration:
-                          const InputDecoration(labelText: 'QuantitÃƒÂ '),
-                      validator: (value) =>
-                          _positive(value, 'QuantitÃƒÂ  non valida.'),
+                      decoration: const InputDecoration(
+                        labelText: 'Quantità massima ticket',
+                        helperText:
+                            'Numero massimo disponibile per questa tipologia di biglietto.',
+                      ),
+                      onChanged: (_) => setState(() {}),
+                      validator: (value) {
+                        final error = _positive(value, 'Quantità non valida.');
+                        if (error != null) return error;
+                        if (int.parse(value!) < _ticketBooked) {
+                          return 'La quantità massima non può essere inferiore '
+                              'ai  biglietti già venduti.';
+                        }
+                        return null;
+                      },
                     ),
                   ),
                 ]),
+                const SizedBox(height: 8),
+                Text(
+                  'Biglietti venduti: $_ticketBooked · '
+                  'Biglietti disponibili: $_ticketAvailable',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
                 const SizedBox(height: 8),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
@@ -418,6 +467,16 @@ class _OrganizerEventFormScreenState
     });
   }
 
+  int get _ticketAvailable {
+    final maximum = int.tryParse(_ticketQuantity.text) ?? 0;
+    return maximum > _ticketBooked ? maximum - _ticketBooked : 0;
+  }
+
+  int get _availablePlaces {
+    final capacity = int.tryParse(_capacity.text) ?? 0;
+    return capacity > _bookedPlaces ? capacity - _bookedPlaces : 0;
+  }
+
   Future<void> _save() async {
     final valid = _formKey.currentState?.validate() == true;
     if (!valid || _municipality == null || _startsAt == null) {
@@ -451,23 +510,25 @@ class _OrganizerEventFormScreenState
         'is_free': _isFree,
         'family_friendly': _familyFriendly,
         'indoor_outdoor': 'mixed',
-        'ticket_types': [
-          {
-            if (_ticketUlid != null) 'ulid': _ticketUlid,
-            'name': _ticketName.text.trim(),
-            'audience': _audience,
-            'price_cents': priceCents,
-            'max_quantity': maxQuantity,
-            'is_active': true,
-          }
-        ],
+        'ticket_types': _ticketPayload(
+          priceCents: priceCents,
+          maxQuantity: maxQuantity,
+        ),
       };
       if (widget.eventId == null) {
-        await repository.post('/organizer/events', payload);
+        final response = await repository.post('/organizer/events', payload);
+        final created = Map<String, dynamic>.from(
+            response['data'] as Map? ?? const <String, dynamic>{});
+        ref.read(eventDomainStoreProvider.notifier).acceptUpdate(created);
+        if (mounted) context.pop(true);
       } else {
-        await repository.patch('/organizer/events/${widget.eventId}', payload);
+        final response = await repository.patch(
+            '/organizer/events/${widget.eventId}', payload);
+        final updated = Map<String, dynamic>.from(
+            response['data'] as Map? ?? const <String, dynamic>{});
+        ref.read(eventDomainStoreProvider.notifier).acceptUpdate(updated);
+        if (mounted) context.pop(updated);
       }
-      if (mounted) context.pop(true);
     } catch (error) {
       if (mounted) {
         setState(() {
@@ -476,6 +537,33 @@ class _OrganizerEventFormScreenState
         });
       }
     }
+  }
+
+  List<Map<String, dynamic>> _ticketPayload({
+    required int priceCents,
+    required int maxQuantity,
+  }) {
+    final edited = <String, dynamic>{
+      if (_ticketUlid != null) 'ulid': _ticketUlid,
+      'name': _ticketName.text.trim(),
+      'audience': _audience,
+      'price_cents': priceCents,
+      'max_quantity': maxQuantity,
+      'is_active': true,
+    };
+    if (_existingTicketTypes.isEmpty) return [edited];
+
+    return [
+      edited,
+      ..._existingTicketTypes.skip(1).map((ticket) => <String, dynamic>{
+            'ulid': ticket['ulid'],
+            'name': ticket['name'],
+            'audience': ticket['audience'],
+            'price_cents': ticket['price_cents'],
+            'max_quantity': ticket['max_quantity'],
+            'is_active': ticket['is_active'] ?? true,
+          }),
+    ];
   }
 }
 
@@ -577,7 +665,7 @@ String? _nonNegative(String? value, String message) =>
         : null;
 num _asNum(Object? value) => value is num ? value : num.tryParse('$value') ?? 0;
 String _dateTimeLabel(DateTime value) =>
-    '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year} Ã‚Â· ${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+    '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year} · ${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
 Map<String, dynamic> _map(Object? value) =>
     value is Map<String, dynamic> ? value : <String, dynamic>{};
 List<Map<String, dynamic>> _list(Object? value) => value is List

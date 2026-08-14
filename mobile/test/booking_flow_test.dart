@@ -59,6 +59,32 @@ void main() {
     expect(qr.qrToken, 'secure-token');
   });
 
+  test('booking edit restores current places before applying ticket limit', () {
+    final booking = CustomerBooking.fromJson({
+      'ulid': 'booking-edit',
+      'booking_code': 'EDIT-1',
+      'status': 'confirmed',
+      'total_people': 2,
+      'event': {
+        'title': 'Evento',
+        'capacity_total': 35,
+        'available_total': 25,
+      },
+      'items': [
+        {
+          'quantity': 2,
+          'ticket_type': {
+            'ulid': 'ticket-edit',
+            'name': 'Ingresso',
+            'max_quantity': 18,
+            'booked_quantity': 10,
+          },
+        }
+      ],
+    });
+    final item = booking.items.single;
+    expect(editableTicketMaximum(booking, item, {'ticket-edit': 2}), 10);
+  });
   test('controller validates ticket sum and maximum quantity', () {
     final repository = _FakeBookingRepository();
     final controller = _bookingController(repository, 'event-ulid');
@@ -257,12 +283,83 @@ void main() {
       await tester.tap(plus);
       await tester.pump();
     }
-    expect(find.text('3 disponibili'), findsOneWidget);
+    expect(find.text('3 biglietti disponibili'), findsOneWidget);
     expect(tester.widget<Text>(find.byKey(const Key('ticket-1-quantity'))).data,
         '3');
     expect(tester.widget<IconButton>(plus).onPressed, isNull);
   });
 
+  testWidgets('event 25 and ticket 8 expose context and cap purchases at 8',
+      (tester) async {
+    await _pumpBookingFlow(
+      tester,
+      _eventWithAvailability(
+        maximum: 18,
+        booked: 10,
+        eventAvailable: 25,
+        capacity: 35,
+        price: 3500,
+      ),
+    );
+    expect(find.text('25 posti disponibili su 35'), findsOneWidget);
+    expect(find.text('€35,00'), findsOneWidget);
+    expect(find.text('8 biglietti disponibili'), findsOneWidget);
+    expect(
+      find.text('Disponibilità limitata per questa tipologia di biglietto.'),
+      findsOneWidget,
+    );
+    final plus = find.byKey(const Key('ticket-1-plus'));
+    for (var count = 0; count < 9; count++) {
+      await tester.tap(plus);
+      await tester.pump();
+    }
+    expect(tester.widget<Text>(find.byKey(const Key('ticket-1-quantity'))).data,
+        '8');
+    expect(tester.widget<IconButton>(plus).onPressed, isNull);
+  });
+
+  testWidgets('ticket sold out and event sold out disable purchases',
+      (tester) async {
+    await _pumpBookingFlow(
+      tester,
+      _eventWithAvailability(maximum: 10, booked: 10, eventAvailable: 25),
+    );
+    expect(find.text('0 biglietti disponibili'), findsOneWidget);
+    expect(find.text('Tipologia esaurita'), findsOneWidget);
+    expect(
+        tester
+            .widget<IconButton>(find.byKey(const Key('ticket-1-plus')))
+            .onPressed,
+        isNull);
+  });
+
+  testWidgets('event sold out disables booking confirmation', (tester) async {
+    await _pumpBookingFlow(
+      tester,
+      _eventWithAvailability(maximum: 10, eventAvailable: 0),
+    );
+    await tester.drag(find.byType(ListView).last, const Offset(0, -1200));
+    await tester.pumpAndSettle();
+    expect(find.text('Evento esaurito'), findsOneWidget);
+  });
+  test('multiple ticket types share the event availability ceiling', () {
+    final controller = _bookingController(_FakeBookingRepository(), 'event');
+    final adult = _ticket(maximum: 8);
+    const child = TicketType(
+      id: 2,
+      ulid: '01JTESTTICKETCHILD00000001',
+      name: 'Bambino',
+      description: '',
+      priceCents: 500,
+      maxQuantity: 8,
+      bookedQuantity: 0,
+      isActive: true,
+    );
+    controller.setQuantity(adult, 4, eventAvailable: 6);
+    controller.setQuantity(child, 4, eventAvailable: 6);
+    expect(controller.state.quantities[adult.id], 4);
+    expect(controller.state.quantities[child.id], 2);
+  });
   testWidgets('confirmed booking asks confirmation and sends one cancellation',
       (tester) async {
     final repository = _FakeBookingRepository();
@@ -417,14 +514,19 @@ ApiEvent _event() => ApiEvent.fromJson({
       ]
     });
 
-ApiEvent _eventWithAvailability(
-        {required int maximum, int booked = 0, int eventAvailable = 19}) =>
+ApiEvent _eventWithAvailability({
+  required int maximum,
+  int booked = 0,
+  int eventAvailable = 19,
+  int capacity = 30,
+  int price = 1500,
+}) =>
     ApiEvent.fromJson({
       'ulid': 'event-limit',
       'title': 'Evento disponibilità',
       'summary': '',
       'description': '',
-      'capacity_total': 30,
+      'capacity_total': capacity,
       'available_total': eventAvailable,
       'is_free': false,
       'ticket_types': [
@@ -432,7 +534,7 @@ ApiEvent _eventWithAvailability(
           'id': 1,
           'ulid': '01JTESTTICKETTYPE000000001',
           'name': 'Ingresso',
-          'price_cents': 1500,
+          'price_cents': price,
           'max_quantity': maximum,
           'booked_quantity': booked,
           'is_active': true,

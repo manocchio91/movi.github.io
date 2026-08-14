@@ -4,11 +4,13 @@ namespace Tests\Feature;
 
 use App\Enums\EventStatus;
 use App\Enums\UserRole;
+use App\Models\Booking;
 use App\Models\Event;
 use App\Models\Municipality;
 use App\Models\OrganizerProfile;
 use App\Models\Province;
 use App\Models\Region;
+use App\Models\TicketType;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -91,6 +93,30 @@ class OrganizerEventListTest extends TestCase
             ->assertJsonMissing(['ulid' => $otherEvent->ulid]);
     }
 
+    public function test_event_summary_tracks_booking_create_update_and_cancellation(): void
+    {
+        [$organizer, $profile, $municipality] = $this->organizerFixture();
+        $event = $this->eventFixture($profile, $municipality, EventStatus::Published, 'Evento riepilogo', now()->addWeek());
+        $event->forceFill(['capacity_total' => 30, 'available_total' => 26])->save();
+        $customer = User::factory()->create(['role' => UserRole::Customer]);
+        $adult = TicketType::query()->create(['event_id' => $event->id, 'name' => 'Adulto', 'audience' => 'adult', 'max_quantity' => 30, 'booked_quantity' => 2, 'price_cents' => 1000, 'is_active' => true]);
+        $child = TicketType::query()->create(['event_id' => $event->id, 'name' => 'Bambino', 'audience' => 'child', 'max_quantity' => 30, 'booked_quantity' => 2, 'price_cents' => 500, 'is_active' => true]);
+        $first = $this->booking($event, $customer, 2);
+        $second = $this->booking($event, $customer, 2);
+        $first->items()->create(['ticket_type_id' => $adult->id, 'quantity' => 2, 'unit_price_cents' => 1000, 'line_total_cents' => 2000]);
+        $second->items()->create(['ticket_type_id' => $child->id, 'quantity' => 2, 'unit_price_cents' => 500, 'line_total_cents' => 1000]);
+
+        $this->assertSummary($organizer, 30, 4, 26);
+
+        $first->forceFill(['total_people' => 4, 'adults_count' => 4])->save();
+        $event->forceFill(['available_total' => 24])->save();
+        $this->assertSummary($organizer, 30, 6, 24);
+
+        Booking::query()->whereIn('id', [$first->id, $second->id])->update(['status' => 'cancelled_by_customer']);
+        $event->forceFill(['available_total' => 30])->save();
+        $this->assertSummary($organizer, 30, 0, 30);
+    }
+
     public function test_invalid_filter_and_pagination_values_are_rejected(): void
     {
         [$organizer] = $this->organizerFixture();
@@ -99,6 +125,32 @@ class OrganizerEventListTest extends TestCase
             ->getJson('/api/v1/organizer/events?filter=open&per_page=100')
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['filter', 'per_page']);
+    }
+
+    private function booking(Event $event, User $customer, int $people): Booking
+    {
+        return Booking::query()->create([
+            'ulid' => (string) Str::ulid(),
+            'user_id' => $customer->id,
+            'event_id' => $event->id,
+            'status' => 'confirmed',
+            'total_people' => $people,
+            'adults_count' => $people,
+            'children_count' => 0,
+            'booking_code' => Str::upper(Str::random(12)),
+            'qr_token_hash' => hash('sha256', Str::random(32)),
+            'booked_at' => now(),
+        ]);
+    }
+
+    private function assertSummary(User $organizer, int $capacity, int $booked, int $available): void
+    {
+        $this->actingAs($organizer, 'sanctum')
+            ->getJson('/api/v1/organizer/events?per_page=50')
+            ->assertOk()
+            ->assertJsonPath('data.0.summary.capacity_total', $capacity)
+            ->assertJsonPath('data.0.summary.booked_people', $booked)
+            ->assertJsonPath('data.0.summary.available_total', $available);
     }
 
     /** @return array{User, OrganizerProfile, Municipality} */

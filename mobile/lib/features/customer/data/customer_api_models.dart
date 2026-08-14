@@ -108,7 +108,7 @@ class ApiEvent {
   String get priceLabel {
     if (isFree) return 'Gratis';
     if (minimumPriceCents == null) return 'Prezzo non disponibile';
-    return 'Da €${(minimumPriceCents! / 100).toStringAsFixed(2)}';
+    return 'Da €${(minimumPriceCents! / 100).toStringAsFixed(2).replaceAll('.', ',')}';
   }
 }
 

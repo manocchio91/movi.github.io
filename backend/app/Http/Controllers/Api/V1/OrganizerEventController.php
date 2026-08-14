@@ -76,11 +76,11 @@ class OrganizerEventController extends Controller
         return response()->json(['data' => $event->getAttributes() + ['categories' => $event->categories, 'ticket_types' => $event->ticketTypes, 'municipality' => $event->municipality, 'summary_metrics' => $summary->summarize($event)]]);
     }
 
-    public function update(UpdateEventRequest $request, Event $event, UpdateEvent $updateEvent): JsonResponse
+    public function update(UpdateEventRequest $request, Event $event, UpdateEvent $updateEvent, OrganizerEventSummaryService $summary): JsonResponse
     {
         $event = $updateEvent->handle($event, $request->validated());
 
-        return response()->json(['data' => $event]);
+        return response()->json(['data' => $event->getAttributes() + ['categories' => $event->categories, 'ticket_types' => $event->ticketTypes, 'municipality' => $event->municipality, 'summary_metrics' => $summary->summarize($event)]]);
     }
 
     public function publish(Event $event, PublishEvent $publishEvent): JsonResponse

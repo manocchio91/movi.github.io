@@ -1,5 +1,6 @@
 import '../../../core/auth/authentication_repository.dart';
 import '../../../core/network/api_client.dart';
+import '../../shared/state/event_data_revision.dart';
 import 'customer_api_models.dart';
 
 class CustomerApiException implements Exception {
@@ -11,9 +12,10 @@ class CustomerApiException implements Exception {
 }
 
 class EventRepository {
-  EventRepository(this._client, this._auth);
+  EventRepository(this._client, this._auth, this._events);
   final ApiClient _client;
   final AuthenticationRepository _auth;
+  final EventDomainStore _events;
 
   Future<EventPage> events(
       {String? query, int? categoryId, int page = 1}) async {
@@ -26,10 +28,9 @@ class EventRepository {
     final data = response.body['data'];
     return EventPage(
       events: data is List
-          ? data
-              .whereType<Map<String, dynamic>>()
-              .map(ApiEvent.fromJson)
-              .toList()
+          ? data.whereType<Map<String, dynamic>>().map((event) {
+              return ApiEvent.fromJson(_events.ingest(event));
+            }).toList()
           : const [],
       currentPage: _number(response.body['current_page'], 1),
       lastPage: _number(response.body['last_page'], 1),
@@ -44,7 +45,7 @@ class EventRepository {
     if (data is! Map<String, dynamic>) {
       throw const CustomerApiException('Dettaglio evento non valido.');
     }
-    return ApiEvent.fromJson(data);
+    return ApiEvent.fromJson(_events.ingest(data));
   }
 
   Future<List<SuccessfulEvent>> successfulEvents() async {

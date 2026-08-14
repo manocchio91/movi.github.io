@@ -41,6 +41,10 @@ textarea {
 
 .event-form-field input,
 .event-form-field select,
+.capacity-summary {
+  color: #6d28d9;
+  font-weight: 900;
+}
 .event-form-field textarea {
   background: #fff;
   border: 1px solid #d9d4c9;
@@ -50,6 +54,10 @@ textarea {
   padding: 10px 12px;
 }
 
+.capacity-summary {
+  color: #6d28d9;
+  font-weight: 900;
+}
 .event-form-field textarea {
   min-height: 130px;
   resize: vertical;
@@ -1979,3 +1987,78 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand-600); box-
 .competition-calendar{display:grid;grid-template-columns:repeat(7,minmax(34px,1fr));gap:6px}
 .competition-day{min-height:44px;padding:6px;border:1px solid rgba(255,255,255,.12);border-radius:10px;display:flex;justify-content:space-between}
 .competition-none{opacity:.55}
+/* MòVi premium role selection */
+.role-selection-screen {
+  background:
+    radial-gradient(circle at 14% 18%, rgba(139, 92, 246, .34), transparent 30%),
+    radial-gradient(circle at 88% 12%, rgba(236, 72, 153, .28), transparent 27%),
+    radial-gradient(circle at 70% 90%, rgba(249, 115, 22, .2), transparent 31%),
+    #080b16;
+  color: var(--premium-text);
+  overflow: hidden;
+  position: relative;
+}
+.role-selection-screen::before {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, .45) 0 1px, transparent 1.5px);
+  background-size: 42px 42px;
+  content: "";
+  inset: 0;
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,.55), transparent 78%);
+  opacity: .2;
+  pointer-events: none;
+  position: absolute;
+}
+.role-selection-panel {
+  backdrop-filter: blur(24px);
+  background: linear-gradient(145deg, rgba(20, 24, 42, .94), rgba(11, 13, 25, .9));
+  border: 1px solid rgba(255, 255, 255, .1);
+  box-shadow: 0 34px 100px rgba(0, 0, 0, .52), 0 0 80px rgba(124, 58, 237, .12);
+  max-width: 1120px;
+  padding: clamp(28px, 5vw, 62px);
+  position: relative;
+}
+.role-selection-brand { margin: 0 auto clamp(28px, 4vw, 46px); max-width: 720px; text-align: center; }
+.role-selection-brand .auth-brand-logo { filter: drop-shadow(0 18px 32px rgba(0, 0, 0, .28)); margin-bottom: 20px; width: min(390px, 88%); }
+.role-selection-brand .eyebrow { color: #f472b6; letter-spacing: .14em; }
+.role-selection-brand h1 { color: #fff; font-size: clamp(2.35rem, 5vw, 4.8rem); letter-spacing: -.055em; margin: 12px 0; }
+.role-selection-brand p { color: #b8bfd1; font-size: 1.05rem; margin: 0; }
+.role-selection-panel .auth-role-grid { gap: 18px; }
+.auth-role-card {
+  align-items: flex-start;
+  background: linear-gradient(155deg, rgba(30, 35, 57, .96), rgba(16, 19, 33, .96));
+  border: 1px solid rgba(255, 255, 255, .09);
+  border-radius: 20px;
+  color: #fff;
+  display: grid;
+  gap: 18px;
+  min-height: 250px;
+  padding: 24px;
+  text-align: left;
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+.auth-role-card:hover { border-color: rgba(192, 132, 252, .55); box-shadow: 0 20px 48px rgba(0, 0, 0, .32), 0 0 28px rgba(139, 92, 246, .16); transform: translateY(-5px); }
+.auth-role-card:focus-visible { border-color: #f472b6; box-shadow: 0 0 0 4px rgba(236, 72, 153, .25); }
+.auth-role-icon {
+  align-items: center;
+  background: linear-gradient(135deg, var(--premium-purple), var(--premium-pink), var(--premium-orange));
+  border-radius: 16px;
+  box-shadow: 0 12px 30px rgba(139, 92, 246, .28);
+  display: inline-flex;
+  font-size: 1.35rem;
+  height: 52px;
+  justify-content: center;
+  width: 52px;
+}
+.auth-role-copy { display: grid; gap: 9px; }
+.auth-role-copy strong { font-size: 1.35rem; }
+.auth-role-copy small { color: #aab1c4; font-size: .9rem; line-height: 1.55; }
+.auth-role-cta { align-self: end; color: #f472b6; font-size: .82rem; font-weight: 900; letter-spacing: .02em; }
+.auth-role-organizer .auth-role-icon { background: linear-gradient(135deg, #7c3aed, #a855f7); }
+.auth-role-admin .auth-role-icon { background: linear-gradient(135deg, #ec4899, #f97316); }
+
+@media (max-width: 780px) {
+  .role-selection-screen { align-items: flex-start; padding: 18px; }
+  .role-selection-panel { border-radius: 22px; padding: 28px 20px; }
+  .role-selection-panel .auth-role-grid { grid-template-columns: 1fr; }
+  .auth-role-card { gap: 13px; min-height: 0; padding: 20px; }
+}

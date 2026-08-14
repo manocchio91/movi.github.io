@@ -102,7 +102,7 @@ class _BookingList extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                      '${booking.bookingCode} Â· ${booking.totalPeople} partecipanti Â· ${_money(booking.totalPriceCents)}'),
+                      '${booking.bookingCode} · ${booking.totalPeople} partecipanti · ${_money(booking.totalPriceCents)}'),
                   if (booking.canCancel)
                     TextButton(
                       key: Key('cancel-list-${booking.ulid}'),
@@ -204,8 +204,9 @@ class _BookingError extends StatelessWidget {
       ));
 }
 
-String _money(int cents) =>
-    cents == 0 ? 'Gratis' : 'â‚¬${(cents / 100).toStringAsFixed(2)}';
+String _money(int cents) => cents == 0
+    ? 'Gratis'
+    : '€${(cents / 100).toStringAsFixed(2).replaceAll('.', ',')}';
 
 Future<void> confirmAndCancelBooking(
     BuildContext context, WidgetRef ref, String bookingUlid) async {
@@ -214,7 +215,7 @@ Future<void> confirmAndCancelBooking(
         builder: (dialogContext) => AlertDialog(
           title: const Text('Annullare la prenotazione?'),
           content: const Text(
-              'I posti verranno liberati. Questa operazione non puÃ² essere annullata.'),
+              'I posti verranno liberati. Questa operazione non può essere annullata.'),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
@@ -243,6 +244,24 @@ Future<void> confirmAndCancelBooking(
   }
 }
 
+int editableTicketMaximum(
+  CustomerBooking booking,
+  BookingItem item,
+  Map<String, int> quantities,
+) {
+  final otherSelected = quantities.entries
+      .where((entry) => entry.key != item.ticketTypeUlid)
+      .fold(0, (sum, entry) => sum + entry.value);
+  final eventMaximum =
+      (booking.eventAvailable + booking.totalPeople - otherSelected)
+          .clamp(0, booking.eventCapacity);
+  final ticketMaximum = item.maxQuantity == null
+      ? eventMaximum
+      : (item.maxQuantity! - item.bookedQuantity + item.quantity)
+          .clamp(0, item.maxQuantity!);
+  return ticketMaximum < eventMaximum ? ticketMaximum : eventMaximum;
+}
+
 Future<void> editBooking(
     BuildContext context, WidgetRef ref, CustomerBooking booking) async {
   final phone = TextEditingController(text: booking.contactPhone);
@@ -252,6 +271,7 @@ Future<void> editBooking(
   final quantities = <String, int>{
     for (final item in booking.items) item.ticketTypeUlid: item.quantity
   };
+
   final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => StatefulBuilder(
@@ -262,18 +282,26 @@ Future<void> editBooking(
                 for (final item in booking.items)
                   ListTile(
                     title: Text(item.ticketName),
-                    subtitle: Text(_money(item.unitPriceCents)),
+                    subtitle: Text(
+                      '${_money(item.unitPriceCents)} · '
+                      '${editableTicketMaximum(booking, item, quantities)} biglietti acquistabili',
+                    ),
                     trailing: SizedBox(
-                        width: 92,
+                        width: 120,
                         child: TextFormField(
                           initialValue:
                               '${quantities[item.ticketTypeUlid] ?? 0}',
                           keyboardType: TextInputType.number,
-                          decoration:
-                              const InputDecoration(labelText: 'Quantità'),
-                          onChanged: (value) => setDialogState(() =>
-                              quantities[item.ticketTypeUlid] =
-                                  int.tryParse(value) ?? 0),
+                          decoration: const InputDecoration(
+                            labelText: 'Quantità',
+                          ),
+                          onChanged: (value) => setDialogState(() {
+                            final requested = int.tryParse(value) ?? 0;
+                            quantities[item.ticketTypeUlid] = requested.clamp(
+                                0,
+                                editableTicketMaximum(
+                                    booking, item, quantities));
+                          }),
                         )),
                   ),
                 Row(children: [

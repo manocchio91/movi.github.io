@@ -51,6 +51,8 @@ class BookingItem {
     required this.totalPriceCents,
     required this.ticketName,
     this.ticketTypeUlid = '',
+    this.maxQuantity,
+    this.bookedQuantity = 0,
   });
   factory BookingItem.fromJson(Map<String, dynamic> json) {
     final ticket = _map(json['ticket_type']);
@@ -60,6 +62,8 @@ class BookingItem {
       totalPriceCents: _int(json['total_price_cents']),
       ticketName: _string(ticket?['name']),
       ticketTypeUlid: _string(ticket?['ulid']),
+      maxQuantity: _nullableInt(ticket?['max_quantity']),
+      bookedQuantity: _int(ticket?['booked_quantity']),
     );
   }
   final int quantity;
@@ -67,6 +71,8 @@ class BookingItem {
   final int totalPriceCents;
   final String ticketName;
   final String ticketTypeUlid;
+  final int? maxQuantity;
+  final int bookedQuantity;
 }
 
 class CustomerBooking {
@@ -86,6 +92,8 @@ class CustomerBooking {
     this.adultsCount = 0,
     this.childrenCount = 0,
     this.canEditFromApi = false,
+    this.eventCapacity = 0,
+    this.eventAvailable = 0,
   });
   factory CustomerBooking.fromJson(Map<String, dynamic> json) {
     final event = _map(json['event']);
@@ -105,6 +113,8 @@ class CustomerBooking {
       adultsCount: _int(json['adults_count']),
       childrenCount: _int(json['children_count']),
       canEditFromApi: json['can_edit'] == true,
+      eventCapacity: _int(event?['capacity_total']),
+      eventAvailable: _int(event?['available_total']),
     );
   }
   final String ulid;
@@ -122,6 +132,8 @@ class CustomerBooking {
   final int adultsCount;
   final int childrenCount;
   final bool canEditFromApi;
+  final int eventCapacity;
+  final int eventAvailable;
 
   bool get isCancelled => status.startsWith('cancelled');
   bool get isCompleted =>
@@ -161,5 +173,8 @@ List<Map<String, dynamic>> _maps(dynamic value) => value is List
 String _string(dynamic value) => value is String ? value : '';
 String? _nullableString(dynamic value) =>
     value is String && value.isNotEmpty ? value : null;
+int? _nullableInt(dynamic value) => value == null
+    ? null
+    : (value is num ? value.toInt() : int.tryParse('$value'));
 int _int(dynamic value) =>
     value is num ? value.toInt() : int.tryParse('$value') ?? 0;

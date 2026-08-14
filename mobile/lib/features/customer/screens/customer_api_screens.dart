@@ -45,7 +45,7 @@ class _CustomerApiHomeScreenState extends ConsumerState<CustomerApiHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(authControllerProvider).user!;
+    final user = ref.watch(authControllerProvider).user;
     final categories = ref.watch(categoriesProvider);
     final recommended = ref.watch(recommendedEventsProvider);
     final successful = ref.watch(successfulEventsProvider);
@@ -56,8 +56,8 @@ class _CustomerApiHomeScreenState extends ConsumerState<CustomerApiHomeScreen> {
           const MoviMark(),
           const SizedBox(width: 10),
           Expanded(
-              child:
-                  Text('Ciao ${user.name}', overflow: TextOverflow.ellipsis)),
+              child: Text(user == null ? 'MòVi' : 'Ciao ${user.name}',
+                  overflow: TextOverflow.ellipsis)),
         ]),
         actions: const [
           IconButton(

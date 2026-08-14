@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Actions\Events\SyncEventTicketTypes;
 use App\Enums\EventStatus;
 use App\Enums\UserRole;
+use App\Models\Booking;
 use App\Models\Category;
 use App\Models\Event;
 use App\Models\Municipality;
@@ -170,26 +171,89 @@ class OrganizerEventManagementTest extends TestCase
             'price_cents' => 1000,
             'is_active' => true,
         ]);
-        $event->forceFill(['capacity_total' => 20, 'available_total' => 16])->save();
+        $event->forceFill(['capacity_total' => 50, 'available_total' => 46])->save();
+        $this->booking($event, 4);
         $payload = $this->payload($municipality, $category);
         $payload['title'] = 'Titolo modificato';
-        $payload['capacity_total'] = 25;
+        $payload['capacity_total'] = 40;
         $payload['ticket_types'] = [
-            ['ulid' => $ticket->ulid, 'name' => 'Aggiornato', 'audience' => 'generic', 'price_cents' => 1200, 'max_quantity' => 25, 'is_active' => true],
+            ['ulid' => $ticket->ulid, 'name' => 'Aggiornato', 'audience' => 'generic', 'price_cents' => 1200, 'max_quantity' => 40, 'is_active' => true],
             ['name' => 'Ridotto', 'audience' => 'generic', 'price_cents' => 700, 'max_quantity' => 5, 'is_active' => true],
         ];
 
         $this->actingAs($organizer, 'sanctum')
             ->putJson("/api/v1/organizer/events/{$event->ulid}", $payload)
             ->assertOk()
-            ->assertJsonPath('data.title', 'Titolo modificato');
+            ->assertJsonPath('data.title', 'Titolo modificato')
+            ->assertJsonPath('data.capacity_total', 40)
+            ->assertJsonPath('data.available_total', 36)
+            ->assertJsonPath('data.summary_metrics.capacity_total', 40)
+            ->assertJsonPath('data.summary_metrics.available_total', 36);
 
         $ticket->refresh();
         $this->assertSame('Aggiornato', $ticket->name);
         $this->assertSame(4, $ticket->booked_quantity);
-        $this->assertSame(25, $ticket->max_quantity);
-        $this->assertDatabaseHas('events', ['id' => $event->id, 'capacity_total' => 25, 'available_total' => 21]);
+        $this->assertSame(40, $ticket->max_quantity);
+        $this->assertDatabaseHas('events', ['id' => $event->id, 'capacity_total' => 40, 'available_total' => 36]);
         $this->assertDatabaseCount('ticket_types', 2);
+    }
+
+    public function test_capacity_uses_only_valid_bookings_and_rejects_values_below_them(): void
+    {
+        [$organizer, $profile, $municipality, $category] = $this->domain();
+        $event = $this->event($profile, $municipality, $category, EventStatus::Draft);
+        $event->forceFill(['capacity_total' => 50, 'available_total' => 32])->save();
+        $customer = User::factory()->create(['role' => UserRole::Customer]);
+
+        foreach ([['confirmed', 18], ['cancelled_by_customer', 5]] as [$status, $people]) {
+            Booking::query()->create([
+                'ulid' => (string) Str::ulid(),
+                'user_id' => $customer->id,
+                'event_id' => $event->id,
+                'status' => $status,
+                'total_people' => $people,
+                'adults_count' => $people,
+                'children_count' => 0,
+                'booking_code' => Str::upper(Str::random(12)),
+                'qr_token_hash' => hash('sha256', Str::random(32)),
+                'booked_at' => now(),
+            ]);
+        }
+
+        $this->actingAs($organizer, 'sanctum')
+            ->getJson("/api/v1/organizer/events/{$event->ulid}")
+            ->assertOk()
+            ->assertJsonPath('data.capacity_total', 50)
+            ->assertJsonPath('data.summary_metrics.booked_people', 18)
+            ->assertJsonPath('data.summary_metrics.available_total', 32);
+        $payload = $this->payload($municipality, $category);
+        $payload['capacity_total'] = 29;
+        $this->actingAs($organizer, 'sanctum')
+            ->putJson("/api/v1/organizer/events/{$event->ulid}", $payload)
+            ->assertOk()
+            ->assertJsonPath('data.capacity_total', 29)
+            ->assertJsonPath('data.available_total', 11)
+            ->assertJsonPath('data.summary_metrics.booked_people', 18)
+            ->assertJsonPath('data.summary_metrics.available_total', 11);
+
+        $payload['capacity_total'] = 18;
+        $this->actingAs($organizer, 'sanctum')
+            ->putJson("/api/v1/organizer/events/{$event->ulid}", $payload)
+            ->assertOk()
+            ->assertJsonPath('data.available_total', 0);
+
+        $payload['capacity_total'] = 17;
+        $this->actingAs($organizer, 'sanctum')
+            ->putJson("/api/v1/organizer/events/{$event->ulid}", $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('capacity_total');
+
+        $this->assertDatabaseHas('events', [
+            'id' => $event->id,
+            'capacity_total' => 18,
+            'available_total' => 0,
+        ]);
+        $this->assertDatabaseCount('bookings', 2);
     }
 
     public function test_update_rejects_capacity_below_bookings_and_removal_or_reduction_of_booked_ticket(): void
@@ -206,6 +270,7 @@ class OrganizerEventManagementTest extends TestCase
             'is_active' => true,
         ]);
         $event->forceFill(['capacity_total' => 20, 'available_total' => 14])->save();
+        $this->booking($event, 6);
 
         $capacityPayload = $this->payload($municipality, $category);
         $capacityPayload['capacity_total'] = 5;
@@ -350,6 +415,24 @@ class OrganizerEventManagementTest extends TestCase
                 'is_active' => true,
             ]],
         ];
+    }
+
+    private function booking(Event $event, int $people, string $status = 'confirmed'): Booking
+    {
+        $customer = User::factory()->create(['role' => UserRole::Customer]);
+
+        return Booking::query()->create([
+            'ulid' => (string) Str::ulid(),
+            'user_id' => $customer->id,
+            'event_id' => $event->id,
+            'status' => $status,
+            'total_people' => $people,
+            'adults_count' => $people,
+            'children_count' => 0,
+            'booking_code' => Str::upper(Str::random(12)),
+            'qr_token_hash' => hash('sha256', Str::random(32)),
+            'booked_at' => now(),
+        ]);
     }
 
     private function event(OrganizerProfile $profile, Municipality $municipality, Category $category, EventStatus $status, string $title = 'Evento modificabile'): Event
