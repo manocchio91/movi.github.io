@@ -6,7 +6,7 @@
 
 - Versione corrente: `v2.0-rc1 - Final Release Candidate`
 - Ultimo aggiornamento: 13 agosto 2026
-- Repository: `manocchio91/app-eventi`
+- Repository: `manocchio91/movi`
 - Branch corrente: `feat/final-product-ux-polish`
 - Commit milestone precedente: `v1.9 - Complete premium Flutter redesign and booking checkout`
 - Ultimo tag: `v0.5-customer-booking-qr`, verificato localmente sul commit `c5e9605`

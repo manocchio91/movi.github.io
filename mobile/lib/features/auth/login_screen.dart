@@ -55,16 +55,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         size: 150,
                         color: scheme.primary.withValues(alpha: .18)),
                   ),
-                  Positioned(
-                    left: 22,
-                    bottom: 22,
-                    child: Text(
-                      'MòVi\nVivi quello che succede.',
-                      style:
-                          Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.w900,
-                                color: scheme.onPrimaryContainer,
-                              ),
+                  Positioned.fill(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Image.asset(
+                        'assets/branding/movi-logo-full.png',
+                        fit: BoxFit.contain,
+                        semanticLabel: 'MòVi — Vivi quello che succede',
+                      ),
                     ),
                   ),
                 ],

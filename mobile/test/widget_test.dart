@@ -18,7 +18,8 @@ void main() {
   testWidgets('shows real login screen', (tester) async {
     await _pumpApp(tester);
 
-    expect(find.text('MòVi\nVivi quello che succede.'), findsOneWidget);
+    expect(find.bySemanticsLabel('MòVi — Vivi quello che succede'),
+        findsOneWidget);
     expect(find.text('Email'), findsOneWidget);
     expect(find.text('Password'), findsOneWidget);
     expect(find.text('Entra'), findsOneWidget);

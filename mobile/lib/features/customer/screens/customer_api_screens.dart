@@ -52,7 +52,13 @@ class _CustomerApiHomeScreenState extends ConsumerState<CustomerApiHomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Ciao ${user.name}'),
+        title: Row(children: [
+          const MoviMark(),
+          const SizedBox(width: 10),
+          Expanded(
+              child:
+                  Text('Ciao ${user.name}', overflow: TextOverflow.ellipsis)),
+        ]),
         actions: const [
           IconButton(
               onPressed: null,

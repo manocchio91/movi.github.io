@@ -1,5 +1,20 @@
 import 'package:flutter/material.dart';
 
+class MoviMark extends StatelessWidget {
+  const MoviMark({super.key, this.size = 34});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Image.asset(
+        'assets/branding/movi-icon.png',
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+        semanticLabel: 'MòVi',
+      );
+}
+
 class ScreenScaffold extends StatelessWidget {
   const ScreenScaffold(
       {super.key,
@@ -16,7 +31,15 @@ class ScreenScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(title), actions: actions, bottom: bottom),
+        appBar: AppBar(
+          title: Row(children: [
+            const MoviMark(),
+            const SizedBox(width: 10),
+            Expanded(child: Text(title, overflow: TextOverflow.ellipsis)),
+          ]),
+          actions: actions,
+          bottom: bottom,
+        ),
         body: SafeArea(
           child: Center(
             child: ConstrainedBox(
