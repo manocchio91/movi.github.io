@@ -225,3 +225,13 @@ Stato: Accepted
 Decisione: le API Follow usano Resource dedicate e non serializzano direttamente `User`. Le preferenze per eventi degli Organizer seguiti sono separate dalle notifiche operative e dal marketing per categorie. La pubblicazione evento accoda il calcolo dei destinatari dopo il commit e conserva la deduplicazione per evento, utente e canale.
 
 Conseguenze: follow/unfollow sono idempotenti, i client leggono `is_following`, e nessuna risposta follower espone email o identificativi interni.
+
+## ADR-020
+
+### Waitlist FIFO con capacità riservata durante l'offerta
+
+Stato: Accepted
+
+Decisione: la promozione avviene in transazione con lock di riga. Una sola offerta può essere attiva per evento; i posti sono sottratti dalla disponibilità quando nasce l'offerta e restituiti in caso di rinuncia o scadenza. L'accettazione usa una chiave idempotente derivata dalla voce di waitlist.
+
+Conseguenze: capacità già offerta non può essere acquistata in concorrenza, retry e job duplicati non creano più prenotazioni, e il candidato successivo compatibile viene promosso automaticamente in ordine FIFO.

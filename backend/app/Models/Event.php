@@ -133,4 +133,10 @@ class Event extends Model
     {
         return $this->hasMany(ExperienceView::class);
     }
+
+    /** @return HasMany<WaitlistEntry, $this> */
+    public function waitlistEntries(): HasMany
+    {
+        return $this->hasMany(WaitlistEntry::class);
+    }
 }

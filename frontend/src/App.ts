@@ -480,6 +480,8 @@ export default defineComponent({
     const customerBookingSavePhone = ref(false);
     const customerBookingConfirmOpen = ref(false);
     const customerBookingResult = ref<CustomerBookingResult | null>(null);
+    const customerWaitlist = ref<any | null>(null);
+    const customerWaitlistLoading = ref(false);
     const customerBookingEdit = ref<BookingDraft | null>(null);
     const customerProfile = ref({ name: '', email: '', phone: null as string | null, created_at: '' });
     const customerPassword = ref({ current_password: '', password: '', password_confirmation: '' });
@@ -900,14 +902,16 @@ export default defineComponent({
       customerBookingConfirmOpen.value = false;
       selectedCustomerEvent.value = null;
       try {
-        const [eventResponse, profileResponse] = await Promise.all([
+        const [eventResponse, profileResponse, waitlistResponse] = await Promise.all([
           api<{ data: CustomerEvent }>(`/events/${ulid}`),
           api<{ data: typeof customerProfile.value }>('/me/profile'),
+          api<any>(`/events/${ulid}/waitlist`),
         ]);
         selectedCustomerEvent.value = eventResponse?.data ?? null;
         if (profileResponse?.data) customerProfile.value = profileResponse.data;
         customerBookingPhone.value = profileResponse?.data.phone ?? '';
         customerTicketQuantities.value = Object.fromEntries((eventResponse?.data.ticket_types ?? []).filter((ticket) => ticket.is_active).map((ticket) => [ticket.ulid, 0]));
+        customerWaitlist.value = waitlistResponse?.data ?? null;
       } catch (error) {
         customerEventError.value = userMessage(error, 'Impossibile caricare il dettaglio evento.');
       } finally {
@@ -950,6 +954,17 @@ export default defineComponent({
       try { publicOrganizer.value = await api(`/organizers/${ulid}`); } catch (error) { customerSectionMessage.value = userMessage(error, 'Organizer non disponibile.'); }
       finally { customerSectionLoading.value = false; }
     };
+
+    const joinCustomerWaitlist = async () => {
+      const event = selectedCustomerEvent.value; const ticket = event?.ticket_types.find((item) => item.is_active);
+      if (!event || !ticket || customerWaitlistLoading.value) return;
+      customerWaitlistLoading.value = true; customerBookingError.value = '';
+      try { customerWaitlist.value = (await api<any>(`/events/${event.ulid}/waitlist`, { method: 'POST', body: JSON.stringify({ adults_count: 1, children_count: 0, items: [{ ticket_type_ulid: ticket.ulid, quantity: 1 }] }) }))?.data ?? null; }
+      catch (error) { customerBookingError.value = userMessage(error, 'Ingresso in lista non riuscito.'); }
+      finally { customerWaitlistLoading.value = false; }
+    };
+    const leaveCustomerWaitlist = async () => { const event = selectedCustomerEvent.value; if (!event) return; customerWaitlistLoading.value = true; try { customerWaitlist.value = (await api<any>(`/events/${event.ulid}/waitlist`, { method: 'DELETE' }))?.data ?? null; } finally { customerWaitlistLoading.value = false; } };
+    const acceptCustomerWaitlist = async () => { const event = selectedCustomerEvent.value; if (!event || !customerBookingPhone.value) return; customerWaitlistLoading.value = true; try { customerBookingResult.value = (await api<any>(`/events/${event.ulid}/waitlist/accept`, { method: 'POST', body: JSON.stringify({ phone: customerBookingPhone.value }) }))?.data ?? null; customerWaitlist.value.status = 'accepted'; } catch (error) { customerBookingError.value = userMessage(error, 'Offerta non confermata.'); } finally { customerWaitlistLoading.value = false; } };
 
     const toggleOrganizerFollow = async () => {
       const organizer = publicOrganizer.value?.data;
@@ -1907,7 +1922,7 @@ export default defineComponent({
         h('label', { class: 'checkbox-field' }, [h('input', { type: 'checkbox', checked: customerBookingSavePhone.value, disabled: customerBookingResult.value !== null, onChange: (inputEvent: Event) => { customerBookingSavePhone.value = (inputEvent.target as HTMLInputElement).checked; } }), h('span', 'Salva questo numero nel mio profilo')]),
         h('label', { class: 'auth-field' }, [h('span', 'Note facoltative'), h('textarea', { maxlength: 1000, value: customerBookingNotes.value, disabled: customerBookingResult.value !== null, onInput: (inputEvent: Event) => { customerBookingNotes.value = (inputEvent.target as HTMLTextAreaElement).value; } })]),
         customerBookingError.value ? h('p', { class: 'api-error', role: 'alert' }, customerBookingError.value) : null,
-        customerBookingResult.value ? h('div', { class: 'booking-confirmation', role: 'status' }, [h('strong', 'Prenotazione confermata'), h('p', `Codice: ${customerBookingResult.value.booking_code}`), h('div', { class: 'booking-qr' }, customerBookingResult.value.qr_token)]) : h('button', { type: 'button', disabled: customerBookingLoading.value || activeTickets.length === 0 || event.available_total < 1, onClick: openCustomerBookingConfirmation }, 'Continua'),
+        customerBookingResult.value ? h('div', { class: 'booking-confirmation', role: 'status' }, [h('strong', 'Prenotazione confermata'), h('p', `Codice: ${customerBookingResult.value.booking_code}`), h('div', { class: 'booking-qr' }, customerBookingResult.value.qr_token)]) : event.available_total > 0 ? h('button', { type: 'button', disabled: customerBookingLoading.value || activeTickets.length === 0, onClick: openCustomerBookingConfirmation }, 'Continua') : customerWaitlist.value?.status === 'offered' ? h('div', { class: 'booking-confirmation', role: 'status' }, [h('strong', 'Posto disponibile'), h('p', `Offerta valida fino al ${new Date(customerWaitlist.value.reserved_until).toLocaleString('it-IT')}. La scadenza è determinata dal backend.`), h('button', { type: 'button', disabled: customerWaitlistLoading.value || !customerBookingPhone.value, onClick: () => { void acceptCustomerWaitlist(); } }, 'Conferma il posto')]) : ['waiting'].includes(customerWaitlist.value?.status) ? h('div', { class: 'booking-confirmation', role: 'status' }, [h('strong', 'Sei in lista d’attesa'), h('p', `Posizione: ${customerWaitlist.value.position ?? 'in aggiornamento'}`), h('button', { type: 'button', disabled: customerWaitlistLoading.value, onClick: () => { void leaveCustomerWaitlist(); } }, 'Esci dalla lista')]) : h('button', { type: 'button', disabled: customerWaitlistLoading.value || activeTickets.length === 0, onClick: () => { void joinCustomerWaitlist(); } }, customerWaitlistLoading.value ? 'Ingresso…' : 'Entra in lista d’attesa'),
       ]), customerBookingConfirmOpen.value ? renderConfirmDialog('Conferma prenotazione', event, customerTicketQuantities.value, () => { customerBookingConfirmOpen.value = false; }, () => { void confirmCustomerBooking(); }) : null];
     };
     const renderSuccessfulEventCard = (event: any) => h('article', { class: 'experience-card success-card' }, [

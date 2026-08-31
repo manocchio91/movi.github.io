@@ -109,6 +109,12 @@ class User extends Authenticatable
         return $this->hasMany(CustomerEventFormatInterest::class);
     }
 
+    /** @return HasMany<WaitlistEntry, $this> */
+    public function waitlistEntries(): HasMany
+    {
+        return $this->hasMany(WaitlistEntry::class);
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === UserRole::Admin;

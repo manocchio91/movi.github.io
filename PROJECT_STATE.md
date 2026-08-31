@@ -47,9 +47,14 @@
 
 ## Task corrente
 
-Macro 1 MòVi Engagement completata: Follow Organizer e notifiche follower reali su backend, web e Flutter.
+Macro 2 MòVi Engagement completata: waitlist automatica reale su backend, web e Flutter.
 
 ## Funzionalità completate
+
+- Lista d'attesa Customer idempotente per eventi esauriti, con posizione FIFO calcolata dal backend.
+- Promozione automatica dopo annullamento, rinuncia o scadenza, con una sola offerta attiva per evento.
+- Capacità riservata atomicamente durante l'offerta e conversione idempotente in booking senza overbooking.
+- Timeout configurabile, scheduler di scadenza, notifica operativa e UI reali web/Flutter.
 
 - Follow/unfollow Organizer idempotente con stato `is_following`, conteggio e lista Customer degli Organizer seguiti.
 - Elenco follower Organizer minimizzato tramite Resource, senza email o identificativi interni.

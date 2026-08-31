@@ -30,6 +30,7 @@ APP EVENTI è una piattaforma territoriale per scoprire, pubblicare, prenotare e
 | v1.9 | Completata | Redesign premium Flutter multi-ruolo e checkout booking completo |
 | v2.0-rc1 | Completata | Release Candidate locale pronta per il deploy |
 | v2.1-engagement-1 | Completata | Follow Organizer e notifiche follower privacy-safe |
+| v2.1-engagement-2 | Completata | Waitlist automatica FIFO con offerta temporanea e protezione overbooking |
 
 ## v0.8 — Organizer Event Creation and Editing
 
@@ -67,7 +68,7 @@ Completata end-to-end sul frontend web:
 
 ## Prossima milestone
 
-Waitlist automatica con offerta temporanea, promozione FIFO e protezione dall'overbooking.
+Invita amici e condivisione evento con deep link stabile su web e Flutter.
 
 ## v1.1 - MVP Profiles, Commercial Plans and Operations
 

@@ -174,6 +174,46 @@ paths:
         "200": { description: Organizzatore seguito }
         "400": { $ref: "#/components/responses/BadRequest" }
         "500": { $ref: "#/components/responses/InternalServerError" }
+  /events/{event}/waitlist:
+    get:
+      operationId: get_events_event_waitlist
+      security: [{ bearerAuth: [] }]
+      summary: Stato e posizione del Customer nella lista d'attesa
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Iscrizione corrente oppure data null }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      operationId: post_events_event_waitlist
+      security: [{ bearerAuth: [] }]
+      summary: Iscrizione idempotente alla lista FIFO di un evento esaurito
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "201": { description: Iscrizione creata o già esistente }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { description: Evento non esaurito o payload non compatibile }
+    delete:
+      operationId: delete_events_event_waitlist
+      security: [{ bearerAuth: [] }]
+      summary: Abbandona la lista o rinuncia all'offerta
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Iscrizione annullata oppure data null }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /events/{event}/waitlist/accept:
+    post:
+      operationId: post_events_event_waitlist_accept
+      security: [{ bearerAuth: [] }]
+      summary: Converte una offerta non scaduta in prenotazione idempotente
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "201": { description: Prenotazione confermata }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { description: Offerta assente o scaduta }
   /customer/organizers/{organizer}/follow:
     post:
       operationId: post_customer_organizers_organizer_follow
@@ -183,8 +223,17 @@ paths:
         - { name: organizer, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Stato follow aggiornato }
-        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { description: Organizer non disponibile }
+    delete:
+      operationId: delete_customer_organizers_organizer_follow
+      security: [{ bearerAuth: [] }]
+      summary: Smette di seguire un Organizer in modo idempotente
+      parameters:
+        - { name: organizer, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Stato follow aggiornato }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /customer/following:
     get:
       operationId: get_customer_following
@@ -192,17 +241,7 @@ paths:
       summary: Elenco privacy-safe degli Organizer seguiti
       responses:
         "200": { description: Organizer seguiti con soli dati pubblici }
-        "401": { $ref: "#/components/responses/Unauthenticated" }
-    delete:
-      operationId: delete_organizers_organizer_follow
-      security: [{ bearerAuth: [] }]
-      summary: Smetti di seguire organizzatore
-      parameters:
-        - { name: organizer, in: path, required: true, schema: { type: string } }
-      responses:
-        "200": { description: Follow rimosso }
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "500": { $ref: "#/components/responses/InternalServerError" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /me/preferences:
     get:
       operationId: get_me_preferences

@@ -35,6 +35,7 @@ use App\Http\Controllers\Api\V1\OrganizerReviewController;
 use App\Http\Controllers\Api\V1\PreferenceController;
 use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\SubscriptionPlanController;
+use App\Http\Controllers\Api\V1\WaitlistController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -76,6 +77,10 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/me/notification-preferences', [NotificationPreferenceController::class, 'show']);
             Route::put('/me/notification-preferences', [NotificationPreferenceController::class, 'update']);
             Route::post('/events/{event:ulid}/bookings', [BookingController::class, 'store'])->middleware('throttle:sensitive');
+            Route::get('/events/{event:ulid}/waitlist', [WaitlistController::class, 'show']);
+            Route::post('/events/{event:ulid}/waitlist', [WaitlistController::class, 'store'])->middleware('throttle:sensitive');
+            Route::delete('/events/{event:ulid}/waitlist', [WaitlistController::class, 'destroy']);
+            Route::post('/events/{event:ulid}/waitlist/accept', [WaitlistController::class, 'accept'])->middleware('throttle:sensitive');
             Route::post('/events/{event:ulid}/reviews', [ReviewController::class, 'store']);
             Route::get('/me/bookings', [BookingController::class, 'index']);
             Route::get('/me/bookings/{booking:ulid}', [BookingController::class, 'show']);

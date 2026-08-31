@@ -342,15 +342,14 @@ class CustomerApiEventDetailScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Dettaglio evento')),
       bottomNavigationBar: SafeArea(
           minimum: const EdgeInsets.all(16),
-          child: FilledButton.icon(
-            onPressed: result.valueOrNull?.availableSeats == 0
-                ? null
-                : () => context.push('/customer/events/$id/book'),
-            icon: const Icon(Icons.confirmation_number_rounded),
-            label: Text(result.valueOrNull?.availableSeats == 0
-                ? 'Evento esaurito'
-                : 'Prenota'),
-          )),
+          child: result.valueOrNull?.availableSeats == 0
+              ? EventWaitlistPanel(event: result.valueOrNull)
+              : FilledButton.icon(
+                  onPressed: result.valueOrNull == null
+                      ? null
+                      : () => context.push('/customer/events/$id/book'),
+                  icon: const Icon(Icons.confirmation_number_rounded),
+                  label: const Text('Prenota'))),
       body: SafeArea(
           child: result.when(
         loading: () => const Padding(
@@ -430,12 +429,121 @@ class CustomerApiEventDetailScreen extends ConsumerWidget {
   }
 }
 
+class EventWaitlistPanel extends ConsumerStatefulWidget {
+  const EventWaitlistPanel({super.key, required this.event});
+  final ApiEvent? event;
+  @override
+  ConsumerState<EventWaitlistPanel> createState() => _EventWaitlistPanelState();
+}
+
+class _EventWaitlistPanelState extends ConsumerState<EventWaitlistPanel> {
+  Map<String, dynamic>? entry;
+  bool loading = true;
+  final phone = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    phone.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    if (widget.event == null) return;
+    try {
+      entry = await ref
+          .read(eventRepositoryProvider)
+          .waitlistStatus(widget.event!.id);
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  Future<void> _join() async {
+    setState(() => loading = true);
+    try {
+      entry =
+          await ref.read(eventRepositoryProvider).joinWaitlist(widget.event!);
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  Future<void> _leave() async {
+    setState(() => loading = true);
+    try {
+      entry = await ref
+          .read(eventRepositoryProvider)
+          .leaveWaitlist(widget.event!.id);
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  Future<void> _accept() async {
+    if (phone.text.trim().isEmpty) {
+      return;
+    }
+    setState(() => loading = true);
+    try {
+      await ref
+          .read(eventRepositoryProvider)
+          .acceptWaitlist(widget.event!.id, phone.text.trim());
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Prenotazione confermata.')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => loading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading || widget.event == null) {
+      return const FilledButton(
+          onPressed: null, child: Text('Caricamento lista…'));
+    }
+    final status = entry?['status'];
+    if (status == 'offered') {
+      return Column(mainAxisSize: MainAxisSize.min, children: [
+        Text('Posto disponibile fino a ${entry?['reserved_until']}'),
+        TextField(
+            controller: phone,
+            keyboardType: TextInputType.phone,
+            decoration: const InputDecoration(labelText: 'Telefono')),
+        FilledButton(onPressed: _accept, child: const Text('Conferma il posto'))
+      ]);
+    }
+    if (status == 'waiting') {
+      return Row(children: [
+        Expanded(
+            child:
+                Text('Sei in lista · posizione ${entry?['position'] ?? '-'}')),
+        TextButton(onPressed: _leave, child: const Text('Esci'))
+      ]);
+    }
+    return FilledButton.icon(
+        onPressed: _join,
+        icon: const Icon(Icons.hourglass_bottom_rounded),
+        label: const Text('Entra in lista d’attesa'));
+  }
+}
+
 class OrganizerFollowButton extends ConsumerStatefulWidget {
   const OrganizerFollowButton({super.key, required this.organizerId});
   final String organizerId;
 
   @override
-  ConsumerState<OrganizerFollowButton> createState() => _OrganizerFollowButtonState();
+  ConsumerState<OrganizerFollowButton> createState() =>
+      _OrganizerFollowButtonState();
 }
 
 class _OrganizerFollowButtonState extends ConsumerState<OrganizerFollowButton> {
@@ -450,7 +558,9 @@ class _OrganizerFollowButtonState extends ConsumerState<OrganizerFollowButton> {
 
   Future<void> _load() async {
     try {
-      final data = await ref.read(followRepositoryProvider).organizer(widget.organizerId);
+      final data = await ref
+          .read(followRepositoryProvider)
+          .organizer(widget.organizerId);
       if (mounted) setState(() => following = data['is_following'] == true);
     } finally {
       if (mounted) setState(() => loading = false);
@@ -461,7 +571,9 @@ class _OrganizerFollowButtonState extends ConsumerState<OrganizerFollowButton> {
     if (following == null || loading) return;
     setState(() => loading = true);
     try {
-      final value = await ref.read(followRepositoryProvider).setFollowing(widget.organizerId, !following!);
+      final value = await ref
+          .read(followRepositoryProvider)
+          .setFollowing(widget.organizerId, !following!);
       if (mounted) setState(() => following = value);
     } finally {
       if (mounted) setState(() => loading = false);
@@ -471,8 +583,14 @@ class _OrganizerFollowButtonState extends ConsumerState<OrganizerFollowButton> {
   @override
   Widget build(BuildContext context) => OutlinedButton.icon(
       onPressed: loading || following == null ? null : _toggle,
-      icon: Icon(following == true ? Icons.favorite_rounded : Icons.favorite_border_rounded),
-      label: Text(loading ? 'Caricamento…' : following == true ? 'Seguito · Smetti di seguire' : 'Segui Organizer'));
+      icon: Icon(following == true
+          ? Icons.favorite_rounded
+          : Icons.favorite_border_rounded),
+      label: Text(loading
+          ? 'Caricamento…'
+          : following == true
+              ? 'Seguito · Smetti di seguire'
+              : 'Segui Organizer'));
 }
 
 class CustomerFollowingScreen extends ConsumerWidget {
@@ -484,17 +602,27 @@ class CustomerFollowingScreen extends ConsumerWidget {
       body: FutureBuilder<List<Map<String, dynamic>>>(
           future: ref.read(followRepositoryProvider).following(),
           builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) return const LoadingSkeleton();
-            if (snapshot.hasError) return Center(child: Text('${snapshot.error}'));
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const LoadingSkeleton();
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text('${snapshot.error}'));
+            }
             final items = snapshot.data ?? const [];
-            if (items.isEmpty) return const Center(child: Text('Non segui ancora alcun Organizer.'));
+            if (items.isEmpty) {
+              return const Center(
+                  child: Text('Non segui ancora alcun Organizer.'));
+            }
             return ListView.builder(
                 padding: const EdgeInsets.all(20),
                 itemCount: items.length,
-                itemBuilder: (_, index) => Card(child: ListTile(
-                    leading: const CircleAvatar(child: Icon(Icons.storefront_rounded)),
-                    title: Text('${items[index]['name'] ?? ''}'),
-                    subtitle: Text('${(items[index]['municipality'] as Map?)?['name'] ?? ''}'))));
+                itemBuilder: (_, index) => Card(
+                    child: ListTile(
+                        leading: const CircleAvatar(
+                            child: Icon(Icons.storefront_rounded)),
+                        title: Text('${items[index]['name'] ?? ''}'),
+                        subtitle: Text(
+                            '${(items[index]['municipality'] as Map?)?['name'] ?? ''}'))));
           }));
 }
 

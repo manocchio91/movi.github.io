@@ -3,6 +3,7 @@
 namespace App\Actions\Bookings;
 
 use App\Enums\EventStatus;
+use App\Jobs\PromoteEventWaitlistJob;
 use App\Models\Booking;
 use App\Models\Event;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +39,8 @@ class CancelBooking
             if ($event->status === EventStatus::SoldOut && $event->starts_at->isFuture()) {
                 $event->forceFill(['status' => EventStatus::Published])->save();
             }
+
+            DB::afterCommit(fn () => PromoteEventWaitlistJob::dispatch($event->id));
 
             return $lockedBooking->refresh();
         });
