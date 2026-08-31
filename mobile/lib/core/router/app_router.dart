@@ -10,6 +10,7 @@ import '../../features/customer/booking/booking_flow_screen.dart';
 import '../../features/customer/booking/booking_list_screen.dart';
 import '../../features/customer/customer_shell.dart';
 import '../../features/customer/screens/customer_api_screens.dart';
+import '../../features/activities/activity_screens.dart';
 import '../../features/organizer/organizer_event_form_screen.dart';
 import '../../features/organizer/organizer_screens.dart';
 import '../../features/organizer/organizer_shell.dart';
@@ -79,6 +80,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       path: 'following',
                       parentNavigatorKey: _rootKey,
                       builder: (_, __) => const CustomerFollowingScreen()),
+                  GoRoute(
+                      path: 'activities',
+                      parentNavigatorKey: _rootKey,
+                      builder: (_, __) => const ActivityListScreen(),
+                      routes: [
+                        GoRoute(
+                            path: ':id',
+                            builder: (_, s) => ActivityDetailScreen(
+                                id: s.pathParameters['id']!)),
+                      ]),
+                  GoRoute(
+                      path: 'reservations',
+                      parentNavigatorKey: _rootKey,
+                      builder: (_, __) => const ActivityReservationsScreen()),
                 ])
           ]),
           StatefulShellBranch(routes: [
@@ -116,7 +131,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [
             GoRoute(
                 path: '/organizer',
-                builder: (_, __) => const OrganizerDashboardScreen())
+                builder: (_, __) => const OrganizerDashboardScreen(),
+                routes: [
+                  GoRoute(
+                      path: 'activities',
+                      parentNavigatorKey: _rootKey,
+                      builder: (_, __) =>
+                          const OrganizerActivityManagerScreen()),
+                ])
           ]),
           StatefulShellBranch(routes: [
             GoRoute(

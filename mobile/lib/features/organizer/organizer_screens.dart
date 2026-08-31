@@ -94,6 +94,12 @@ class OrganizerDashboardScreen extends ConsumerWidget {
           ]),
           const SectionTitle('Azioni rapide'),
           _ActionCard(
+              icon: Icons.restaurant_menu,
+              title: 'MòVi Manager',
+              subtitle: 'Gestisci attività, servizi e prenotazioni',
+              onTap: () => context.push('/organizer/activities')),
+          const SizedBox(height: 12),
+          _ActionCard(
               icon: Icons.add_circle_rounded,
               title: 'Crea evento',
               subtitle: 'Inserisci i dati e salva una nuova bozza',

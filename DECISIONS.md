@@ -245,3 +245,13 @@ Stato: Accepted
 Decisione: ogni segnale analytics passa da `AnalyticsRecorder`. Impression e dettaglio sono deduplicati per evento, hash di sessione e giorno; nessun identificatore di sessione in chiaro o payload personale viene conservato. Conteggi operativi e persone restano calcolati dalle tabelle di dominio, mentre `analytics_events` registra discovery, share, waitlist e acquisizione.
 
 Conseguenze: il funnel è verificabile senza inventare KPI, i retry idempotenti non gonfiano gli eventi deterministici e `experience_views`, `analytics_events` e le statistiche esistenti vengono riutilizzati senza pipeline parallele.
+
+## ADR-022
+
+### Activity e Reservation Engine separati dall'Event Engine
+
+Stato: Accepted
+
+Decisione: Activity rappresenta il locale prenotabile e può appartenere a un Organizer con altre Activity. Reservation usa Service, regole/eccezioni e Capacity Mode; non riusa Event o Booking. Il lock della riga Service serializza la verifica della capacità PostgreSQL e l'idempotency key rende sicuri i retry.
+
+Conseguenze: Restaurant è il primo tipo operativo ma il motore resta estendibile. Table Mode, pianta grafica e ottimizzazione tavoli non fanno parte di questa macrofase.

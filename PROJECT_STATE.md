@@ -146,3 +146,10 @@ Deploy controllato della Release Candidate nel Prompt 8/8.
 - Organizer: dashboard, eventi, prenotazioni, partecipanti, check-in e profilo via API.
 - Admin: dashboard, ricerca, gestione Organizer/Customer/Eventi e piani commerciali via API.
 - Navigazione, role guard e design system Material 3 dedicati per ruolo.
+
+## MòVi 2.0 - Activity e Reservation Capacity Mode
+
+- Activity separata da Organizer e Venue, inizialmente operativa per Restaurant.
+- Service generici, regole settimanali, eccezioni e chiusure straordinarie.
+- Reservation separata da Event Booking, con transazioni PostgreSQL, lock, idempotenza e capacità derivata.
+- API, web e Flutter usano disponibilità reale; follow, review verificata, notifiche operative e analytics sono integrati.

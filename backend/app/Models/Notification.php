@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Notification extends Model
 {
     protected $fillable = [
-        'ulid', 'user_id', 'event_id', 'category_id', 'kind', 'channel', 'template',
+        'ulid', 'user_id', 'event_id', 'activity_id', 'reservation_id', 'category_id', 'kind', 'channel', 'template',
         'title', 'message', 'status', 'read', 'payload', 'deduplication_key',
         'sent_at', 'last_error',
     ];

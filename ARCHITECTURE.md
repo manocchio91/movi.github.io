@@ -180,3 +180,9 @@ Flutter:
 - `flutter build web` per la build web di collaudo.
 
 Le verifiche automatiche devono precedere il collaudo browser. Codice, test e documentazione devono evolvere insieme.
+
+## Activity e Reservation Engine
+
+L'Event Engine (`Event`, `Booking`, waitlist e check-in) resta separato dal Reservation Engine (`Activity`, `ActivityService`, disponibilità e `Reservation`). I domini condividono User, Organizer, notifiche, analytics e pattern di autorizzazione/locking, senza booking evento fittizie.
+
+In Capacity Mode ogni slot espone coperti MòVi. La disponibilità sottrae le Reservation confermate; creazione e cancellazione usano transazioni, lock sulla riga Service e chiavi idempotenti. Le modifiche successive alle regole non invalidano Reservation esistenti.

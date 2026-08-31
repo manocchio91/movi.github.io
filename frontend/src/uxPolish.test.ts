@@ -68,3 +68,12 @@ test('event detail exposes native share copy fallback and WhatsApp', () => {
   assert.ok(app.includes("'X-Analytics-Session': analyticsSession"));
   assert.ok(app.includes("`/events/${event.ulid}/share`"));
 });
+
+test('activity reservations use real capacity APIs without table mode', () => {
+  assert.ok(app.includes("api<any>('/activities')"));
+  assert.ok(app.includes('/availability?date='));
+  assert.ok(app.includes("'Idempotency-Key': crypto.randomUUID()"));
+  assert.ok(app.includes("api<any>('/me/reservations')"));
+  assert.ok(app.includes('MòVi Manager · Attività'));
+  assert.ok(!app.includes('floor-plan editor'));
+});

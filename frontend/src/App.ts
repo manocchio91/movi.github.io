@@ -15,6 +15,9 @@ type AppRoute =
   | '/customer/preferences'
   | '/customer/profile'
   | '/customer/following'
+  | '/customer/activities'
+  | `/customer/activities/${string}`
+  | '/customer/reservations'
   | '/organizer/dashboard'
   | '/organizer/onboarding'
   | '/organizer/pending'
@@ -29,6 +32,7 @@ type AppRoute =
   | `/organizer/events/${string}/participants`
   | '/organizer/reviews'
   | '/organizer/opportunities'
+  | '/organizer/activities'
   | '/admin/dashboard'
   | '/admin/organizers'
   | '/admin/events'
@@ -343,6 +347,8 @@ const customerMenu = [
   ['Eventi di Successo', '/customer/successful-events'],
   ['Le mie prenotazioni', '/customer/bookings'],
   ['Organizer seguiti', '/customer/following'],
+  ['Attività', '/customer/activities'],
+  ['Prenotazioni locali', '/customer/reservations'],
   ['Preferenze', '/customer/preferences'],
   ['Profilo', '/customer/profile'],
 ] as const;
@@ -351,6 +357,7 @@ const organizerMenu = [
   ['Dashboard', '/organizer/dashboard'],
   ['I miei eventi', '/organizer/events'],
   ['Prenotazioni', '/organizer/bookings'],
+  ['MòVi Manager', '/organizer/activities'],
   ['Profilo', '/organizer/profile'],
   ['Crea evento', '/organizer/create-event'],
   ['Recensioni', '/organizer/reviews'],
@@ -503,6 +510,16 @@ export default defineComponent({
     const publicOrganizer = ref<any>(null);
     const customerFollowing = ref<any[]>([]);
     const followActionLoading = ref(false);
+    const customerActivities = ref<any[]>([]);
+    const selectedActivity = ref<any | null>(null);
+    const activityAvailability = ref<any[]>([]);
+    const customerReservations = ref<any[]>([]);
+    const activityDate = ref(new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
+    const activityServiceUlid = ref('');
+    const activityPartySize = ref(2);
+    const activityMessage = ref('');
+    const organizerActivities = ref<any[]>([]);
+    const organizerActivityReservations = ref<Record<string, any[]>>({});
     const adminDashboard = ref<any>(null);
     const adminOverview = ref<any>(null);
     const adminEvents = ref<any[]>([]);
@@ -1421,6 +1438,19 @@ export default defineComponent({
       }
     };
 
+    const loadCustomerActivities = async () => { customerActivities.value = (await api<any>('/activities'))?.data ?? []; };
+    const loadActivityAvailability = async () => { if (!selectedActivity.value || !activityServiceUlid.value) return; activityAvailability.value = (await api<any>(`/activities/${selectedActivity.value.ulid}/services/${activityServiceUlid.value}/availability?date=${activityDate.value}`))?.data ?? []; };
+    const loadCustomerActivity = async (ulid: string) => { const [activity, profile] = await Promise.all([api<any>(`/activities/${ulid}`), api<any>('/me/profile')]); selectedActivity.value = activity?.data ?? null; if (profile?.data) customerProfile.value = profile.data; activityServiceUlid.value = selectedActivity.value?.services?.[0]?.ulid ?? ''; await loadActivityAvailability(); };
+    const createCustomerReservation = async (slot: any) => { if (!selectedActivity.value) return; activityMessage.value = ''; if (!customerProfile.value.phone) { activityMessage.value = 'Aggiungi un telefono reale nel profilo prima di prenotare.'; return; } try { const result = await api<any>(`/activities/${selectedActivity.value.ulid}/reservations`, { method: 'POST', headers: { 'Idempotency-Key': crypto.randomUUID() }, body: JSON.stringify({ service_ulid: activityServiceUlid.value, starts_at: slot.starts_at, party_size: activityPartySize.value, contact_phone: customerProfile.value.phone }) }); activityMessage.value = `Prenotazione confermata: ${result?.data?.ulid ?? ''}`; await loadActivityAvailability(); } catch (error) { activityMessage.value = userMessage(error, 'Prenotazione non riuscita.'); } };
+    const toggleActivityFollow = async () => { if (!selectedActivity.value) return; const following = selectedActivity.value.is_following === true; const response = await api<any>(`/customer/activities/${selectedActivity.value.ulid}/follow`, { method: following ? 'DELETE' : 'POST' }); selectedActivity.value.is_following = response?.data?.is_following ?? !following; };
+    const loadCustomerReservations = async () => { customerReservations.value = (await api<any>('/me/reservations'))?.data ?? []; };
+    const cancelCustomerReservation = async (reservation: any) => { if (!window.confirm('Annullare questa prenotazione?')) return; await api(`/me/reservations/${reservation.ulid}/cancel`, { method: 'POST', body: JSON.stringify({ reason: 'Annullata dal Customer' }) }); await loadCustomerReservations(); };
+    const loadOrganizerActivities = async () => { const [activities, municipalities] = await Promise.all([api<any>('/organizer/activities'), api<any>('/locations/municipalities')]); organizerActivities.value = activities?.data ?? []; eventMunicipalities.value = municipalities?.data ?? []; organizerActivityReservations.value = Object.fromEntries(await Promise.all(organizerActivities.value.map(async (activity: any) => [activity.ulid, (await api<any>(`/organizer/activities/${activity.ulid}/reservations`))?.data ?? []]))); };
+    const createOrganizerActivity = async (event: Event) => { event.preventDefault(); const form = new FormData(event.target as HTMLFormElement); await api('/organizer/activities', { method: 'POST', body: JSON.stringify({ name: form.get('name'), type: 'restaurant', description: form.get('description'), municipality_id: Number(form.get('municipality_id')), address: form.get('address'), booking_enabled: true, status: 'published' }) }); (event.target as HTMLFormElement).reset(); await loadOrganizerActivities(); };
+    const createActivityService = async (event: Event, activity: any) => { event.preventDefault(); const form = new FormData(event.target as HTMLFormElement); await api(`/organizer/activities/${activity.ulid}/services`, { method: 'POST', body: JSON.stringify({ name: form.get('type') === 'lunch' ? 'Pranzo' : 'Cena', type: form.get('type'), active: true, booking_enabled: true, min_party_size: Number(form.get('min_party_size')), max_party_size: Number(form.get('max_party_size')), minimum_advance_minutes: Number(form.get('minimum_advance_minutes')), indicative_duration_minutes: 90 }) }); await loadOrganizerActivities(); };
+    const configureActivitySlot = async (event: Event, activity: any, service: any) => { event.preventDefault(); const form = new FormData(event.target as HTMLFormElement); await api(`/organizer/activities/${activity.ulid}/services/${service.ulid}/availability`, { method: 'PUT', body: JSON.stringify({ rules: [{ weekday: Number(form.get('weekday')), start_time: form.get('start_time'), capacity: Number(form.get('capacity')) }] }) }); await loadOrganizerActivities(); };
+    const configureActivityClosure = async (event: Event, activity: any, service: any) => { event.preventDefault(); const form = new FormData(event.target as HTMLFormElement); await api(`/organizer/activities/${activity.ulid}/services/${service.ulid}/availability`, { method: 'PUT', body: JSON.stringify({ exceptions: [{ date: form.get('date'), is_closed: true, note: form.get('note') }] }) }); await loadOrganizerActivities(); };
+
     const go = async (nextRoute: AppRoute) => {
       route.value = canAccess(role.value, nextRoute) ? nextRoute : '/unauthorized';
       if (route.value === '/organizer/onboarding') await loadOrganizerProfile();
@@ -1429,6 +1459,7 @@ export default defineComponent({
       else if (route.value === '/organizer/bookings') await loadOrganizerBookings();
       else if (route.value.startsWith('/organizer/bookings/')) await loadOrganizerBookingDetail(route.value.split('/')[3]);
       else if (route.value === '/organizer/events') await loadOrganizerEvents();
+      else if (route.value === '/organizer/activities') await loadOrganizerActivities();
       else if (route.value.startsWith('/organizer/events/') && route.value.endsWith('/participants')) await loadOrganizerParticipants(route.value.split('/')[3]);
       else if (route.value === '/organizer/create-event') await loadEventForm();
       else if (route.value.startsWith('/organizer/events/') && route.value.endsWith('/edit')) {
@@ -1436,6 +1467,9 @@ export default defineComponent({
       }
       else if (route.value.startsWith('/organizer')) await loadOrganizerData();
       if (route.value.startsWith('/customer/events/')) await loadCustomerEvent(route.value.split('/')[3]);
+      if (route.value === '/customer/activities') await loadCustomerActivities();
+      if (route.value.startsWith('/customer/activities/')) await loadCustomerActivity(route.value.split('/')[3]);
+      if (route.value === '/customer/reservations') await loadCustomerReservations();
       if (route.value.startsWith('/customer/organizers/')) await loadPublicOrganizer(route.value.split('/')[3]);
       if (route.value === '/customer/profile') await loadCustomerSection('profile');
       if (route.value === '/customer/bookings') await loadCustomerSection('bookings');
@@ -2055,11 +2089,18 @@ export default defineComponent({
       ]))),
       renderCustomerBookingEdit(),
     ];
+    const renderCustomerActivities = () => [h('div', { class: 'section-title' }, [h('h2', 'Attività prenotabili'), h('span', 'Ristoranti e servizi reali')]), customerActivities.value.length === 0 ? emptyState('Nessuna attività prenotabile.') : h('div', { class: 'event-grid' }, customerActivities.value.map((activity) => h('article', { class: 'experience-card' }, [h('span', activity.type === 'restaurant' ? 'Ristorante' : activity.type), h('h3', activity.name), h('p', activity.description ?? ''), h('p', activity.municipality?.name ?? ''), h('button', { type: 'button', onClick: () => { void go(`/customer/activities/${activity.ulid}`); } }, 'Vedi disponibilità')])) )];
+    const renderCustomerActivityDetail = () => { const activity = selectedActivity.value; if (!activity) return [emptyState('Attività non disponibile.')]; const selectedService = activity.services?.find((service: any) => service.ulid === activityServiceUlid.value); return [h('div', { class: 'section-title' }, [h('div', [h('h2', activity.name), h('span', activity.municipality?.name ?? '')]), h('button', { type: 'button', onClick: () => { void toggleActivityFollow(); } }, activity.is_following ? 'Seguita · Smetti' : 'Segui attività')]), h('article', { class: 'wide-panel booking-detail' }, [h('p', activity.description ?? ''), h('label', { class: 'auth-field' }, [h('span', 'Servizio'), h('select', { value: activityServiceUlid.value, onChange: (event: Event) => { activityServiceUlid.value = (event.target as HTMLSelectElement).value; void loadActivityAvailability(); } }, (activity.services ?? []).map((service: any) => h('option', { value: service.ulid }, `${service.name} · ${service.min_party_size}-${service.max_party_size} persone`)))]), h('label', { class: 'auth-field' }, [h('span', 'Data'), h('input', { type: 'date', value: activityDate.value, onChange: (event: Event) => { activityDate.value = (event.target as HTMLInputElement).value; void loadActivityAvailability(); } })]), h('label', { class: 'auth-field' }, [h('span', 'Persone'), h('input', { type: 'number', min: selectedService?.min_party_size ?? 1, max: selectedService?.max_party_size ?? 20, value: activityPartySize.value, onInput: (event: Event) => { activityPartySize.value = Number((event.target as HTMLInputElement).value); } })]), h('div', { class: 'event-grid' }, activityAvailability.value.map((slot) => h('article', { class: 'experience-card' }, [h('strong', new Date(slot.starts_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })), h('p', slot.available === 0 ? 'Esaurito' : slot.available <= 3 ? `Pochi posti: ${slot.available}` : `${slot.available} coperti disponibili`), h('button', { type: 'button', disabled: slot.available < activityPartySize.value, onClick: () => { void createCustomerReservation(slot); } }, 'Prenota')]))), activityMessage.value ? h('p', { role: 'status' }, activityMessage.value) : null])]; };
+    const renderCustomerReservations = () => [h('div', { class: 'section-title' }, [h('h2', 'Prenotazioni locali')]), customerReservations.value.length === 0 ? emptyState('Nessuna prenotazione locale.') : h('div', { class: 'event-grid' }, customerReservations.value.map((reservation) => h('article', { class: 'experience-card' }, [h('span', reservation.status), h('h3', reservation.activity?.name ?? 'Attività'), h('p', `${reservation.service?.name ?? ''} · ${new Date(reservation.starts_at).toLocaleString('it-IT')}`), h('strong', `${reservation.party_size} persone`), reservation.status === 'confirmed' && new Date(reservation.starts_at) > new Date() ? h('button', { type: 'button', onClick: () => { void cancelCustomerReservation(reservation); } }, 'Annulla') : null])))];
+
     const CustomerLayout = () => h('main', { class: 'role-shell customer-layout' }, [
       renderHeader('Dashboard cliente', customerMenu),
       h('section', { class: 'role-content' }, [
         apiError.value ? h('p', { class: 'api-error' }, apiError.value) : null,
-        ...(route.value.startsWith('/customer/events/')
+        ...(route.value.startsWith('/customer/activities/') ? renderCustomerActivityDetail()
+          : route.value === '/customer/activities' ? renderCustomerActivities()
+          : route.value === '/customer/reservations' ? renderCustomerReservations()
+          : route.value.startsWith('/customer/events/')
           ? renderCustomerEventDetail()
           : route.value.startsWith('/customer/organizers/') ? renderPublicOrganizer()
           : route.value === '/customer/profile' ? renderCustomerProfile()
@@ -2425,11 +2466,49 @@ export default defineComponent({
       ];
     };
 
+    const renderOrganizerActivity = (activity: any) => h('article', { class: 'wide-panel booking-detail' }, [
+      h('div', { class: 'panel-heading' }, [h('h2', activity.name), h('span', activity.booking_enabled ? 'Prenotazioni attive' : 'Disattivate')]),
+      h('p', activity.description ?? ''),
+      h('form', { class: 'action-row', onSubmit: (event: Event) => { void createActivityService(event, activity); } }, [
+        h('select', { name: 'type' }, [h('option', { value: 'lunch' }, 'Pranzo'), h('option', { value: 'dinner' }, 'Cena')]),
+        h('input', { name: 'min_party_size', type: 'number', min: 1, value: 1, 'aria-label': 'Minimo persone' }),
+        h('input', { name: 'max_party_size', type: 'number', min: 1, value: 8, 'aria-label': 'Massimo persone' }),
+        h('input', { name: 'minimum_advance_minutes', type: 'number', min: 0, value: 60, 'aria-label': 'Anticipo minimo minuti' }),
+        h('button', { type: 'submit' }, 'Aggiungi servizio'),
+      ]),
+      ...(activity.services ?? []).map((service: any) => h('section', { class: 'capacity-summary' }, [
+        h('h3', service.name), h('p', `${service.min_party_size}-${service.max_party_size} persone · anticipo ${service.minimum_advance_minutes} minuti`),
+        h('form', { class: 'action-row', onSubmit: (event: Event) => { void configureActivitySlot(event, activity, service); } }, [
+          h('select', { name: 'weekday' }, ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].map((day, index) => h('option', { value: index + 1 }, day))),
+          h('input', { name: 'start_time', type: 'time', required: true, value: service.type === 'dinner' ? '20:00' : '12:30' }),
+          h('input', { name: 'capacity', type: 'number', min: 0, required: true, value: 10, 'aria-label': 'Coperti disponibili' }),
+          h('button', { type: 'submit' }, 'Salva slot'),
+        ]),
+        h('ul', (service.rules ?? []).map((rule: any) => h('li', `Giorno ${rule.weekday} · ${String(rule.start_time).slice(0, 5)} · ${rule.capacity} coperti`))),
+        h('form', { class: 'action-row', onSubmit: (event: Event) => { void configureActivityClosure(event, activity, service); } }, [
+          h('input', { name: 'date', type: 'date', required: true, 'aria-label': 'Data chiusura' }),
+          h('input', { name: 'note', placeholder: 'Motivo chiusura' }),
+          h('button', { type: 'submit' }, 'Aggiungi chiusura'),
+        ]),
+        h('ul', (service.exceptions ?? []).map((exception: any) => h('li', `${exception.date} · ${exception.is_closed ? 'Chiuso' : 'Disponibilità speciale'}`))),
+      ])),
+    ]);
+    const renderOrganizerActivityReservations = (activity: any) => h('section', { class: 'capacity-summary' }, [
+      h('h3', 'Prenotazioni'),
+      ...(organizerActivityReservations.value[activity.ulid] ?? []).map((reservation: any) => h('p', `${String(reservation.starts_at).replace('T', ' ').slice(0, 16)} · ${reservation.party_size} persone · ${reservation.status}`)),
+    ]);
+    const renderOrganizerActivities = () => [
+      h('div', { class: 'page-heading' }, [h('h1', 'MòVi Manager · Attività'), h('p', 'Configura servizi e coperti senza gestione tavoli.')]),
+      h('form', { class: 'wide-panel booking-detail', onSubmit: createOrganizerActivity }, [h('h3', 'Nuovo ristorante'), h('input', { name: 'name', required: true, placeholder: 'Nome attività' }), h('textarea', { name: 'description', placeholder: 'Descrizione' }), h('select', { name: 'municipality_id', required: true }, [h('option', { value: '' }, 'Comune'), ...eventMunicipalities.value.map((municipality) => h('option', { value: municipality.id }, municipality.name))]), h('input', { name: 'address', placeholder: 'Indirizzo' }), h('button', { type: 'submit' }, 'Crea attività')]),
+      ...organizerActivities.value.flatMap((activity: any) => [renderOrganizerActivity(activity), renderOrganizerActivityReservations(activity)]),
+    ];
+
     const OrganizerLayout = () => h('main', { class: 'role-shell organizer-layout' }, [
       renderHeader('Dashboard organizzatore', organizerMenu),
       h('section', { class: 'role-content' }, [
         apiError.value ? h('p', { class: 'api-error' }, apiError.value) : null,
-        ...(route.value === '/organizer/bookings'
+        ...(route.value === '/organizer/activities' ? renderOrganizerActivities()
+          : route.value === '/organizer/bookings'
           ? renderOrganizerBookings()
           : route.value.startsWith('/organizer/bookings/')
             ? renderOrganizerBookingDetail()

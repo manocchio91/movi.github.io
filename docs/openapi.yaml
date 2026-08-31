@@ -5,6 +5,8 @@ info:
   license: { name: Proprietary, identifier: LicenseRef-Proprietary }
 servers:
   - url: /api/v1
+security:
+  - bearerAuth: []
 paths:
   /health:
     get:
@@ -1523,6 +1525,126 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "422": { $ref: "#/components/responses/UnprocessableEntity" }
         "500": { $ref: "#/components/responses/InternalServerError" }
+  /activities:
+    get:
+      operationId: get_activities
+      security: []
+      summary: Elenca le Activity pubblicate e prenotabili
+      responses: { "200": { description: Activity paginate }, "404": { $ref: "#/components/responses/NotFound" } }
+  /activities/{activity}:
+    parameters: [ { name: activity, in: path, required: true, schema: { type: string } } ]
+    get:
+      operationId: get_activity
+      security: []
+      summary: Dettaglio Activity
+      responses: { "200": { description: Activity con servizi }, "404": { $ref: "#/components/responses/NotFound" } }
+  /activities/{activity}/services/{service}/availability:
+    parameters: [ { name: activity, in: path, required: true, schema: { type: string } }, { name: service, in: path, required: true, schema: { type: string } } ]
+    get:
+      operationId: get_activity_availability
+      security: []
+      summary: DisponibilitÃ  reale Capacity Mode
+      parameters: [ { name: date, in: query, required: true, schema: { type: string, format: date } } ]
+      responses: { "200": { description: Slot e capacitÃ  residua }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
+  /activities/{activity}/reviews:
+    parameters: [ { name: activity, in: path, required: true, schema: { type: string } } ]
+    get:
+      operationId: get_activity_reviews
+      security: []
+      summary: Recensioni Activity approvate
+      responses: { "200": { description: Recensioni }, "404": { $ref: "#/components/responses/NotFound" } }
+    post:
+      operationId: post_activity_review
+      summary: Crea recensione da Reservation completata
+      responses: { "201": { description: Recensione creata }, "403": { $ref: "#/components/responses/Forbidden" } }
+  /activities/{activity}/reservations:
+    parameters: [ { name: activity, in: path, required: true, schema: { type: string } } ]
+    post:
+      operationId: post_activity_reservation
+      summary: Prenota uno slot con Idempotency-Key
+      parameters: [ { name: Idempotency-Key, in: header, required: true, schema: { type: string } } ]
+      responses: { "201": { description: Reservation confermata }, "409": { $ref: "#/components/responses/Conflict" } }
+  /me/reservations:
+    get:
+      operationId: get_my_reservations
+      summary: Elenca le Reservation del Customer
+      responses: { "200": { description: Reservation proprie }, "401": { $ref: "#/components/responses/Unauthorized" } }
+  /me/reservations/{reservation}:
+    parameters: [ { name: reservation, in: path, required: true, schema: { type: string } } ]
+    get:
+      operationId: get_my_reservation
+      summary: Dettaglio Reservation propria
+      responses: { "200": { description: Reservation }, "404": { $ref: "#/components/responses/NotFound" } }
+  /me/reservations/{reservation}/cancel:
+    parameters: [ { name: reservation, in: path, required: true, schema: { type: string } } ]
+    post:
+      operationId: post_my_reservation_cancel
+      summary: Cancella Reservation e libera capacitÃ 
+      responses: { "200": { description: Reservation cancellata }, "403": { $ref: "#/components/responses/Forbidden" } }
+  /customer/activities/following:
+    get:
+      operationId: get_followed_activities
+      summary: Elenca Activity seguite
+      responses: { "200": { description: Activity seguite }, "401": { $ref: "#/components/responses/Unauthorized" } }
+  /customer/activities/{activity}/follow:
+    parameters: [ { name: activity, in: path, required: true, schema: { type: string } } ]
+    post:
+      operationId: post_activity_follow
+      summary: Segui Activity
+      responses: { "200": { description: Follow attivo }, "404": { $ref: "#/components/responses/NotFound" } }
+    delete:
+      operationId: delete_activity_follow
+      summary: Smetti di seguire Activity
+      responses: { "200": { description: Follow rimosso }, "404": { $ref: "#/components/responses/NotFound" } }
+  /organizer/activities:
+    get:
+      operationId: get_organizer_activities
+      summary: Elenca Activity dell'Organizer
+      responses: { "200": { description: Activity gestite }, "403": { $ref: "#/components/responses/Forbidden" } }
+    post:
+      operationId: post_organizer_activity
+      summary: Crea Activity
+      responses: { "201": { description: Activity creata }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
+  /organizer/activities/{activity}:
+    parameters: [ { name: activity, in: path, required: true, schema: { type: string } } ]
+    get:
+      operationId: get_organizer_activity
+      summary: Dettaglio Activity gestita
+      responses: { "200": { description: Activity }, "404": { $ref: "#/components/responses/NotFound" } }
+    put:
+      operationId: put_organizer_activity
+      summary: Aggiorna Activity gestita
+      responses: { "200": { description: Activity aggiornata }, "403": { $ref: "#/components/responses/Forbidden" } }
+  /organizer/activities/{activity}/services:
+    parameters: [ { name: activity, in: path, required: true, schema: { type: string } } ]
+    post:
+      operationId: post_organizer_activity_service
+      summary: Crea Service
+      responses: { "201": { description: Service creato }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
+  /organizer/activities/{activity}/services/{service}:
+    parameters: [ { name: activity, in: path, required: true, schema: { type: string } }, { name: service, in: path, required: true, schema: { type: string } } ]
+    put:
+      operationId: put_organizer_activity_service
+      summary: Aggiorna Service
+      responses: { "200": { description: Service aggiornato }, "403": { $ref: "#/components/responses/Forbidden" } }
+  /organizer/activities/{activity}/services/{service}/availability:
+    parameters: [ { name: activity, in: path, required: true, schema: { type: string } }, { name: service, in: path, required: true, schema: { type: string } } ]
+    put:
+      operationId: put_organizer_activity_availability
+      summary: Configura regole, eccezioni e chiusure
+      responses: { "200": { description: DisponibilitÃ  configurata }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
+  /organizer/activities/{activity}/reservations:
+    parameters: [ { name: activity, in: path, required: true, schema: { type: string } } ]
+    get:
+      operationId: get_organizer_activity_reservations
+      summary: Elenca Reservation dell'Activity
+      responses: { "200": { description: Reservation ricevute }, "403": { $ref: "#/components/responses/Forbidden" } }
+  /organizer/reservations/{reservation}/cancel:
+    parameters: [ { name: reservation, in: path, required: true, schema: { type: string } } ]
+    post:
+      operationId: post_organizer_reservation_cancel
+      summary: Cancella Reservation dell'Activity gestita
+      responses: { "200": { description: Reservation cancellata }, "403": { $ref: "#/components/responses/Forbidden" } }
 components:
   schemas:
     ErrorResponse:

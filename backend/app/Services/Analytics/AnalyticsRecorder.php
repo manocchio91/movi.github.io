@@ -2,8 +2,10 @@
 
 namespace App\Services\Analytics;
 
+use App\Models\Activity;
 use App\Models\AnalyticsEvent;
 use App\Models\Event;
+use App\Models\Reservation;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -46,5 +48,29 @@ class AnalyticsRecorder
                 'updated_at' => now(),
             ]);
         }
+    }
+
+    public function recordActivity(string $type, Activity $activity, ?User $user = null, ?Reservation $reservation = null, ?string $deduplicationKey = null): void
+    {
+        AnalyticsEvent::query()->insertOrIgnore([
+            'organizer_profile_id' => $activity->organizer_profile_id,
+            'activity_id' => $activity->id,
+            'reservation_id' => $reservation?->id,
+            'user_id' => $user?->id,
+            'type' => $type,
+            'deduplication_key' => $deduplicationKey,
+            'occurred_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    public function recordActivityDetail(Activity $activity, ?User $user, ?string $sessionId): void
+    {
+        if ($sessionId === null || trim($sessionId) === '') {
+            return;
+        }
+        $hash = hash('sha256', mb_substr(trim($sessionId), 0, 128));
+        $this->recordActivity('activity_detail_view', $activity, $user, deduplicationKey: "activity_detail_view:{$activity->id}:{$hash}:".now()->toDateString());
     }
 }

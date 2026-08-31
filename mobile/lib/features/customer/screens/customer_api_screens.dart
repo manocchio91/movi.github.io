@@ -80,6 +80,17 @@ class _CustomerApiHomeScreenState extends ConsumerState<CustomerApiHomeScreen> {
               icon: Icons.explore_rounded,
             ),
             const SizedBox(height: 18),
+            Wrap(spacing: 8, children: [
+              FilledButton.icon(
+                  onPressed: () => context.push('/customer/activities'),
+                  icon: const Icon(Icons.restaurant),
+                  label: const Text('Attività')),
+              OutlinedButton.icon(
+                  onPressed: () => context.push('/customer/reservations'),
+                  icon: const Icon(Icons.event_seat),
+                  label: const Text('Prenotazioni locali')),
+            ]),
+            const SizedBox(height: 12),
             TextField(
               controller: _search,
               decoration: const InputDecoration(

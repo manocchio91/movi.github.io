@@ -53,6 +53,12 @@ class OrganizerProfile extends Model
         return $this->hasMany(Event::class);
     }
 
+    /** @return HasMany<Activity, $this> */
+    public function activities(): HasMany
+    {
+        return $this->hasMany(Activity::class);
+    }
+
     /** @return HasMany<Review, $this> */
     public function reviews(): HasMany
     {

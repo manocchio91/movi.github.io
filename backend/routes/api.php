@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\Api\V1\ActivityController;
+use App\Http\Controllers\Api\V1\ActivityFollowController;
+use App\Http\Controllers\Api\V1\ActivityReviewController;
 use App\Http\Controllers\Api\V1\Admin\AdminCommercialController;
 use App\Http\Controllers\Api\V1\Admin\AdminDashboardController;
 use App\Http\Controllers\Api\V1\Admin\AdminOrganizerInsightController;
@@ -23,6 +26,8 @@ use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\NotificationPreferenceController;
+use App\Http\Controllers\Api\V1\OrganizerActivityController;
+use App\Http\Controllers\Api\V1\OrganizerActivityServiceController;
 use App\Http\Controllers\Api\V1\OrganizerAnalyticsController;
 use App\Http\Controllers\Api\V1\OrganizerBookingController;
 use App\Http\Controllers\Api\V1\OrganizerCheckInController;
@@ -34,6 +39,7 @@ use App\Http\Controllers\Api\V1\OrganizerProfileController;
 use App\Http\Controllers\Api\V1\OrganizerPublicController;
 use App\Http\Controllers\Api\V1\OrganizerReviewController;
 use App\Http\Controllers\Api\V1\PreferenceController;
+use App\Http\Controllers\Api\V1\ReservationController;
 use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\SubscriptionPlanController;
 use App\Http\Controllers\Api\V1\WaitlistController;
@@ -45,6 +51,10 @@ Route::prefix('v1')->group(function (): void {
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:auth');
 
     Route::get('/events', [EventController::class, 'index']);
+    Route::get('/activities', [ActivityController::class, 'index']);
+    Route::get('/activities/{activity:ulid}', [ActivityController::class, 'show']);
+    Route::get('/activities/{activity:ulid}/services/{service:ulid}/availability', [ActivityController::class, 'availability']);
+    Route::get('/activities/{activity:ulid}/reviews', [ActivityReviewController::class, 'index']);
     Route::get('/events/{event:ulid}', [EventController::class, 'show']);
     Route::post('/events/{event:ulid}/share', [EventAnalyticsController::class, 'share'])->middleware('throttle:60,1');
     Route::get('/events/{event:ulid}/reviews', [ReviewController::class, 'index']);
@@ -64,6 +74,14 @@ Route::prefix('v1')->group(function (): void {
         });
 
         Route::middleware('role:customer')->group(function (): void {
+            Route::post('/activities/{activity:ulid}/reservations', [ReservationController::class, 'store'])->middleware('throttle:sensitive');
+            Route::get('/me/reservations', [ReservationController::class, 'index']);
+            Route::get('/me/reservations/{reservation:ulid}', [ReservationController::class, 'show']);
+            Route::post('/me/reservations/{reservation:ulid}/cancel', [ReservationController::class, 'cancel'])->middleware('throttle:sensitive');
+            Route::get('/customer/activities/following', [ActivityFollowController::class, 'index']);
+            Route::post('/customer/activities/{activity:ulid}/follow', [ActivityFollowController::class, 'store']);
+            Route::delete('/customer/activities/{activity:ulid}/follow', [ActivityFollowController::class, 'destroy']);
+            Route::post('/activities/{activity:ulid}/reviews', [ActivityReviewController::class, 'store']);
             Route::get('/customer/dashboard', [CustomerDashboardController::class, 'show']);
             Route::get('/me/profile', [CustomerProfileController::class, 'show']);
             Route::patch('/me/profile', [CustomerProfileController::class, 'update']);
@@ -109,6 +127,15 @@ Route::prefix('v1')->group(function (): void {
             Route::post('/organizer/profile/submit', [OrganizerProfileController::class, 'submit']);
 
             Route::middleware('organizer.approved')->group(function (): void {
+                Route::get('/organizer/activities', [OrganizerActivityController::class, 'index']);
+                Route::post('/organizer/activities', [OrganizerActivityController::class, 'store']);
+                Route::get('/organizer/activities/{activity:ulid}', [OrganizerActivityController::class, 'show']);
+                Route::put('/organizer/activities/{activity:ulid}', [OrganizerActivityController::class, 'update']);
+                Route::post('/organizer/activities/{activity:ulid}/services', [OrganizerActivityServiceController::class, 'store']);
+                Route::put('/organizer/activities/{activity:ulid}/services/{service:ulid}', [OrganizerActivityServiceController::class, 'update']);
+                Route::put('/organizer/activities/{activity:ulid}/services/{service:ulid}/availability', [OrganizerActivityServiceController::class, 'availability']);
+                Route::get('/organizer/activities/{activity:ulid}/reservations', [OrganizerActivityController::class, 'reservations']);
+                Route::post('/organizer/reservations/{reservation:ulid}/cancel', [ReservationController::class, 'cancel'])->middleware('throttle:sensitive');
                 Route::get('/organizer/dashboard', [OrganizerDashboardController::class, 'show']);
                 Route::get('/organizer/reviews', [OrganizerReviewController::class, 'index']);
                 Route::get('/organizer/statistics', [OrganizerAnalyticsController::class, 'statistics']);

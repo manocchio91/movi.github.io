@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class AnalyticsEvent extends Model
 {
     protected $fillable = [
-        'organizer_profile_id', 'event_id', 'campaign_id', 'user_id',
+        'organizer_profile_id', 'event_id', 'activity_id', 'reservation_id', 'campaign_id', 'user_id',
         'type', 'metadata', 'deduplication_key', 'occurred_at',
     ];
 

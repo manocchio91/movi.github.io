@@ -77,6 +77,18 @@ class User extends Authenticatable
         return $this->hasMany(Booking::class);
     }
 
+    /** @return HasMany<Reservation, $this> */
+    public function reservations(): HasMany
+    {
+        return $this->hasMany(Reservation::class);
+    }
+
+    /** @return BelongsToMany<Activity, $this> */
+    public function followedActivities(): BelongsToMany
+    {
+        return $this->belongsToMany(Activity::class, 'activity_followers')->withTimestamps();
+    }
+
     /** @return HasMany<Review, $this> */
     public function reviews(): HasMany
     {

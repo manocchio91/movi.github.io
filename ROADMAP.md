@@ -142,3 +142,14 @@ Completata senza deploy remoto:
 - [x] Esperienza Organizer operativa via API
 - [x] Esperienza Admin operativa via API
 - [x] Navigazione e componenti Material 3 condivisi
+
+## MòVi 2.0
+
+- [x] Activity Foundation e Restaurant
+- [x] Reservation Engine Capacity Mode
+- [x] Follow/Review Activity, notifiche e analytics foundation
+- [ ] MòVi Manager Reservation avanzato
+- [ ] Table Mode
+- [ ] Recommendation / MòVi Plan
+- [ ] MòVi AI
+- Graphical restaurant floor plan — possible future enhancement, not required for MòVi 2.0.
