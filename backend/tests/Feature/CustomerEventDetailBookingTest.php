@@ -41,6 +41,7 @@ class CustomerEventDetailBookingTest extends TestCase
 
         $this->getJson("/api/v1/events/{$ulid}")
             ->assertOk()->assertJsonPath('data.ulid', $ulid)
+            ->assertJsonPath('data.canonical_url', config('frontend.url').'/customer/events/'.$ulid)
             ->assertJsonPath('data.ticket_types.0.ulid', $ticketUlid)
             ->assertJsonMissingPath('data.ticket_types.0.id')
             ->assertJsonPath('data.ticket_types.0.name', 'Ingresso')

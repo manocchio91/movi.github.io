@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../core/auth/auth_controller.dart';
 import '../../shared/ui/real_components.dart';
@@ -335,6 +336,16 @@ class CustomerApiEventDetailScreen extends ConsumerWidget {
   const CustomerApiEventDetailScreen({super.key, required this.id});
   final String id;
 
+  Future<void> _share(BuildContext context, ApiEvent event) async {
+    final box = context.findRenderObject() as RenderBox?;
+    await SharePlus.instance.share(ShareParams(
+      title: event.title,
+      text: 'Scopri ${event.title} su MòVi\n${event.canonicalUrl}',
+      sharePositionOrigin:
+          box == null ? null : box.localToGlobal(Offset.zero) & box.size,
+    ));
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final result = ref.watch(eventDetailProvider(id));
@@ -391,6 +402,16 @@ class CustomerApiEventDetailScreen extends ConsumerWidget {
                     icon: const Icon(Icons.people_alt_outlined),
                     label: const Text('Vedi Organizer seguiti')),
               ],
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: event.canonicalUrl.isEmpty
+                      ? null
+                      : () => _share(context, event),
+                  icon: const Icon(Icons.share_rounded),
+                  label: const Text('Condividi'),
+                ),
+              ),
               const SectionTitle('Descrizione'),
               if (event.summary.isNotEmpty) Text(event.summary),
               if (event.description.isNotEmpty) ...[

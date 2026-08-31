@@ -59,3 +59,10 @@ test('visible sources preserve UTF-8 and Italian euro formatting', () => {
   assert.ok(app.includes('Quantità'));
   assert.doesNotMatch(app + styles, /Ã|Â|â€™|â‚¬|ï¿½|�/);
 });
+
+test('event detail exposes native share copy fallback and WhatsApp', () => {
+  assert.ok(app.includes('navigator.share'));
+  assert.ok(app.includes('navigator.clipboard.writeText(event.canonical_url)'));
+  assert.ok(app.includes('https://wa.me/?text='));
+  assert.ok(app.includes("'Condividi'"));
+});

@@ -28,8 +28,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final user = auth.user;
       final path = state.uri.path;
-      if (user == null) return path == '/login' ? null : '/login';
-      if (path == '/login') return user.role.homePath;
+      if (user == null) {
+        return path == '/login'
+            ? null
+            : Uri(
+                path: '/login',
+                queryParameters: {'redirect': state.uri.toString()}).toString();
+      }
+      if (path == '/login') {
+        final requested = state.uri.queryParameters['redirect'];
+        if (user.role == AppRole.customer &&
+            requested != null &&
+            requested.startsWith('/customer/events/')) {
+          return requested;
+        }
+        return user.role.homePath;
+      }
       if (path.startsWith('/customer') && user.role != AppRole.customer) {
         return user.role.homePath;
       }

@@ -52,6 +52,7 @@ class EventController extends Controller
             $event->organizerProfile->setAttribute('logo_url', $event->organizerProfile->logo_path ? asset('storage/'.$event->organizerProfile->logo_path) : null);
             $event->organizerProfile->setAttribute('cover_url', $event->organizerProfile->cover_path ? asset('storage/'.$event->organizerProfile->cover_path) : null);
         }
+        $event->setAttribute('canonical_url', config('frontend.url').'/customer/events/'.$event->ulid);
 
         return $event;
     }

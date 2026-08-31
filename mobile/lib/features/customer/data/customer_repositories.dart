@@ -66,7 +66,7 @@ class EventRepository {
       'adults_count': 1,
       'children_count': 0,
       'items': [
-        {'ticket_type_ulid': event.ticketTypes.first.id, 'quantity': 1}
+        {'ticket_type_ulid': event.ticketTypes.first.ulid, 'quantity': 1}
       ],
     });
     _ensureSuccess(response);

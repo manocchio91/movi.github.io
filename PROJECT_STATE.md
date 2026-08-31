@@ -47,9 +47,14 @@
 
 ## Task corrente
 
-Macro 2 MòVi Engagement completata: waitlist automatica reale su backend, web e Flutter.
+Macro 3 MòVi Engagement completata: condivisione evento e fondazione deep link su web e Flutter.
 
 ## Funzionalità completate
+
+- URL canonico pubblico dell'evento generato dal backend tramite `FRONTEND_URL`.
+- Web Share API con fallback copia link e azione WhatsApp nel dettaglio evento web.
+- Share sheet nativa Flutter tramite package mantenuto `share_plus`.
+- Route diretta evento già operativa; custom scheme mobile predisposto e configurazioni HTTPS esterne documentate senza dichiararle attive.
 
 - Lista d'attesa Customer idempotente per eventi esauriti, con posizione FIFO calcolata dal backend.
 - Promozione automatica dopo annullamento, rinuncia o scadenza, con una sola offerta attiva per evento.

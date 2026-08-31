@@ -32,6 +32,7 @@ class ApiEvent {
     required this.importantInformation,
     required this.cancellationPolicy,
     required this.ticketTypes,
+    required this.canonicalUrl,
     this.rating,
   });
 
@@ -72,6 +73,7 @@ class ApiEvent {
       importantInformation: _string(json['important_information']),
       cancellationPolicy: _string(json['cancellation_policy']),
       ticketTypes: tickets.map(TicketType.fromJson).toList(growable: false),
+      canonicalUrl: _string(json['canonical_url']),
       rating: _doubleOrNull(json['average_rating']),
     );
   }
@@ -96,6 +98,7 @@ class ApiEvent {
   final String importantInformation;
   final String cancellationPolicy;
   final List<TicketType> ticketTypes;
+  final String canonicalUrl;
   final double? rating;
 
   String get category => categories.isEmpty ? '' : categories.first.name;

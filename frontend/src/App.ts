@@ -191,7 +191,7 @@ type CustomerTicket = { ulid: string; name: string; audience: 'generic' | 'adult
 type CustomerEvent = {
   ulid: string; title: string; summary: string; description: string; status: 'published'; starts_at: string;
   capacity_total: number; available_total: number; is_free: boolean; municipality?: { name: string }; categories?: EventCategory[];
-  category?: string; organizer_profile?: { ulid: string; name: string; logo_url?: string | null; cover_url?: string | null }; ticket_types: CustomerTicket[];
+  category?: string; canonical_url: string; organizer_profile?: { ulid: string; name: string; logo_url?: string | null; cover_url?: string | null }; ticket_types: CustomerTicket[];
 };
 type CustomerBookingResult = { ulid: string; booking_code: string; total_people: number; total_price_cents: number; qr_token: string };
 type CustomerBooking = {
@@ -482,6 +482,7 @@ export default defineComponent({
     const customerBookingResult = ref<CustomerBookingResult | null>(null);
     const customerWaitlist = ref<any | null>(null);
     const customerWaitlistLoading = ref(false);
+    const customerShareMessage = ref('');
     const customerBookingEdit = ref<BookingDraft | null>(null);
     const customerProfile = ref({ name: '', email: '', phone: null as string | null, created_at: '' });
     const customerPassword = ref({ current_password: '', password: '', password_confirmation: '' });
@@ -908,6 +909,9 @@ export default defineComponent({
           api<any>(`/events/${ulid}/waitlist`),
         ]);
         selectedCustomerEvent.value = eventResponse?.data ?? null;
+        const canonical = document.querySelector<HTMLLinkElement>('#canonical-url');
+        if (canonical && eventResponse?.data.canonical_url) canonical.href = eventResponse.data.canonical_url;
+        if (eventResponse?.data.title) document.title = `${eventResponse.data.title} — MòVi`;
         if (profileResponse?.data) customerProfile.value = profileResponse.data;
         customerBookingPhone.value = profileResponse?.data.phone ?? '';
         customerTicketQuantities.value = Object.fromEntries((eventResponse?.data.ticket_types ?? []).filter((ticket) => ticket.is_active).map((ticket) => [ticket.ulid, 0]));
@@ -965,6 +969,25 @@ export default defineComponent({
     };
     const leaveCustomerWaitlist = async () => { const event = selectedCustomerEvent.value; if (!event) return; customerWaitlistLoading.value = true; try { customerWaitlist.value = (await api<any>(`/events/${event.ulid}/waitlist`, { method: 'DELETE' }))?.data ?? null; } finally { customerWaitlistLoading.value = false; } };
     const acceptCustomerWaitlist = async () => { const event = selectedCustomerEvent.value; if (!event || !customerBookingPhone.value) return; customerWaitlistLoading.value = true; try { customerBookingResult.value = (await api<any>(`/events/${event.ulid}/waitlist/accept`, { method: 'POST', body: JSON.stringify({ phone: customerBookingPhone.value }) }))?.data ?? null; customerWaitlist.value.status = 'accepted'; } catch (error) { customerBookingError.value = userMessage(error, 'Offerta non confermata.'); } finally { customerWaitlistLoading.value = false; } };
+    const shareCustomerEvent = async (event: CustomerEvent) => {
+      customerShareMessage.value = '';
+      const shareData = { title: event.title, text: `Scopri ${event.title} su MòVi`, url: event.canonical_url };
+      try {
+        if (navigator.share) {
+          await navigator.share(shareData);
+          customerShareMessage.value = 'Evento condiviso.';
+          return;
+        }
+        await navigator.clipboard.writeText(event.canonical_url);
+        customerShareMessage.value = 'Link copiato negli appunti.';
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+        customerShareMessage.value = 'Condivisione non disponibile. Copia il link manualmente.';
+      }
+    };
+    const shareCustomerEventOnWhatsApp = (event: CustomerEvent) => {
+      window.open(`https://wa.me/?text=${encodeURIComponent(`Scopri ${event.title} su MòVi ${event.canonical_url}`)}`, '_blank', 'noopener,noreferrer');
+    };
 
     const toggleOrganizerFollow = async () => {
       const organizer = publicOrganizer.value?.data;
@@ -1914,7 +1937,7 @@ export default defineComponent({
       const event = selectedCustomerEvent.value;
       if (!event) return [emptyState('Evento non disponibile.')];
       const activeTickets = event.ticket_types.filter((ticket) => ticket.is_active);
-      return [h('div', { class: 'section-title' }, [h('div', [h('h2', event.title), h('span', `${event.municipality?.name ?? 'Luogo non indicato'} · ${new Date(event.starts_at).toLocaleString('it-IT')}`)]), h('button', { onClick: () => { void go('/customer/explore'); } }, 'Torna agli eventi')]), h('article', { class: 'wide-panel customer-event-detail' }, [
+      return [h('div', { class: 'section-title' }, [h('div', [h('h2', event.title), h('span', `${event.municipality?.name ?? 'Luogo non indicato'} · ${new Date(event.starts_at).toLocaleString('it-IT')}`)]), h('div', { class: 'action-row' }, [h('button', { type: 'button', onClick: () => { void shareCustomerEvent(event); } }, 'Condividi'), h('button', { type: 'button', onClick: () => { shareCustomerEventOnWhatsApp(event); } }, 'WhatsApp'), h('button', { onClick: () => { void go('/customer/explore'); } }, 'Torna agli eventi')])]), customerShareMessage.value ? h('p', { role: 'status' }, customerShareMessage.value) : null, h('article', { class: 'wide-panel customer-event-detail' }, [
         h('p', event.description), h('p', [h('strong', `${event.available_total} posti disponibili su ${event.capacity_total}`), ' · Organizzato da ', event.organizer_profile ? h('button', { class: 'link-button', onClick: () => { void go(`/customer/organizers/${event.organizer_profile!.ulid}`); } }, event.organizer_profile.name) : 'Organizer']), h('h3', 'Scegli i ticket'),
         activeTickets.length === 0 ? h('p', 'Nessun ticket disponibile.') : h('div', { class: 'customer-ticket-list' }, activeTickets.map((ticket) => h('label', { class: 'customer-ticket-row' }, [h('span', [h('strong', ticket.name), h('small', formatEuro(ticket.price_cents)), h('small', `${purchasableTickets(event, ticket)} biglietti disponibili`), ticketAvailable(ticket) < event.available_total ? h('small', 'Disponibilità limitata per questa tipologia di biglietto.') : null]), h('input', { type: 'number', min: 0, max: purchasableTickets(event, ticket), value: customerTicketQuantities.value[ticket.ulid] ?? 0, disabled: customerBookingLoading.value || customerBookingResult.value !== null, 'aria-label': `Quantità ${ticket.name}`, onInput: (inputEvent: Event) => { customerTicketQuantities.value[ticket.ulid] = Math.min(purchasableTickets(event, ticket), Math.max(0, Number((inputEvent.target as HTMLInputElement).value) || 0)); } })]))),
         renderBookingSummary(event, customerTicketQuantities.value),
