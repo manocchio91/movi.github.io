@@ -8,7 +8,7 @@ class NotificationPreference extends Model
 {
     protected $fillable = [
         'user_id', 'internal_enabled', 'email_enabled', 'promotional_enabled',
-        'frequency', 'preferred_days',
+        'operational_enabled', 'followed_organizer_events_enabled', 'frequency', 'preferred_days',
     ];
 
     protected function casts(): array
@@ -17,6 +17,8 @@ class NotificationPreference extends Model
             'internal_enabled' => 'boolean',
             'email_enabled' => 'boolean',
             'promotional_enabled' => 'boolean',
+            'operational_enabled' => 'boolean',
+            'followed_organizer_events_enabled' => 'boolean',
             'preferred_days' => 'array',
         ];
     }

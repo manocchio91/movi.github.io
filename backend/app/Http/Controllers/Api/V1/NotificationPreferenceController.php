@@ -15,6 +15,8 @@ class NotificationPreferenceController extends Controller
                 'internal_enabled' => true,
                 'email_enabled' => true,
                 'promotional_enabled' => false,
+                'operational_enabled' => true,
+                'followed_organizer_events_enabled' => true,
                 'frequency' => 'immediate',
             ]),
         ]);

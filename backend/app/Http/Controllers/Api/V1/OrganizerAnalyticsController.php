@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\OrganizerFollowerResource;
 use App\Models\AnalyticsEvent;
 use App\Models\Campaign;
 use App\Services\BusinessIntelligence\OrganizerDashboardMetrics;
@@ -42,7 +43,9 @@ class OrganizerAnalyticsController extends Controller
         $profile = request()->user()->organizerProfile;
         abort_unless($profile !== null, 403);
 
-        return response()->json(['data' => $profile->followers()->latest('organizer_followers.created_at')->get()]);
+        return OrganizerFollowerResource::collection(
+            $profile->followers()->latest('organizer_followers.created_at')->get(),
+        )->response();
     }
 
     public function categories(OrganizerDashboardMetrics $metrics): JsonResponse

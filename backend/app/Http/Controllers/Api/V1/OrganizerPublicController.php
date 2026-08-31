@@ -22,6 +22,11 @@ class OrganizerPublicController extends Controller
         $public['logo_url'] = $organizer->logo_path ? Storage::disk('public')->url($organizer->logo_path) : null;
         $public['cover_url'] = $organizer->cover_path ? Storage::disk('public')->url($organizer->cover_path) : null;
         $public['review_statistic'] = $organizer->reviewStatistic;
+        $customer = request()->user('sanctum');
+        $public['followers_count'] = $organizer->followers()->count();
+        $public['is_following'] = $customer?->followedOrganizers()
+            ->whereKey($organizer->id)
+            ->exists() ?? false;
 
         return response()->json([
             'data' => $public,
@@ -38,20 +43,5 @@ class OrganizerPublicController extends Controller
                 ->get(),
             'reviews_count' => $organizer->reviews()->where('status', 'approved')->whereNull('hidden_at')->count(),
         ]);
-    }
-
-    public function follow(OrganizerProfile $organizer): JsonResponse
-    {
-        abort_unless($organizer->verification_status === 'verified', 404);
-        request()->user()->followedOrganizers()->syncWithoutDetaching([$organizer->id]);
-
-        return response()->json(['message' => 'Organizzatore seguito.']);
-    }
-
-    public function unfollow(OrganizerProfile $organizer): JsonResponse
-    {
-        request()->user()->followedOrganizers()->detach($organizer->id);
-
-        return response()->json(['message' => 'Organizzatore rimosso dai seguiti.']);
     }
 }

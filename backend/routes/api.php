@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\CustomerDashboardController;
+use App\Http\Controllers\Api\V1\CustomerFollowController;
 use App\Http\Controllers\Api\V1\CustomerProfileController;
 use App\Http\Controllers\Api\V1\CustomerSuccessfulEventController;
 use App\Http\Controllers\Api\V1\EventController;
@@ -87,8 +88,11 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/me/notifications', [NotificationController::class, 'index']);
             Route::post('/me/notifications/{notification:ulid}/read', [NotificationController::class, 'read']);
             Route::post('/me/notifications/read-all', [NotificationController::class, 'readAll']);
-            Route::post('/organizers/{organizer:ulid}/follow', [OrganizerPublicController::class, 'follow']);
-            Route::delete('/organizers/{organizer:ulid}/follow', [OrganizerPublicController::class, 'unfollow']);
+            Route::get('/customer/following', [CustomerFollowController::class, 'index']);
+            Route::post('/customer/organizers/{organizer:ulid}/follow', [CustomerFollowController::class, 'store']);
+            Route::delete('/customer/organizers/{organizer:ulid}/follow', [CustomerFollowController::class, 'destroy']);
+            Route::post('/organizers/{organizer:ulid}/follow', [CustomerFollowController::class, 'store']);
+            Route::delete('/organizers/{organizer:ulid}/follow', [CustomerFollowController::class, 'destroy']);
         });
 
         Route::middleware('role:organizer')->group(function (): void {

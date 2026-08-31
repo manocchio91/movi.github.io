@@ -2,8 +2,8 @@
 
 namespace App\Actions\Events;
 
-use App\Actions\Notifications\NotifyInterestedCustomers;
 use App\Enums\EventStatus;
+use App\Jobs\NotifyInterestedCustomersJob;
 use App\Models\Event;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -50,7 +50,7 @@ class PublishEvent
             return $lockedEvent->refresh()->load(['categories', 'ticketTypes', 'municipality']);
         });
 
-        app(NotifyInterestedCustomers::class)->handle($published);
+        NotifyInterestedCustomersJob::dispatch($published->id)->afterCommit();
 
         return $published;
     }

@@ -13,6 +13,8 @@ final eventRepositoryProvider =
         ));
 final categoryRepositoryProvider = Provider<CategoryRepository>(
     (ref) => CategoryRepository(ref.watch(apiClientProvider)));
+final followRepositoryProvider = Provider<FollowRepository>((ref) => FollowRepository(
+    ref.watch(apiClientProvider), ref.watch(authenticationRepositoryProvider)));
 final categoriesProvider = FutureProvider<List<EventCategory>>(
     (ref) => ref.watch(categoryRepositoryProvider).categories());
 final recommendedEventsProvider = FutureProvider<EventPage>((ref) {

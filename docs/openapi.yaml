@@ -174,6 +174,25 @@ paths:
         "200": { description: Organizzatore seguito }
         "400": { $ref: "#/components/responses/BadRequest" }
         "500": { $ref: "#/components/responses/InternalServerError" }
+  /customer/organizers/{organizer}/follow:
+    post:
+      operationId: post_customer_organizers_organizer_follow
+      security: [{ bearerAuth: [] }]
+      summary: Segue un Organizer verificato in modo idempotente
+      parameters:
+        - { name: organizer, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Stato follow aggiornato }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { description: Organizer non disponibile }
+  /customer/following:
+    get:
+      operationId: get_customer_following
+      security: [{ bearerAuth: [] }]
+      summary: Elenco privacy-safe degli Organizer seguiti
+      responses:
+        "200": { description: Organizer seguiti con soli dati pubblici }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
     delete:
       operationId: delete_organizers_organizer_follow
       security: [{ bearerAuth: [] }]
@@ -325,6 +344,20 @@ paths:
       operationId: put_me_notification_preferences
       security: [{ bearerAuth: [] }]
       summary: Aggiorna preferenze notifica
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [internal_enabled, email_enabled, promotional_enabled, operational_enabled, followed_organizer_events_enabled, frequency]
+              properties:
+                internal_enabled: { type: boolean }
+                email_enabled: { type: boolean }
+                promotional_enabled: { type: boolean }
+                operational_enabled: { type: boolean }
+                followed_organizer_events_enabled: { type: boolean }
+                frequency: { type: string, enum: [immediate, daily, weekly] }
       responses:
         "200": { description: Preferenze aggiornate }
         "400": { $ref: "#/components/responses/BadRequest" }
@@ -576,7 +609,7 @@ paths:
     get:
       operationId: get_organizer_followers
       security: [{ bearerAuth: [] }]
-      summary: Utenti che seguono il locale
+      summary: Follower minimizzati senza email o identificativi interni
       responses:
         "200": { description: Lista follower }
         "400": { $ref: "#/components/responses/BadRequest" }

@@ -17,6 +17,7 @@ class ApiEvent {
     required this.summary,
     required this.description,
     required this.organizer,
+    required this.organizerId,
     required this.categories,
     required this.municipality,
     required this.province,
@@ -53,6 +54,7 @@ class ApiEvent {
       summary: _string(json['summary']),
       description: _string(json['description']),
       organizer: _string(organizer?['name']),
+      organizerId: _string(organizer?['ulid']),
       categories: categories,
       municipality: _string(municipality?['name']),
       province: _string(province?['name']),
@@ -79,6 +81,7 @@ class ApiEvent {
   final String summary;
   final String description;
   final String organizer;
+  final String organizerId;
   final List<EventCategory> categories;
   final String municipality;
   final String province;

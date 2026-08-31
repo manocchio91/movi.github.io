@@ -92,5 +92,49 @@ class CategoryRepository {
   }
 }
 
+class FollowRepository {
+  FollowRepository(this._client, this._auth);
+  final ApiClient _client;
+  final AuthenticationRepository _auth;
+
+  Future<Map<String, dynamic>> organizer(String id) async {
+    final token = await _token();
+    final response = await _client.get('/organizers/$id', token: token);
+    _ensure(response);
+    return Map<String, dynamic>.from(response.body['data'] as Map);
+  }
+
+  Future<List<Map<String, dynamic>>> following() async {
+    final response = await _client.get('/customer/following', token: await _token());
+    _ensure(response);
+    final data = response.body['data'];
+    return data is List
+        ? data.whereType<Map>().map((item) => Map<String, dynamic>.from(item)).toList()
+        : const [];
+  }
+
+  Future<bool> setFollowing(String id, bool value) async {
+    final token = await _token();
+    final response = value
+        ? await _client.post('/customer/organizers/$id/follow', token: token)
+        : await _client.delete('/customer/organizers/$id/follow', token: token);
+    _ensure(response);
+    return response.body['data'] is Map
+        ? response.body['data']['is_following'] == true
+        : value;
+  }
+
+  Future<String> _token() async {
+    final token = await _auth.accessToken();
+    if (token == null) throw const CustomerApiException('Sessione scaduta. Accedi di nuovo.');
+    return token;
+  }
+
+  void _ensure(ApiResponse response) {
+    if (response.statusCode >= 200 && response.statusCode < 300) return;
+    throw CustomerApiException(response.body['message'] as String? ?? 'Operazione non riuscita.');
+  }
+}
+
 int _number(dynamic value, int fallback) =>
     value is num ? value.toInt() : int.tryParse('$value') ?? fallback;

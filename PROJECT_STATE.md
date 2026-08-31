@@ -7,7 +7,7 @@
 - Versione corrente: `v2.0-rc1 - Final Release Candidate`
 - Ultimo aggiornamento: 13 agosto 2026
 - Repository: `manocchio91/movi`
-- Branch corrente: `feat/final-product-ux-polish`
+- Branch corrente: `feat/movi-engagement-automation`
 - Commit milestone precedente: `v1.9 - Complete premium Flutter redesign and booking checkout`
 - Ultimo tag: `v0.5-customer-booking-qr`, verificato localmente sul commit `c5e9605`
 
@@ -47,9 +47,15 @@
 
 ## Task corrente
 
-Release Candidate locale completata: prodotto multi-ruolo, configurazioni e runbook sono pronti; il deploy remoto resta posticipato al Prompt 8/8.
+Macro 1 MòVi Engagement completata: Follow Organizer e notifiche follower reali su backend, web e Flutter.
 
 ## Funzionalità completate
+
+- Follow/unfollow Organizer idempotente con stato `is_following`, conteggio e lista Customer degli Organizer seguiti.
+- Elenco follower Organizer minimizzato tramite Resource, senza email o identificativi interni.
+- Preferenze separate per notifiche operative, promozionali e nuovi eventi degli Organizer seguiti.
+- Notifiche di pubblicazione elaborate da job dopo commit e deduplicate per evento, Customer e canale.
+- UI Follow reale su web e Flutter, senza mock.
 
 - Profilo fiscale Organizer salvabile parzialmente e inviabile alla revisione Admin.
 - Stati profilo gestiti: `incomplete`, `pending`, `changes_requested`, `verified`, `rejected`, `suspended`.

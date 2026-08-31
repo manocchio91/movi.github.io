@@ -384,6 +384,14 @@ class CustomerApiEventDetailScreen extends ConsumerWidget {
                 if (event.place.isNotEmpty)
                   InfoPill(icon: Icons.place_rounded, text: event.place),
               ]),
+              if (event.organizerId.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                OrganizerFollowButton(organizerId: event.organizerId),
+                TextButton.icon(
+                    onPressed: () => context.push('/customer/following'),
+                    icon: const Icon(Icons.people_alt_outlined),
+                    label: const Text('Vedi Organizer seguiti')),
+              ],
               const SectionTitle('Descrizione'),
               if (event.summary.isNotEmpty) Text(event.summary),
               if (event.description.isNotEmpty) ...[
@@ -420,6 +428,74 @@ class CustomerApiEventDetailScreen extends ConsumerWidget {
       )),
     );
   }
+}
+
+class OrganizerFollowButton extends ConsumerStatefulWidget {
+  const OrganizerFollowButton({super.key, required this.organizerId});
+  final String organizerId;
+
+  @override
+  ConsumerState<OrganizerFollowButton> createState() => _OrganizerFollowButtonState();
+}
+
+class _OrganizerFollowButtonState extends ConsumerState<OrganizerFollowButton> {
+  bool? following;
+  bool loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final data = await ref.read(followRepositoryProvider).organizer(widget.organizerId);
+      if (mounted) setState(() => following = data['is_following'] == true);
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  Future<void> _toggle() async {
+    if (following == null || loading) return;
+    setState(() => loading = true);
+    try {
+      final value = await ref.read(followRepositoryProvider).setFollowing(widget.organizerId, !following!);
+      if (mounted) setState(() => following = value);
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => OutlinedButton.icon(
+      onPressed: loading || following == null ? null : _toggle,
+      icon: Icon(following == true ? Icons.favorite_rounded : Icons.favorite_border_rounded),
+      label: Text(loading ? 'Caricamento…' : following == true ? 'Seguito · Smetti di seguire' : 'Segui Organizer'));
+}
+
+class CustomerFollowingScreen extends ConsumerWidget {
+  const CustomerFollowingScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => Scaffold(
+      appBar: AppBar(title: const Text('Organizer seguiti')),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+          future: ref.read(followRepositoryProvider).following(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) return const LoadingSkeleton();
+            if (snapshot.hasError) return Center(child: Text('${snapshot.error}'));
+            final items = snapshot.data ?? const [];
+            if (items.isEmpty) return const Center(child: Text('Non segui ancora alcun Organizer.'));
+            return ListView.builder(
+                padding: const EdgeInsets.all(20),
+                itemCount: items.length,
+                itemBuilder: (_, index) => Card(child: ListTile(
+                    leading: const CircleAvatar(child: Icon(Icons.storefront_rounded)),
+                    title: Text('${items[index]['name'] ?? ''}'),
+                    subtitle: Text('${(items[index]['municipality'] as Map?)?['name'] ?? ''}'))));
+          }));
 }
 
 class ApiEventCard extends StatelessWidget {

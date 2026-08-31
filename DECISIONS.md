@@ -215,3 +215,13 @@ Contesto: la staging readiness tecnica è completa, ma acquistare e configurare 
 Decisione: conservare versionata e verificata tutta la preparazione staging, posticipando il deploy remoto e l’acquisto/configurazione dei servizi esterni alla fase finale. La prossima macrofase si svolge integralmente in locale ed è `Final Product Completion & UX/UI Polish`.
 
 Conseguenze: script, env example, container, seed beta, smoke test e runbook restano il percorso ufficiale di deploy; nessun ambiente remoto viene dichiarato attivo finché non saranno forniti e verificati i dati esterni reali.
+
+## ADR-019
+
+### Follow privacy-safe e notifiche follower asincrone
+
+Stato: Accepted
+
+Decisione: le API Follow usano Resource dedicate e non serializzano direttamente `User`. Le preferenze per eventi degli Organizer seguiti sono separate dalle notifiche operative e dal marketing per categorie. La pubblicazione evento accoda il calcolo dei destinatari dopo il commit e conserva la deduplicazione per evento, utente e canale.
+
+Conseguenze: follow/unfollow sono idempotenti, i client leggono `is_following`, e nessuna risposta follower espone email o identificativi interni.

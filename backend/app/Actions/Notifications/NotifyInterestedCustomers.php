@@ -18,12 +18,17 @@ class NotifyInterestedCustomers
 
         User::query()
             ->where(function ($query) use ($categoryIds, $event): void {
-                $query
-                    ->whereHas('preferredCategories', fn ($categories) => $categories->whereIn('categories.id', $categoryIds))
-                    ->orWhereHas('followedOrganizers', fn ($organizers) => $organizers->where('organizer_profiles.id', $event->organizer_profile_id));
+                $query->where(function ($categoryAudience) use ($categoryIds): void {
+                    $categoryAudience
+                        ->whereHas('preferredCategories', fn ($categories) => $categories->whereIn('categories.id', $categoryIds))
+                        ->whereHas('notificationPreference', fn ($preference) => $preference->where('promotional_enabled', true));
+                })->orWhere(function ($followerAudience) use ($event): void {
+                    $followerAudience
+                        ->whereHas('followedOrganizers', fn ($organizers) => $organizers->where('organizer_profiles.id', $event->organizer_profile_id))
+                        ->whereHas('notificationPreference', fn ($preference) => $preference->where('followed_organizer_events_enabled', true));
+                });
             })
             ->whereHas('notificationPreference', fn ($query) => $query
-                ->where('promotional_enabled', true)
                 ->where(function ($channels): void {
                     $channels->where('internal_enabled', true)->orWhere('email_enabled', true);
                 }))
@@ -83,7 +88,9 @@ class NotifyInterestedCustomers
                             ],
                         );
 
-                        $sent++;
+                        if ($notification->wasRecentlyCreated) {
+                            $sent++;
+                        }
                     }
                 }
             });

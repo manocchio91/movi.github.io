@@ -61,6 +61,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       parentNavigatorKey: _rootKey,
                       builder: (_, s) =>
                           BookingFlowScreen(id: s.pathParameters['id']!)),
+                  GoRoute(
+                      path: 'following',
+                      parentNavigatorKey: _rootKey,
+                      builder: (_, __) => const CustomerFollowingScreen()),
                 ])
           ]),
           StatefulShellBranch(routes: [

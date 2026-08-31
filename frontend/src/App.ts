@@ -14,6 +14,7 @@ type AppRoute =
   | '/customer/bookings'
   | '/customer/preferences'
   | '/customer/profile'
+  | '/customer/following'
   | '/organizer/dashboard'
   | '/organizer/onboarding'
   | '/organizer/pending'
@@ -333,6 +334,7 @@ const customerMenu = [
   ['Tutti gli Eventi', '/customer/explore'],
   ['Eventi di Successo', '/customer/successful-events'],
   ['Le mie prenotazioni', '/customer/bookings'],
+  ['Organizer seguiti', '/customer/following'],
   ['Preferenze', '/customer/preferences'],
   ['Profilo', '/customer/profile'],
 ] as const;
@@ -488,6 +490,8 @@ export default defineComponent({
     const customerSectionLoading = ref(false);
     const customerSectionMessage = ref('');
     const publicOrganizer = ref<any>(null);
+    const customerFollowing = ref<any[]>([]);
+    const followActionLoading = ref(false);
     const adminDashboard = ref<any>(null);
     const adminOverview = ref<any>(null);
     const adminEvents = ref<any[]>([]);
@@ -911,12 +915,13 @@ export default defineComponent({
       }
     };
 
-    const loadCustomerSection = async (section: 'profile' | 'bookings' | 'favorites') => {
+    const loadCustomerSection = async (section: 'profile' | 'bookings' | 'favorites' | 'following') => {
       customerSectionLoading.value = true; customerSectionMessage.value = '';
       try {
         if (section === 'profile') customerProfile.value = (await api<any>('/me/profile'))?.data ?? customerProfile.value;
         if (section === 'bookings') customerBookings.value = (await api<any>('/me/bookings'))?.data ?? [];
         if (section === 'favorites') customerFavorites.value = (await api<any>('/me/favorites'))?.data ?? [];
+        if (section === 'following') customerFollowing.value = (await api<any>('/customer/following'))?.data ?? [];
       } catch (error) { customerSectionMessage.value = userMessage(error, 'Dati non disponibili.'); }
       finally { customerSectionLoading.value = false; }
     };
@@ -944,6 +949,19 @@ export default defineComponent({
       customerSectionLoading.value = true; customerSectionMessage.value = ''; publicOrganizer.value = null;
       try { publicOrganizer.value = await api(`/organizers/${ulid}`); } catch (error) { customerSectionMessage.value = userMessage(error, 'Organizer non disponibile.'); }
       finally { customerSectionLoading.value = false; }
+    };
+
+    const toggleOrganizerFollow = async () => {
+      const organizer = publicOrganizer.value?.data;
+      if (!organizer || followActionLoading.value) return;
+      followActionLoading.value = true; customerSectionMessage.value = '';
+      try {
+        const wasFollowing = organizer.is_following === true;
+        const response = await api<any>(`/customer/organizers/${organizer.ulid}/follow`, { method: wasFollowing ? 'DELETE' : 'POST' });
+        organizer.is_following = response?.data?.is_following ?? !wasFollowing;
+        organizer.followers_count = Math.max(0, Number(organizer.followers_count ?? 0) + (organizer.is_following ? 1 : -1));
+      } catch (error) { customerSectionMessage.value = userMessage(error, 'Follow non aggiornato.'); }
+      finally { followActionLoading.value = false; }
     };
 
     const removeFavorite = async (ulid: string) => { await api(`/me/favorites/${ulid}`, { method: 'DELETE' }); await loadCustomerSection('favorites'); };
@@ -1372,6 +1390,7 @@ export default defineComponent({
       if (route.value === '/customer/profile') await loadCustomerSection('profile');
       if (route.value === '/customer/bookings') await loadCustomerSection('bookings');
       if (route.value === '/customer/preferences') await loadCustomerSection('favorites');
+      if (route.value === '/customer/following') await loadCustomerSection('following');
       if (route.value.startsWith('/customer')) await loadCustomerData();
       if (route.value.startsWith('/admin')) { await loadAdminData(); if (route.value === '/admin/subscriptions') await loadAdminPlans(); }
     };
@@ -1956,7 +1975,11 @@ export default defineComponent({
       customerSectionMessage.value ? h('p', { role: 'status' }, customerSectionMessage.value) : null,
     ];
     const renderCustomerFavorites = () => [h('div', { class: 'section-title' }, [h('h2', 'Eventi preferiti')]), customerFavorites.value.length === 0 ? emptyState('Nessun evento preferito.') : h('div', { class: 'event-grid' }, customerFavorites.value.map((event) => h('article', { class: 'experience-card' }, [h('h3', event.title), h('button', { onClick: () => { void go(`/customer/events/${event.ulid}`); } }, 'Apri'), h('button', { onClick: () => { void removeFavorite(event.ulid); } }, 'Rimuovi')])) )];
-    const renderPublicOrganizer = () => { const payload = publicOrganizer.value; if (customerSectionLoading.value) return [h('article', { class: 'wide-panel' }, 'Caricamento Organizer…')]; if (!payload) return [emptyState(customerSectionMessage.value || 'Organizer non disponibile.')]; const organizer = payload.data; return [h('article', { class: 'wide-panel organizer-public' }, [organizer.cover_url ? h('img', { src: organizer.cover_url, alt: '', class: 'organizer-cover' }) : null, organizer.logo_url ? h('img', { src: organizer.logo_url, alt: `Logo ${organizer.name}`, class: 'organizer-logo' }) : null, h('h2', organizer.name), h('p', organizer.description ?? ''), h('p', `${organizer.public_email ?? ''} ${organizer.phone ?? ''}`), h('div', { class: 'action-row' }, ['website_url', 'facebook_url', 'instagram_url', 'tiktok_url', 'youtube_url'].filter((key) => organizer[key]).map((key) => h('a', { href: organizer[key], target: '_blank', rel: 'noopener' }, key.replace('_url', '')))), h('strong', `${organizer.events_count ?? 0} eventi · ${payload.reviews_count ?? 0} recensioni`)]), h('h3', 'Eventi futuri'), h('div', { class: 'event-grid' }, (payload.future_experiences ?? []).map(renderEventCard)), h('h3', 'Eventi conclusi'), h('div', { class: 'event-grid' }, (payload.completed_experiences ?? []).map(renderEventCard))]; };
+    const renderPublicOrganizer = () => { const payload = publicOrganizer.value; if (customerSectionLoading.value) return [h('article', { class: 'wide-panel' }, 'Caricamento Organizer…')]; if (!payload) return [emptyState(customerSectionMessage.value || 'Organizer non disponibile.')]; const organizer = payload.data; return [h('article', { class: 'wide-panel organizer-public' }, [organizer.cover_url ? h('img', { src: organizer.cover_url, alt: '', class: 'organizer-cover' }) : null, organizer.logo_url ? h('img', { src: organizer.logo_url, alt: `Logo ${organizer.name}`, class: 'organizer-logo' }) : null, h('h2', organizer.name), h('p', organizer.description ?? ''), h('p', `${organizer.public_email ?? ''} ${organizer.phone ?? ''}`), h('div', { class: 'action-row' }, [h('button', { type: 'button', disabled: followActionLoading.value, onClick: () => { void toggleOrganizerFollow(); } }, followActionLoading.value ? 'Aggiornamento…' : organizer.is_following ? 'Seguito · Smetti di seguire' : 'Segui'), ...['website_url', 'facebook_url', 'instagram_url', 'tiktok_url', 'youtube_url'].filter((key) => organizer[key]).map((key) => h('a', { href: organizer[key], target: '_blank', rel: 'noopener' }, key.replace('_url', '')))]), h('strong', `${organizer.events_count ?? 0} eventi · ${payload.reviews_count ?? 0} recensioni · ${organizer.followers_count ?? 0} follower`), customerSectionMessage.value ? h('p', { role: 'status' }, customerSectionMessage.value) : null]), h('h3', 'Eventi futuri'), h('div', { class: 'event-grid' }, (payload.future_experiences ?? []).map(renderEventCard)), h('h3', 'Eventi conclusi'), h('div', { class: 'event-grid' }, (payload.completed_experiences ?? []).map(renderEventCard))]; };
+    const renderCustomerFollowing = () => [
+      h('div', { class: 'section-title' }, [h('h2', 'Organizer seguiti'), h('span', `${customerFollowing.value.length} seguiti`)]),
+      customerSectionLoading.value ? h('article', { class: 'wide-panel' }, 'Caricamento…') : customerFollowing.value.length === 0 ? emptyState('Non segui ancora alcun Organizer.') : h('div', { class: 'event-grid' }, customerFollowing.value.map((organizer) => h('article', { class: 'experience-card' }, [organizer.logo_url ? h('img', { src: organizer.logo_url, alt: '' }) : null, h('h3', organizer.name), h('p', organizer.municipality?.name ?? ''), h('button', { type: 'button', onClick: () => { void go(`/customer/organizers/${organizer.ulid}`); } }, 'Apri profilo')]))),
+    ];
 
     const renderCustomerBookingEdit = () => {
       const draft = customerBookingEdit.value; if (!draft) return null;
@@ -1990,6 +2013,7 @@ export default defineComponent({
           ? renderCustomerEventDetail()
           : route.value.startsWith('/customer/organizers/') ? renderPublicOrganizer()
           : route.value === '/customer/profile' ? renderCustomerProfile()
+          : route.value === '/customer/following' ? renderCustomerFollowing()
           : route.value === '/customer/bookings' ? renderCustomerBookings()
           : route.value === '/customer/preferences' ? renderCustomerFavorites()
           : route.value === '/customer/explore'

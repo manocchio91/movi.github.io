@@ -51,6 +51,11 @@ Filtri eventi: `q` (ricerca case-insensitive in titolo e descrizione), `category
 - `POST /me/notifications/read-all`
 - `POST /organizers/{organizer}/follow`
 - `DELETE /organizers/{organizer}/follow`
+- `POST /customer/organizers/{organizer}/follow`
+- `DELETE /customer/organizers/{organizer}/follow`
+- `GET /customer/following`
+
+Le route `/customer/organizers` sono il contratto corrente; gli endpoint precedenti restano alias compatibili. Il profilo pubblico espone `is_following` e `followers_count`. Le risposte follower/following sono minimizzate e non contengono email o ID sequenziali. Le preferenze distinguono notifiche operative, marketing per categorie e nuovi eventi degli Organizer seguiti; la pubblicazione accoda un job idempotente dopo il commit.
 
 Per `POST /events/{event}/bookings` usare `Idempotency-Key` per evitare prenotazioni duplicate. Un retry restituisce lo stesso booking e lo stesso `qr_token`, senza decrementare nuovamente disponibilita evento o ticket. Il vincolo univoco database resta la protezione finale in caso di collisione concorrente.
 
