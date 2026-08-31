@@ -6,6 +6,7 @@ use App\Models\Event;
 use App\Models\TicketType;
 use App\Models\User;
 use App\Models\WaitlistEntry;
+use App\Services\Analytics\AnalyticsRecorder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -48,6 +49,7 @@ class JoinEventWaitlist
             } else {
                 $entry->forceFill($values)->save();
             }
+            app(AnalyticsRecorder::class)->record('waitlist_joined', $lockedEvent, $user, "waitlist_joined:{$entry->id}");
 
             return $entry->load(['event', 'booking']);
         });

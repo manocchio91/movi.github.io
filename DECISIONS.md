@@ -235,3 +235,13 @@ Stato: Accepted
 Decisione: la promozione avviene in transazione con lock di riga. Una sola offerta può essere attiva per evento; i posti sono sottratti dalla disponibilità quando nasce l'offerta e restituiti in caso di rinuncia o scadenza. L'accettazione usa una chiave idempotente derivata dalla voce di waitlist.
 
 Conseguenze: capacità già offerta non può essere acquistata in concorrenza, retry e job duplicati non creano più prenotazioni, e il candidato successivo compatibile viene promosso automaticamente in ordine FIFO.
+
+## ADR-021
+
+### Writer analytics centralizzato e dati di dominio come fonte primaria
+
+Stato: Accepted
+
+Decisione: ogni segnale analytics passa da `AnalyticsRecorder`. Impression e dettaglio sono deduplicati per evento, hash di sessione e giorno; nessun identificatore di sessione in chiaro o payload personale viene conservato. Conteggi operativi e persone restano calcolati dalle tabelle di dominio, mentre `analytics_events` registra discovery, share, waitlist e acquisizione.
+
+Conseguenze: il funnel è verificabile senza inventare KPI, i retry idempotenti non gonfiano gli eventi deterministici e `experience_views`, `analytics_events` e le statistiche esistenti vengono riutilizzati senza pipeline parallele.

@@ -8,6 +8,7 @@ use App\Models\Event;
 use App\Models\Review;
 use App\Models\ReviewImage;
 use App\Models\User;
+use App\Services\Analytics\AnalyticsRecorder;
 use Illuminate\Support\Str;
 
 class CreateReview
@@ -54,6 +55,7 @@ class CreateReview
         }
 
         RecalculateReviewStatistics::dispatch($event->id, $event->organizer_profile_id);
+        app(AnalyticsRecorder::class)->record('review_created', $event, $user, "review_created:{$review->id}");
 
         return $review->load(['event', 'images']);
     }

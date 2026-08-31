@@ -32,6 +32,7 @@ APP EVENTI è una piattaforma territoriale per scoprire, pubblicare, prenotare e
 | v2.1-engagement-1 | Completata | Follow Organizer e notifiche follower privacy-safe |
 | v2.1-engagement-2 | Completata | Waitlist automatica FIFO con offerta temporanea e protezione overbooking |
 | v2.1-engagement-3 | Completata | Condivisione evento web/mobile e fondazione deep link |
+| v2.1-engagement-4 | Completata | Writer analytics reale e funnel Organizer web/mobile |
 
 ## v0.8 — Organizer Event Creation and Editing
 
@@ -69,7 +70,7 @@ Completata end-to-end sul frontend web:
 
 ## Prossima milestone
 
-Analytics Organizer reali con writer centralizzato e funnel verificabile.
+Foundation MòVi 2.0 / Activity, senza duplicare Event e i componenti di dominio riutilizzabili.
 
 ## v1.1 - MVP Profiles, Commercial Plans and Operations
 

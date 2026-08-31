@@ -32,6 +32,7 @@ class FollowSystemTest extends TestCase
             ->assertOk()->assertJsonPath('data.created', false);
 
         $this->assertDatabaseCount('organizer_followers', 1);
+        $this->assertDatabaseHas('analytics_events', ['type' => 'organizer_followed', 'organizer_profile_id' => $profile->id]);
         $this->getJson("/api/v1/organizers/{$profile->ulid}")
             ->assertOk()
             ->assertJsonPath('data.is_following', true)
@@ -42,6 +43,7 @@ class FollowSystemTest extends TestCase
         $this->deleteJson("/api/v1/customer/organizers/{$profile->ulid}/follow")
             ->assertOk()->assertJsonPath('data.removed', false);
         $this->assertDatabaseCount('organizer_followers', 0);
+        $this->assertDatabaseHas('analytics_events', ['type' => 'organizer_unfollowed', 'organizer_profile_id' => $profile->id]);
     }
 
     public function test_follow_requires_customer_authentication(): void

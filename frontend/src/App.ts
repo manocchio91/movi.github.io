@@ -120,10 +120,15 @@ type OrganizerDashboardBi = {
   followers_total: number;
   average_rating: number | null;
   review_analytics: OrganizerReviewAnalytics;
+  impressions: number; detail_views: number; shares: number; cancellations: number;
+  waitlist_joined: number; waitlist_converted: number; check_in_people: number; no_show_people: number;
+  followers_acquired: number; booking_conversion_rate: number; attendance_rate: number;
+  cancellation_rate: number; no_show_rate: number; review_rate: number; follow_conversion_rate: number;
 };
 
 type OrganizerDashboardData = {
   bi: OrganizerDashboardBi;
+  category_performance: Array<{ name: string; bookings_count: number; fill_rate: number }>;
 };
 
 type OrganizerDashboardResponse = {
@@ -189,7 +194,7 @@ type OrganizerParticipantsResponse = { data: OrganizerParticipant[]; summary: { 
 
 type CustomerTicket = { ulid: string; name: string; audience: 'generic' | 'adult' | 'child'; price_cents: number; max_quantity: number | null; booked_quantity: number; is_active: boolean };
 type CustomerEvent = {
-  ulid: string; title: string; summary: string; description: string; status: 'published'; starts_at: string;
+  ulid: string; title: string; summary: string; description: string; status: 'published' | 'sold_out'; starts_at: string;
   capacity_total: number; available_total: number; is_free: boolean; municipality?: { name: string }; categories?: EventCategory[];
   category?: string; canonical_url: string; organizer_profile?: { ulid: string; name: string; logo_url?: string | null; cover_url?: string | null }; ticket_types: CustomerTicket[];
 };
@@ -278,6 +283,9 @@ const organizerEventStatusLabels: Record<OrganizerEventStatus, string> = {
 };
 
 const sessionStorageKey = 'app-eventi.auth-token';
+const analyticsStorageKey = 'movi.analytics-session';
+const analyticsSession = localStorage.getItem(analyticsStorageKey) ?? crypto.randomUUID();
+localStorage.setItem(analyticsStorageKey, analyticsSession);
 
 const emptyEventForm = (): EventFormData => ({
   ulid: null,
@@ -528,6 +536,7 @@ export default defineComponent({
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/json',
+          'X-Analytics-Session': analyticsSession,
           Authorization: `Bearer ${requestToken}`,
           ...(options.headers ?? {}),
         },
@@ -975,10 +984,12 @@ export default defineComponent({
       try {
         if (navigator.share) {
           await navigator.share(shareData);
+          await api(`/events/${event.ulid}/share`, { method: 'POST' });
           customerShareMessage.value = 'Evento condiviso.';
           return;
         }
         await navigator.clipboard.writeText(event.canonical_url);
+        await api(`/events/${event.ulid}/share`, { method: 'POST' });
         customerShareMessage.value = 'Link copiato negli appunti.';
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') return;
@@ -987,6 +998,7 @@ export default defineComponent({
     };
     const shareCustomerEventOnWhatsApp = (event: CustomerEvent) => {
       window.open(`https://wa.me/?text=${encodeURIComponent(`Scopri ${event.title} su MòVi ${event.canonical_url}`)}`, '_blank', 'noopener,noreferrer');
+      void api(`/events/${event.ulid}/share`, { method: 'POST' });
     };
 
     const toggleOrganizerFollow = async () => {
@@ -2104,13 +2116,20 @@ export default defineComponent({
           card('Posti occupati', `${bi.occupied_places}`, 'eventi operativi futuri'),
           card('Follower', `${bi.followers_total}`, 'utenti che seguono'),
           card('Visualizzazioni', `${bi.views_total}`, 'esperienze visualizzate'),
+          card('Impression', `${bi.impressions}`, 'apparizioni deduplicate per sessione/giorno'),
+          card('Aperture dettaglio', `${bi.detail_views}`, 'visite deduplicate per sessione/giorno'),
+          card('Condivisioni', `${bi.shares}`, 'azioni di condivisione registrate'),
+          card('Cancellazioni', `${bi.cancellations}`, `${bi.cancellation_rate}% delle prenotazioni create`),
+          card('Waitlist recuperate', `${bi.waitlist_converted}/${bi.waitlist_joined}`, 'offerte convertite in booking'),
+          card('Check-in', `${bi.check_in_people}`, `${bi.attendance_rate}% partecipazione`),
+          card('No-show', `${bi.no_show_people}`, `${bi.no_show_rate}% dei partecipanti attesi`),
+          card('Conversione booking', `${bi.booking_conversion_rate}%`, 'booking su aperture dettaglio'),
+          card('Follower acquisiti', `${bi.followers_acquired}`, `${bi.follow_conversion_rate}% su aperture`),
+          card('Tasso recensione', `${bi.review_rate}%`, 'recensioni su partecipanti verificati'),
           card('Rating medio', bi.average_rating === null ? '—' : `${bi.average_rating}`, bi.average_rating === null ? 'Nessuna recensione' : 'recensioni approvate'),
           card('Numero recensioni', `${bi.review_analytics.reviews_count}`, 'recensioni approvate'),
         ]),
-        h('article', { class: 'wide-panel dashboard-state' }, [
-          h('strong', 'Andamento nel tempo'),
-          h('p', 'Serie temporale non disponibile.'),
-        ]),
+        h('article', { class: 'wide-panel dashboard-state' }, [h('strong', 'Performance categorie'), data.category_performance?.length ? h('ul', data.category_performance.map((category: any) => h('li', `${category.name}: ${category.bookings_count} prenotazioni · ${Number(category.fill_rate).toFixed(1)}% riempimento`))) : h('p', 'Nessun dato categoria disponibile.')]),
       ];
     };
 

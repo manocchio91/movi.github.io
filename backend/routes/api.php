@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\CustomerDashboardController;
 use App\Http\Controllers\Api\V1\CustomerFollowController;
 use App\Http\Controllers\Api\V1\CustomerProfileController;
 use App\Http\Controllers\Api\V1\CustomerSuccessfulEventController;
+use App\Http\Controllers\Api\V1\EventAnalyticsController;
 use App\Http\Controllers\Api\V1\EventController;
 use App\Http\Controllers\Api\V1\FavoriteController;
 use App\Http\Controllers\Api\V1\HealthController;
@@ -45,6 +46,7 @@ Route::prefix('v1')->group(function (): void {
 
     Route::get('/events', [EventController::class, 'index']);
     Route::get('/events/{event:ulid}', [EventController::class, 'show']);
+    Route::post('/events/{event:ulid}/share', [EventAnalyticsController::class, 'share'])->middleware('throttle:60,1');
     Route::get('/events/{event:ulid}/reviews', [ReviewController::class, 'index']);
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::get('/locations/search', [LocationController::class, 'search']);

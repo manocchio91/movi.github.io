@@ -6,17 +6,19 @@ use App\Enums\EventStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\IndexEventRequest;
 use App\Models\Event;
+use App\Services\Analytics\AnalyticsRecorder;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class EventController extends Controller
 {
-    public function index(IndexEventRequest $request): JsonResponse
+    public function index(IndexEventRequest $request, AnalyticsRecorder $analytics): JsonResponse
     {
         $search = trim((string) $request->validated('q', ''));
 
         $events = Event::query()
             ->with(['categories', 'municipality', 'organizerProfile', 'ticketTypes'])
-            ->where('status', EventStatus::Published)
+            ->whereIn('status', [EventStatus::Published, EventStatus::SoldOut])
             ->when($search !== '', fn ($q) => $q->where(fn ($event) => $event
                 ->where('title', 'ilike', "%{$search}%")
                 ->orWhere('description', 'ilike', "%{$search}%")))
@@ -30,17 +32,28 @@ class EventController extends Controller
             ->paginate(15);
 
         $events->through(fn (Event $event) => $this->publicEvent($event));
+        foreach ($events->getCollection() as $event) {
+            $analytics->recordDiscovery($event, 'event_impression', $request->user(), $this->analyticsSession($request));
+        }
 
         return response()->json($events);
     }
 
-    public function show(Event $event): JsonResponse
+    public function show(Event $event, AnalyticsRecorder $analytics): JsonResponse
     {
-        abort_unless($event->status === EventStatus::Published, 404);
+        abort_unless(in_array($event->status, [EventStatus::Published, EventStatus::SoldOut], true), 404);
+        $analytics->recordDiscovery($event, 'event_detail_view', request()->user(), $this->analyticsSession(request()));
 
         return response()->json([
             'data' => $this->publicEvent($event->load(['categories', 'municipality', 'organizerProfile', 'ticketTypes'])),
         ]);
+    }
+
+    private function analyticsSession(Request $request): ?string
+    {
+        $session = trim((string) $request->header('X-Analytics-Session'));
+
+        return $session === '' ? null : mb_substr($session, 0, 128);
     }
 
     private function publicEvent(Event $event): Event

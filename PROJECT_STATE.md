@@ -47,9 +47,15 @@
 
 ## Task corrente
 
-Macro 3 MòVi Engagement completata: condivisione evento e fondazione deep link su web e Flutter.
+Macro 4 MòVi Engagement completata: analytics Organizer reali con writer centralizzato e funnel web/Flutter.
 
 ## Funzionalità completate
+
+- Writer unico `AnalyticsRecorder` per discovery, share e mutazioni reali di booking, waitlist, check-in, review e follow.
+- Impression e aperture dettaglio deduplicate per evento, hash di sessione e giorno, senza IP o dati personali.
+- Funnel Organizer reale con cancellazioni, waitlist recuperate, check-in, no-show, recensioni, follower e tassi derivati.
+- `categoryPerformance()` allineata alla semantica centralizzata delle sole booking valide.
+- Dashboard Organizer web e Flutter alimentate dalle API reali, con zero/empty state al posto di KPI dimostrativi.
 
 - URL canonico pubblico dell'evento generato dal backend tramite `FRONTEND_URL`.
 - Web Share API con fallback copia link e azione WhatsApp nel dettaglio evento web.

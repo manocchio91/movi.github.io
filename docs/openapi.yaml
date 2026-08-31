@@ -214,6 +214,17 @@ paths:
         "201": { description: Prenotazione confermata }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "422": { description: Offerta assente o scaduta }
+  /events/{event}/share:
+    post:
+      operationId: post_events_event_share
+      security: []
+      summary: Registra una azione reale di condivisione dell'evento pubblico
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Evento analytics registrato senza payload personale }
+        "404": { description: Evento non pubblico }
+        "429": { description: Troppe richieste }
   /customer/organizers/{organizer}/follow:
     post:
       operationId: post_customer_organizers_organizer_follow

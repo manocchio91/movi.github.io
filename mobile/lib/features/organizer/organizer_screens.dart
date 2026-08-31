@@ -55,6 +55,42 @@ class OrganizerDashboardScreen extends ConsumerWidget {
               Icons.favorite_rounded
             ),
             ('Recensioni', '${data['reviews'] ?? 0}', Icons.star_rounded),
+            (
+              'Impression',
+              '${bi['impressions'] ?? 0}',
+              Icons.visibility_outlined
+            ),
+            (
+              'Aperture',
+              '${bi['detail_views'] ?? 0}',
+              Icons.touch_app_outlined
+            ),
+            ('Condivisioni', '${bi['shares'] ?? 0}', Icons.share_outlined),
+            (
+              'Cancellazioni',
+              '${bi['cancellations'] ?? 0}',
+              Icons.event_busy_outlined
+            ),
+            (
+              'Check-in',
+              '${bi['check_in_people'] ?? 0}',
+              Icons.how_to_reg_outlined
+            ),
+            (
+              'No-show',
+              '${bi['no_show_people'] ?? 0}',
+              Icons.person_off_outlined
+            ),
+            (
+              'Conversione',
+              '${bi['booking_conversion_rate'] ?? 0}%',
+              Icons.trending_up_rounded
+            ),
+            (
+              'Partecipazione',
+              '${bi['attendance_rate'] ?? 0}%',
+              Icons.groups_2_outlined
+            ),
           ]),
           const SectionTitle('Azioni rapide'),
           _ActionCard(

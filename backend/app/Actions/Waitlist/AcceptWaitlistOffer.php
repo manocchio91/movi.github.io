@@ -8,6 +8,7 @@ use App\Models\Booking;
 use App\Models\Event;
 use App\Models\User;
 use App\Models\WaitlistEntry;
+use App\Services\Analytics\AnalyticsRecorder;
 use Illuminate\Support\Facades\DB;
 
 class AcceptWaitlistOffer
@@ -36,6 +37,7 @@ class AcceptWaitlistOffer
             $entry->forceFill([
                 'status' => 'accepted', 'accepted_at' => now(), 'reserved_until' => null, 'booking_id' => $booking->id,
             ])->save();
+            app(AnalyticsRecorder::class)->record('waitlist_converted', $lockedEvent, $user, "waitlist_converted:{$entry->id}");
 
             return $booking;
         });

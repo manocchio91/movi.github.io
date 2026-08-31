@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\UserRole;
 use App\Mail\OperationalMessage;
+use App\Models\AnalyticsEvent;
 use App\Models\Booking;
 use App\Models\Category;
 use App\Models\Municipality;
@@ -34,18 +35,24 @@ class CustomerEventDetailBookingTest extends TestCase
         $ticketUlid = $created->json('data.ticket_types.0.ulid');
         $this->postJson("/api/v1/organizer/events/{$ulid}/publish")->assertOk();
 
-        $list = $this->actingAs($customer, 'sanctum')->getJson('/api/v1/events?available=1')
+        $list = $this->actingAs($customer, 'sanctum')->withHeader('X-Analytics-Session', 'customer-detail-session')->getJson('/api/v1/events?available=1')
             ->assertOk()->assertJsonPath('data.0.ulid', $ulid)
             ->assertJsonPath('data.0.title', 'Evento creato Organizer');
         $this->assertNotEmpty($list->json('data.0.ulid'));
 
-        $this->getJson("/api/v1/events/{$ulid}")
+        $this->withHeader('X-Analytics-Session', 'customer-detail-session')->getJson("/api/v1/events/{$ulid}")
             ->assertOk()->assertJsonPath('data.ulid', $ulid)
             ->assertJsonPath('data.canonical_url', config('frontend.url').'/customer/events/'.$ulid)
             ->assertJsonPath('data.ticket_types.0.ulid', $ticketUlid)
             ->assertJsonMissingPath('data.ticket_types.0.id')
             ->assertJsonPath('data.ticket_types.0.name', 'Ingresso')
             ->assertJsonMissingPath('data.contact_phone');
+        $this->withHeader('X-Analytics-Session', 'customer-detail-session')->getJson("/api/v1/events/{$ulid}")->assertOk();
+        $this->postJson("/api/v1/events/{$ulid}/share")->assertOk();
+        $this->assertDatabaseCount('experience_views', 1);
+        $this->assertSame(1, AnalyticsEvent::query()->where('type', 'event_impression')->count());
+        $this->assertSame(1, AnalyticsEvent::query()->where('type', 'event_detail_view')->count());
+        $this->assertSame(1, AnalyticsEvent::query()->where('type', 'event_share')->count());
 
         $payload = ['adults_count' => 1, 'children_count' => 0, 'items' => [['ticket_type_ulid' => $ticketUlid, 'quantity' => 1]]];
         $this->withHeader('Idempotency-Key', 'customer-web-missing-phone')
@@ -68,6 +75,7 @@ class CustomerEventDetailBookingTest extends TestCase
             'total_people' => 1,
             'status' => 'confirmed',
         ]);
+        $this->assertDatabaseHas('analytics_events', ['type' => 'booking_created']);
         Mail::assertQueued(OperationalMessage::class, fn (OperationalMessage $mail): bool => $mail->hasTo($customer->email));
 
         $this->getJson("/api/v1/me/bookings/{$bookingUlid}/qr")

@@ -47,6 +47,20 @@ class OrganizerDashboardTest extends TestCase
                         'unpublished_events',
                         'bookings_received',
                         'participants_total',
+                        'impressions',
+                        'detail_views',
+                        'shares',
+                        'cancellations',
+                        'waitlist_joined',
+                        'waitlist_converted',
+                        'check_in_people',
+                        'no_show_people',
+                        'booking_conversion_rate',
+                        'attendance_rate',
+                        'cancellation_rate',
+                        'no_show_rate',
+                        'review_rate',
+                        'follow_conversion_rate',
                     ],
                     'unpublished_experiences',
                 ],
@@ -103,6 +117,8 @@ class OrganizerDashboardTest extends TestCase
             ->assertJsonPath('data.bi.participants_total', 9)
             ->assertJsonPath('data.bi.unique_participants', 2)
             ->assertJsonPath('data.bi.returning_participants', 1)
+            ->assertJsonPath('data.bi.cancellations', 2)
+            ->assertJsonPath('data.bi.cancellation_rate', 40)
             ->assertJsonPath('data.bookings_total', 3)
             ->assertJsonPath('data.participants_total', 9);
 

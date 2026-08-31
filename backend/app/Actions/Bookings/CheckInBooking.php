@@ -6,6 +6,7 @@ use App\Models\Booking;
 use App\Models\CheckIn;
 use App\Models\Event;
 use App\Models\User;
+use App\Services\Analytics\AnalyticsRecorder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
@@ -35,6 +36,7 @@ class CheckInBooking
             ]);
 
             $booking->forceFill(['status' => 'checked_in'])->save();
+            app(AnalyticsRecorder::class)->record('check_in', $event, $booking->user, "check_in:{$checkIn->id}");
 
             return $checkIn->load('booking');
         });

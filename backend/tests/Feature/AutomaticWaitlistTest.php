@@ -6,6 +6,7 @@ use App\Actions\Waitlist\ExpireWaitlistOffers;
 use App\Actions\Waitlist\PromoteEventWaitlist;
 use App\Enums\EventStatus;
 use App\Enums\UserRole;
+use App\Models\AnalyticsEvent;
 use App\Models\Booking;
 use App\Models\Event;
 use App\Models\Municipality;
@@ -26,6 +27,7 @@ class AutomaticWaitlistTest extends TestCase
     public function test_join_is_idempotent_exposes_fifo_position_and_leave_is_idempotent(): void
     {
         [$event, $ticket, $first, $second] = $this->domain();
+        $this->getJson("/api/v1/events/{$event->ulid}")->assertOk()->assertJsonPath('data.status', 'sold_out');
 
         $this->actingAs($first, 'sanctum')->postJson("/api/v1/events/{$event->ulid}/waitlist", $this->payload($ticket))
             ->assertCreated()->assertJsonPath('data.position', 1);
@@ -34,6 +36,7 @@ class AutomaticWaitlistTest extends TestCase
         $this->actingAs($second, 'sanctum')->postJson("/api/v1/events/{$event->ulid}/waitlist", $this->payload($ticket))
             ->assertCreated()->assertJsonPath('data.position', 2);
         $this->assertDatabaseCount('waitlist_entries', 2);
+        $this->assertSame(2, AnalyticsEvent::query()->where('type', 'waitlist_joined')->count());
 
         $this->actingAs($first, 'sanctum')->deleteJson("/api/v1/events/{$event->ulid}/waitlist")
             ->assertOk()->assertJsonPath('data.status', 'cancelled');
@@ -69,6 +72,7 @@ class AutomaticWaitlistTest extends TestCase
 
         $this->assertDatabaseCount('bookings', 1);
         $this->assertDatabaseHas('waitlist_entries', ['user_id' => $first->id, 'status' => 'accepted']);
+        $this->assertDatabaseHas('analytics_events', ['type' => 'waitlist_converted', 'user_id' => $first->id]);
         $this->assertSame(0, $event->refresh()->available_total);
     }
 

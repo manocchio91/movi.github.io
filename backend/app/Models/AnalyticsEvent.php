@@ -8,7 +8,7 @@ class AnalyticsEvent extends Model
 {
     protected $fillable = [
         'organizer_profile_id', 'event_id', 'campaign_id', 'user_id',
-        'type', 'metadata', 'occurred_at',
+        'type', 'metadata', 'deduplication_key', 'occurred_at',
     ];
 
     protected function casts(): array

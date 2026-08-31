@@ -65,4 +65,6 @@ test('event detail exposes native share copy fallback and WhatsApp', () => {
   assert.ok(app.includes('navigator.clipboard.writeText(event.canonical_url)'));
   assert.ok(app.includes('https://wa.me/?text='));
   assert.ok(app.includes("'Condividi'"));
+  assert.ok(app.includes("'X-Analytics-Session': analyticsSession"));
+  assert.ok(app.includes("`/events/${event.ulid}/share`"));
 });

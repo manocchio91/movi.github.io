@@ -6,6 +6,7 @@ use App\Enums\EventStatus;
 use App\Jobs\PromoteEventWaitlistJob;
 use App\Models\Booking;
 use App\Models\Event;
+use App\Services\Analytics\AnalyticsRecorder;
 use Illuminate\Support\Facades\DB;
 
 class CancelBooking
@@ -41,6 +42,7 @@ class CancelBooking
             }
 
             DB::afterCommit(fn () => PromoteEventWaitlistJob::dispatch($event->id));
+            app(AnalyticsRecorder::class)->record('booking_cancelled', $event, $lockedBooking->user, "booking_cancelled:{$lockedBooking->id}");
 
             return $lockedBooking->refresh();
         });

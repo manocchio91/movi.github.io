@@ -48,6 +48,12 @@ class EventRepository {
     return ApiEvent.fromJson(_events.ingest(data));
   }
 
+  Future<void> recordShare(String eventId) async {
+    final response =
+        await _client.post('/events/$eventId/share', token: await _token());
+    _ensureSuccess(response);
+  }
+
   Future<Map<String, dynamic>?> waitlistStatus(String eventId) async {
     final response =
         await _client.get('/events/$eventId/waitlist', token: await _token());

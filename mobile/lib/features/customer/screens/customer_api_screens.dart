@@ -338,12 +338,17 @@ class CustomerApiEventDetailScreen extends ConsumerWidget {
 
   Future<void> _share(BuildContext context, ApiEvent event) async {
     final box = context.findRenderObject() as RenderBox?;
-    await SharePlus.instance.share(ShareParams(
+    final repository =
+        ProviderScope.containerOf(context).read(eventRepositoryProvider);
+    final result = await SharePlus.instance.share(ShareParams(
       title: event.title,
       text: 'Scopri ${event.title} su MòVi\n${event.canonicalUrl}',
       sharePositionOrigin:
           box == null ? null : box.localToGlobal(Offset.zero) & box.size,
     ));
+    if (result.status == ShareResultStatus.success) {
+      await repository.recordShare(event.id);
+    }
   }
 
   @override

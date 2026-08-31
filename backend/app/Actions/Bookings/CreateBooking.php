@@ -9,6 +9,7 @@ use App\Models\Notification;
 use App\Models\NotificationDelivery;
 use App\Models\TicketType;
 use App\Models\User;
+use App\Services\Analytics\AnalyticsRecorder;
 use Closure;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -139,6 +140,8 @@ class CreateBooking
                 }
 
                 $booking->setAttribute('qr_token', $qrToken);
+
+                app(AnalyticsRecorder::class)->record('booking_created', $lockedEvent, $user, "booking_created:{$booking->id}");
 
                 return $this->responseBooking($booking);
             });
