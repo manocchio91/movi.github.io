@@ -1,10 +1,16 @@
 import 'package:eventi_locali_mobile/features/activities/activity_repository.dart';
 import 'package:eventi_locali_mobile/features/activities/activity_screens.dart';
+import 'package:eventi_locali_mobile/features/customer/data/customer_repositories.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('discovery model parses normalized backend results and reasons', () {
+    final item = DiscoveryItem.fromJson({'entity_id': '01DISCOVERY', 'entity_type': 'activity', 'title': 'Cena', 'location': 'Campobasso', 'availability_status': 'available', 'recommendation_reasons': ['Attività che segui']});
+    expect(item.type, 'activity');
+    expect(item.reasons, ['Attività che segui']);
+  });
   test('activity model parses real services and following state', () {
     final activity = ActivityModel.fromJson({
       'ulid': '01ACTIVITY',

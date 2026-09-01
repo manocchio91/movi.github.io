@@ -482,6 +482,8 @@ export default defineComponent({
     const opportunities = ref<any>(null);
     const customerDashboard = ref<any>(null);
     const allCustomerEvents = ref<any[]>([]);
+    const discoveryResults = ref<any[]>([]);
+    const recommendationResults = ref<any[]>([]);
     const successfulEvents = ref<any[]>([]);
     const selectedCustomerEvent = ref<CustomerEvent | null>(null);
     const customerEventLoading = ref(false);
@@ -906,14 +908,18 @@ export default defineComponent({
       loading.value = true;
       apiError.value = '';
       try {
-        const [dashboard, eventPayload, successPayload] = await Promise.all([
+        const [dashboard, eventPayload, successPayload, discoveryPayload, recommendationPayload] = await Promise.all([
           api('/customer/dashboard'),
           api('/events'),
           api('/customer/successful-events'),
+          api('/discovery?when=today&available=1'),
+          api('/recommendations?available=1'),
         ]);
         customerDashboard.value = dashboard?.data ?? null;
         allCustomerEvents.value = eventPayload?.data?.data ?? eventPayload?.data ?? [];
         successfulEvents.value = successPayload?.data ?? [];
+        discoveryResults.value = discoveryPayload?.data ?? [];
+        recommendationResults.value = recommendationPayload?.data ?? [];
       } catch (error) {
         apiError.value = userMessage(error, 'API customer non disponibile');
       } finally {
@@ -2480,6 +2486,8 @@ export default defineComponent({
         h('input', { name: 'minimum_advance_minutes', type: 'number', min: 0, value: 60, 'aria-label': 'Anticipo minimo minuti' }),
         h('button', { type: 'submit' }, 'Aggiungi servizio'),
       ]),
+      discoveryResults.value.length ? h('section', [h('div', { class: 'section-title' }, [h('h2', 'Oggi')]), h('div', { class: 'event-grid' }, discoveryResults.value.slice(0, 6).map((item: any) => h('article', { class: 'experience-card' }, [h('span', item.entity_type === 'event' ? 'Evento' : 'Attività'), h('h3', item.title), h('p', `${item.location ?? ''} · ${item.availability_status}`), h('button', { type: 'button', onClick: () => { void go((item.entity_type === 'event' ? `/customer/events/${item.entity_id}` : `/customer/activities/${item.entity_id}`) as AppRoute); } }, 'Apri')])) )]) : null,
+      recommendationResults.value.length ? h('section', [h('div', { class: 'section-title' }, [h('h2', 'Per te')]), h('div', { class: 'event-grid' }, recommendationResults.value.slice(0, 6).map((item: any) => h('article', { class: 'experience-card' }, [h('h3', item.title), h('p', (item.recommendation_reasons ?? []).join(' · '))])))]) : null,
       ...(activity.services ?? []).map((service: any) => h('section', { class: 'capacity-summary' }, [
         h('h3', service.name), h('p', `${service.min_party_size}-${service.max_party_size} persone · anticipo ${service.minimum_advance_minutes} minuti`),
         h('form', { class: 'action-row', onSubmit: (event: Event) => { void configureActivitySlot(event, activity, service); } }, [

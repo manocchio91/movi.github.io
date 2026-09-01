@@ -259,3 +259,7 @@ Conseguenze: Restaurant è il primo tipo operativo ma il motore resta estendibil
 ## Reservation attendance e reminder
 
 Decisione: il gestore classifica manualmente `completed` o `no_show` solo dopo la conclusione del servizio; nessun no-show è automatico. I reminder operativi sono schedulati e deduplicati, separati dal marketing. Ridurre la capacità sotto i coperti confermati non cancella Reservation e porta la disponibilità residua a zero.
+
+## Recommendation deterministica
+
+Decisione: Recommendation usa esclusivamente dati MòVi reali, disponibilità backend, preferenze dichiarate e follow. Pesi e motivazioni sono centralizzati e testabili. Nessuna inferenza da testo libero, profilazione opaca, machine learning o LLM è introdotta; la futura MòVi AI consumerà l'engine come source of truth.

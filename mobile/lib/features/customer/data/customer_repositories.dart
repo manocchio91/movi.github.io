@@ -11,6 +11,52 @@ class CustomerApiException implements Exception {
   String toString() => message;
 }
 
+class DiscoveryItem {
+  const DiscoveryItem(this.id, this.type, this.title, this.location,
+      this.availability, this.reasons);
+  final String id;
+  final String type;
+  final String title;
+  final String location;
+  final String availability;
+  final List<String> reasons;
+
+  factory DiscoveryItem.fromJson(Map<String, dynamic> json) => DiscoveryItem(
+      '${json['entity_id']}',
+      '${json['entity_type']}',
+      '${json['title']}',
+      '${json['location'] ?? ''}',
+      '${json['availability_status']}',
+      (json['recommendation_reasons'] as List? ?? const [])
+          .map((reason) => '$reason')
+          .toList());
+}
+
+class DiscoveryRepository {
+  DiscoveryRepository(this._client, this._auth);
+  final ApiClient _client;
+  final AuthenticationRepository _auth;
+
+  void _ensureSuccess(ApiResponse response) {
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw CustomerApiException(
+          '${response.body['message'] ?? 'Discovery non disponibile.'}');
+    }
+  }
+
+  Future<List<DiscoveryItem>> load({bool recommended = false, String when = 'today'}) async {
+    final token = await _auth.accessToken();
+    final response = await _client.get(
+        '${recommended ? '/recommendations' : '/discovery'}?when=$when&available=1',
+        token: token);
+    _ensureSuccess(response);
+    final data = response.body['data'];
+    return data is List
+        ? data.whereType<Map<String, dynamic>>().map(DiscoveryItem.fromJson).toList()
+        : const [];
+  }
+}
+
 class EventRepository {
   EventRepository(this._client, this._auth, this._events);
   final ApiClient _client;

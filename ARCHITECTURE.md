@@ -188,3 +188,7 @@ L'Event Engine (`Event`, `Booking`, waitlist e check-in) resta separato dal Rese
 In Capacity Mode ogni slot espone coperti MòVi. La disponibilità sottrae le Reservation confermate; creazione e cancellazione usano transazioni, lock sulla riga Service e chiavi idempotenti. Le modifiche successive alle regole non invalidano Reservation esistenti.
 
 Il Reservation Manager riusa questo dominio. Le API Organizer applicano ownership, filtri validati e transizioni esplicite; attendance è registrabile solo dopo la durata del servizio. Reminder e analytics riusano le infrastrutture esistenti, senza introdurre Table Mode o CRM separati.
+
+## Discovery e Recommendation
+
+`DiscoveryEngine` è un servizio applicativo indipendente dalle UI. Normalizza Event e Activity, applica disponibilità source-of-truth, distanza deterministica e Interest Profile esplicito. Il ranking usa pesi centralizzati; MòVi Plan e una futura MòVi AI potranno invocare questo servizio senza sostituirne i vincoli di dominio.

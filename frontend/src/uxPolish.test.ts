@@ -5,6 +5,12 @@ import test from 'node:test';
 const app = readFileSync(new URL('./App.ts', import.meta.url), 'utf8');
 const styles = readFileSync(new URL('./styles.css', import.meta.url), 'utf8');
 
+test('customer discovery renders only real unified API results', () => {
+  assert.match(app, /api\('\/discovery\?when=today&available=1'\)/);
+  assert.match(app, /api\('\/recommendations\?available=1'\)/);
+  assert.match(app, /recommendation_reasons/);
+});
+
 test('successful events link to an available next edition', () => {
   assert.match(app, /event\.next_edition[\s\S]*Apri nuova edizione/);
   assert.doesNotMatch(app, /Nuova edizione non ancora collegata/);

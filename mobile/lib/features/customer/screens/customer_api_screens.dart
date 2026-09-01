@@ -50,6 +50,8 @@ class _CustomerApiHomeScreenState extends ConsumerState<CustomerApiHomeScreen> {
     final categories = ref.watch(categoriesProvider);
     final recommended = ref.watch(recommendedEventsProvider);
     final successful = ref.watch(successfulEventsProvider);
+    final discovery = ref.watch(discoveryProvider);
+    final recommendations = ref.watch(recommendationsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -90,6 +92,21 @@ class _CustomerApiHomeScreenState extends ConsumerState<CustomerApiHomeScreen> {
                   icon: const Icon(Icons.event_seat),
                   label: const Text('Prenotazioni locali')),
             ]),
+            const SizedBox(height: 12),
+            Text('Oggi', style: Theme.of(context).textTheme.titleLarge),
+            discovery.when(
+                loading: () => const LinearProgressIndicator(),
+                error: (error, _) => Text('$error'),
+                data: (items) => Column(children: items.take(5).map((item) =>
+                    ListTile(title: Text(item.title), subtitle: Text('${item.location} · ${item.availability}'),
+                      onTap: () => context.push(item.type == 'event' ? '/customer/events/${item.id}' : '/customer/activities/${item.id}'))).toList())),
+            Text('Per te', style: Theme.of(context).textTheme.titleLarge),
+            recommendations.when(
+                loading: () => const LinearProgressIndicator(),
+                error: (error, _) => Text('$error'),
+                data: (items) => Column(children: items.take(5).map((item) =>
+                    ListTile(title: Text(item.title), subtitle: Text(item.reasons.join(' · ')),
+                      onTap: () => context.push(item.type == 'event' ? '/customer/events/${item.id}' : '/customer/activities/${item.id}'))).toList())),
             const SizedBox(height: 12),
             TextField(
               controller: _search,

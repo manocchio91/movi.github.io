@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\V1\CustomerDashboardController;
 use App\Http\Controllers\Api\V1\CustomerFollowController;
 use App\Http\Controllers\Api\V1\CustomerProfileController;
 use App\Http\Controllers\Api\V1\CustomerSuccessfulEventController;
+use App\Http\Controllers\Api\V1\DiscoveryController;
 use App\Http\Controllers\Api\V1\EventAnalyticsController;
 use App\Http\Controllers\Api\V1\EventController;
 use App\Http\Controllers\Api\V1\FavoriteController;
@@ -52,6 +53,9 @@ Route::prefix('v1')->group(function (): void {
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:auth');
 
     Route::get('/events', [EventController::class, 'index']);
+    Route::get('/discovery', [DiscoveryController::class, 'discovery']);
+    Route::get('/recommendations', [DiscoveryController::class, 'recommendations']);
+    Route::post('/recommendations/opened', [DiscoveryController::class, 'opened']);
     Route::get('/activities', [ActivityController::class, 'index']);
     Route::get('/activities/{activity:ulid}', [ActivityController::class, 'show']);
     Route::get('/activities/{activity:ulid}/services/{service:ulid}/availability', [ActivityController::class, 'availability']);

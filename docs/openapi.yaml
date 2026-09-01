@@ -1677,6 +1677,28 @@ paths:
       operationId: patch_organizer_reservation_status
       summary: Marca una Reservation conclusa come completed o no_show
       responses: { "200": { description: Stato aggiornato }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
+  /discovery:
+    get:
+      operationId: get_discovery
+      summary: Discovery deterministica di Event e Activity realmente disponibili
+      parameters:
+        - { name: when, in: query, schema: { type: string, enum: [today, evening, tomorrow, weekend] } }
+        - { name: type, in: query, schema: { type: string, enum: [all, event, activity] } }
+        - { name: category_id, in: query, schema: { type: integer } }
+        - { name: latitude, in: query, schema: { type: number } }
+        - { name: longitude, in: query, schema: { type: number } }
+        - { name: radius_km, in: query, schema: { type: number, maximum: 200 } }
+      responses: { "200": { description: Risultati normalizzati e paginati }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
+  /recommendations:
+    get:
+      operationId: get_recommendations
+      summary: Feed deterministico con motivazioni trasparenti
+      responses: { "200": { description: Risultati ordinati con recommendation_reasons }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
+  /recommendations/opened:
+    post:
+      operationId: post_recommendation_opened
+      summary: Registra apertura deduplicata di un risultato raccomandato
+      responses: { "200": { description: Apertura registrata }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
 components:
   schemas:
     ErrorResponse:

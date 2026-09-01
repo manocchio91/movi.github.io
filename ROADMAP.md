@@ -150,6 +150,7 @@ Completata senza deploy remoto:
 - [x] Follow/Review Activity, notifiche e analytics foundation
 - [x] MòVi Manager Reservation avanzato
 - [ ] Table Mode
-- [ ] Recommendation / MòVi Plan
+- [x] Discovery & Recommendation Foundation
+- [ ] MòVi Plan
 - [ ] MòVi AI
 - Graphical restaurant floor plan — possible future enhancement, not required for MòVi 2.0.

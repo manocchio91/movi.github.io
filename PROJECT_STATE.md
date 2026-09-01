@@ -159,3 +159,9 @@ Deploy controllato della Release Candidate nel Prompt 8/8.
 - Dashboard, lista filtrabile, dettaglio e transizioni controllate `completed`/`no_show` per Organizer.
 - Capacità e chiusure rapide proteggono le Reservation confermate.
 - Clienti privacy-safe, reminder deduplicati, review verificata e KPI reali; Table Mode resta fuori scope.
+
+## Discovery & Recommendation Foundation
+
+- Feed normalizzato Event/Activity con filtri temporali, geografici, categoria, tipo, family e disponibilità reale.
+- Interest Profile trasparente basato su preferenze e follow; scoring configurabile con motivazioni verificabili.
+- Web e Flutter consumano ranking backend; nessun LLM, chatbot o dato simulato.
