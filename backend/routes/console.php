@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Reservations\SendReservationReminders;
 use App\Actions\Waitlist\ExpireWaitlistOffers;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -10,3 +11,6 @@ Artisan::command('app:about-domain', function (): void {
 
 Schedule::call(fn () => app(ExpireWaitlistOffers::class)->handle())
     ->name('expire-waitlist-offers')->everyMinute()->withoutOverlapping();
+
+Schedule::call(fn () => app(SendReservationReminders::class)->handle())
+    ->name('send-reservation-reminders')->everyFiveMinutes()->withoutOverlapping();

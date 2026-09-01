@@ -255,3 +255,7 @@ Stato: Accepted
 Decisione: Activity rappresenta il locale prenotabile e può appartenere a un Organizer con altre Activity. Reservation usa Service, regole/eccezioni e Capacity Mode; non riusa Event o Booking. Il lock della riga Service serializza la verifica della capacità PostgreSQL e l'idempotency key rende sicuri i retry.
 
 Conseguenze: Restaurant è il primo tipo operativo ma il motore resta estendibile. Table Mode, pianta grafica e ottimizzazione tavoli non fanno parte di questa macrofase.
+
+## Reservation attendance e reminder
+
+Decisione: il gestore classifica manualmente `completed` o `no_show` solo dopo la conclusione del servizio; nessun no-show è automatico. I reminder operativi sono schedulati e deduplicati, separati dal marketing. Ridurre la capacità sotto i coperti confermati non cancella Reservation e porta la disponibilità residua a zero.

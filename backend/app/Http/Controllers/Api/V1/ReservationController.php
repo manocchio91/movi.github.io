@@ -17,7 +17,7 @@ class ReservationController extends Controller
 {
     public function index(): JsonResponse
     {
-        return ReservationResource::collection(request()->user()->reservations()->with(['activity.municipality', 'service'])->latest('starts_at')->paginate(50))->response();
+        return ReservationResource::collection(request()->user()->reservations()->with(['activity.municipality', 'service', 'review'])->latest('starts_at')->paginate(50))->response();
     }
 
     public function store(StoreReservationRequest $request, Activity $activity, CreateReservation $create): JsonResponse
@@ -33,7 +33,7 @@ class ReservationController extends Controller
     {
         $this->authorize('view', $reservation);
 
-        return response()->json(['data' => ReservationResource::make($reservation->load(['activity.municipality', 'service', 'user']))]);
+        return response()->json(['data' => ReservationResource::make($reservation->load(['activity.municipality', 'service', 'user', 'review']))]);
     }
 
     public function cancel(Request $request, Reservation $reservation, CancelReservation $cancel): JsonResponse

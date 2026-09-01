@@ -193,8 +193,11 @@ class OrganizerActivityManagerScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) => Scaffold(
         appBar: AppBar(title: const Text('MòVi Manager')),
         body: FutureBuilder(
-          future:
-              ref.read(roleApiRepositoryProvider).get('/organizer/activities'),
+          future: Future.wait([
+            ref.read(roleApiRepositoryProvider).get('/organizer/activities'),
+            ref.read(roleApiRepositoryProvider).get('/organizer/reservations/dashboard'),
+            ref.read(roleApiRepositoryProvider).get('/organizer/reservations/analytics'),
+          ]),
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
               return Center(
@@ -202,8 +205,19 @@ class OrganizerActivityManagerScreen extends ConsumerWidget {
                       ? Text('${snapshot.error}')
                       : const CircularProgressIndicator());
             }
-            final activities = _rows(snapshot.data!['data']);
+            final responses = snapshot.data!;
+            final activities = _rows(responses[0]['data']);
+            final dashboard = Map<String, dynamic>.from(responses[1]['data'] as Map);
+            final today = Map<String, dynamic>.from(dashboard['today'] as Map);
+            final analytics = Map<String, dynamic>.from(responses[2]['data'] as Map);
             return ListView(padding: const EdgeInsets.all(16), children: [
+              Wrap(spacing: 8, runSpacing: 8, children: [
+                Chip(label: Text('${today['reservations']} prenotazioni oggi')),
+                Chip(label: Text('${today['covers']} coperti')),
+                Chip(label: Text('${today['cancellations']} cancellazioni')),
+                Chip(label: Text('${analytics['no_show_rate']}% no-show')),
+              ]),
+              const SizedBox(height: 12),
               FilledButton.icon(
                   onPressed: () async {
                     await ref

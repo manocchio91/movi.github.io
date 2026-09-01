@@ -1645,6 +1645,38 @@ paths:
       operationId: post_organizer_reservation_cancel
       summary: Cancella Reservation dell'Activity gestita
       responses: { "200": { description: Reservation cancellata }, "403": { $ref: "#/components/responses/Forbidden" } }
+  /organizer/reservations:
+    get:
+      operationId: get_organizer_reservations
+      summary: Lista operativa Reservation con filtri per data, stato, Activity, Service e cliente
+      responses: { "200": { description: Reservation gestite }, "403": { $ref: "#/components/responses/Forbidden" } }
+  /organizer/reservations/dashboard:
+    get:
+      operationId: get_organizer_reservation_dashboard
+      summary: Dashboard reale di prenotazioni, coperti, capacita e criticita
+      responses: { "200": { description: Riepilogo operativo }, "403": { $ref: "#/components/responses/Forbidden" } }
+  /organizer/reservations/customers:
+    get:
+      operationId: get_organizer_reservation_customers
+      summary: Riepilogo clienti minimizzato e privacy-safe
+      responses: { "200": { description: Clienti aggregati }, "403": { $ref: "#/components/responses/Forbidden" } }
+  /organizer/reservations/analytics:
+    get:
+      operationId: get_organizer_reservation_analytics
+      summary: KPI operativi reali delle Reservation
+      responses: { "200": { description: Analytics Reservation }, "403": { $ref: "#/components/responses/Forbidden" } }
+  /organizer/reservations/{reservation}:
+    parameters: [ { name: reservation, in: path, required: true, schema: { type: string } } ]
+    get:
+      operationId: get_organizer_reservation
+      summary: Dettaglio operativo Reservation
+      responses: { "200": { description: Reservation }, "403": { $ref: "#/components/responses/Forbidden" } }
+  /organizer/reservations/{reservation}/status:
+    parameters: [ { name: reservation, in: path, required: true, schema: { type: string } } ]
+    patch:
+      operationId: patch_organizer_reservation_status
+      summary: Marca una Reservation conclusa come completed o no_show
+      responses: { "200": { description: Stato aggiornato }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
 components:
   schemas:
     ErrorResponse:

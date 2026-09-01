@@ -16,4 +16,9 @@ class ReservationPolicy
     {
         return $this->view($user, $reservation);
     }
+
+    public function manageAttendance(User $user, Reservation $reservation): bool
+    {
+        return $reservation->activity?->organizerProfile?->owner_user_id === $user->id || $user->isAdmin();
+    }
 }

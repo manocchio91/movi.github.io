@@ -153,3 +153,9 @@ Deploy controllato della Release Candidate nel Prompt 8/8.
 - Service generici, regole settimanali, eccezioni e chiusure straordinarie.
 - Reservation separata da Event Booking, con transazioni PostgreSQL, lock, idempotenza e capacità derivata.
 - API, web e Flutter usano disponibilità reale; follow, review verificata, notifiche operative e analytics sono integrati.
+
+## MòVi Manager Reservation avanzato
+
+- Dashboard, lista filtrabile, dettaglio e transizioni controllate `completed`/`no_show` per Organizer.
+- Capacità e chiusure rapide proteggono le Reservation confermate.
+- Clienti privacy-safe, reminder deduplicati, review verificata e KPI reali; Table Mode resta fuori scope.

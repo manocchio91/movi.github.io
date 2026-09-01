@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Actions\Reservations\SendReservationReminders;
 use App\Enums\ActivityStatus;
 use App\Enums\ActivityType;
 use App\Enums\ReservationStatus;
@@ -22,6 +23,33 @@ use Tests\TestCase;
 class ActivityReservationEngineTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_organizer_manager_filters_authorization_attendance_and_metrics(): void
+    {
+        [$organizer, $activity, $service] = $this->bookableDomain();
+        [$other] = $this->organizerDomain('ManagerOther');
+        $customer = User::factory()->create(['role' => UserRole::Customer, 'status' => 'active', 'name' => 'Cliente Manager']);
+        $reservation = Reservation::query()->create(['ulid' => (string) Str::ulid(), 'user_id' => $customer->id, 'activity_id' => $activity->id, 'service_id' => $service->id, 'starts_at' => now()->subHours(3), 'party_size' => 3, 'status' => ReservationStatus::Confirmed, 'contact_phone' => '+393331234567', 'idempotency_key' => 'manager-transition']);
+
+        $this->actingAs($other, 'sanctum')->getJson('/api/v1/organizer/reservations')->assertOk()->assertJsonCount(0, 'data');
+        $this->patchJson("/api/v1/organizer/reservations/{$reservation->ulid}/status", ['status' => 'completed'])->assertForbidden();
+        $this->actingAs($organizer, 'sanctum')->getJson('/api/v1/organizer/reservations?status=confirmed&search=Cliente')->assertOk()->assertJsonPath('data.0.ulid', $reservation->ulid);
+        $this->patchJson("/api/v1/organizer/reservations/{$reservation->ulid}/status", ['status' => 'completed'])->assertOk()->assertJsonPath('data.status', 'completed');
+        $this->assertDatabaseHas('notifications', ['reservation_id' => $reservation->id, 'kind' => 'reservation_completed']);
+        $this->getJson('/api/v1/organizer/reservations/customers')->assertOk()->assertJsonPath('data.0.name', 'Cliente Manager');
+        $this->getJson('/api/v1/organizer/reservations/analytics')->assertOk()->assertJsonPath('data.completed', 1)->assertJsonPath('data.covers', 3);
+    }
+
+    public function test_reservation_reminder_is_centrally_timed_and_deduplicated(): void
+    {
+        [, $activity, $service] = $this->bookableDomain();
+        $customer = User::factory()->create(['role' => UserRole::Customer, 'status' => 'active']);
+        Reservation::query()->create(['ulid' => (string) Str::ulid(), 'user_id' => $customer->id, 'activity_id' => $activity->id, 'service_id' => $service->id, 'starts_at' => now()->addHours(24), 'party_size' => 2, 'status' => ReservationStatus::Confirmed, 'contact_phone' => '+393331234567', 'idempotency_key' => 'reminder']);
+        $sender = app(SendReservationReminders::class);
+        $this->assertSame(1, $sender->handle(24));
+        $this->assertSame(0, $sender->handle(24));
+        $this->assertDatabaseCount('notifications', 1);
+    }
 
     public function test_organizer_owns_activity_crud_service_and_capacity_configuration(): void
     {

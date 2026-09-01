@@ -37,6 +37,7 @@ use App\Http\Controllers\Api\V1\OrganizerOpportunityController;
 use App\Http\Controllers\Api\V1\OrganizerPlanningController;
 use App\Http\Controllers\Api\V1\OrganizerProfileController;
 use App\Http\Controllers\Api\V1\OrganizerPublicController;
+use App\Http\Controllers\Api\V1\OrganizerReservationController;
 use App\Http\Controllers\Api\V1\OrganizerReviewController;
 use App\Http\Controllers\Api\V1\PreferenceController;
 use App\Http\Controllers\Api\V1\ReservationController;
@@ -127,6 +128,12 @@ Route::prefix('v1')->group(function (): void {
             Route::post('/organizer/profile/submit', [OrganizerProfileController::class, 'submit']);
 
             Route::middleware('organizer.approved')->group(function (): void {
+                Route::get('/organizer/reservations', [OrganizerReservationController::class, 'index']);
+                Route::get('/organizer/reservations/dashboard', [OrganizerReservationController::class, 'dashboard']);
+                Route::get('/organizer/reservations/customers', [OrganizerReservationController::class, 'customers']);
+                Route::get('/organizer/reservations/analytics', [OrganizerReservationController::class, 'analytics']);
+                Route::get('/organizer/reservations/{reservation:ulid}', [OrganizerReservationController::class, 'show']);
+                Route::patch('/organizer/reservations/{reservation:ulid}/status', [OrganizerReservationController::class, 'transition'])->middleware('throttle:sensitive');
                 Route::get('/organizer/activities', [OrganizerActivityController::class, 'index']);
                 Route::post('/organizer/activities', [OrganizerActivityController::class, 'store']);
                 Route::get('/organizer/activities/{activity:ulid}', [OrganizerActivityController::class, 'show']);

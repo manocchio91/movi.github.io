@@ -148,7 +148,7 @@ Completata senza deploy remoto:
 - [x] Activity Foundation e Restaurant
 - [x] Reservation Engine Capacity Mode
 - [x] Follow/Review Activity, notifiche e analytics foundation
-- [ ] MòVi Manager Reservation avanzato
+- [x] MòVi Manager Reservation avanzato
 - [ ] Table Mode
 - [ ] Recommendation / MòVi Plan
 - [ ] MòVi AI
