@@ -192,3 +192,5 @@ Il Reservation Manager riusa questo dominio. Le API Organizer applicano ownershi
 ## Discovery e Recommendation
 
 `DiscoveryEngine` è un servizio applicativo indipendente dalle UI. Normalizza Event e Activity, applica disponibilità source-of-truth, distanza deterministica e Interest Profile esplicito. Il ranking usa pesi centralizzati; MòVi Plan e una futura MòVi AI potranno invocare questo servizio senza sostituirne i vincoli di dominio.
+
+`PlanningEngine` consuma `DiscoveryEngine`, limita candidati e combinazioni, verifica compatibilità temporale/geografica e produce DTO temporanei senza persistenza. La futura MòVi AI fornirà intenti strutturati al Planning Engine e non accederà direttamente al database.

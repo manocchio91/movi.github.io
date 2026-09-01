@@ -91,6 +91,10 @@ class _CustomerApiHomeScreenState extends ConsumerState<CustomerApiHomeScreen> {
                   onPressed: () => context.push('/customer/reservations'),
                   icon: const Icon(Icons.event_seat),
                   label: const Text('Prenotazioni locali')),
+              FilledButton.tonalIcon(
+                  onPressed: () => context.push('/customer/plan'),
+                  icon: const Icon(Icons.auto_awesome_motion),
+                  label: const Text('Organizza con MòVi')),
             ]),
             const SizedBox(height: 12),
             Text('Oggi', style: Theme.of(context).textTheme.titleLarge),
@@ -200,6 +204,41 @@ class _CustomerApiHomeScreenState extends ConsumerState<CustomerApiHomeScreen> {
       ),
     );
   }
+}
+
+class MoviPlanScreen extends ConsumerStatefulWidget {
+  const MoviPlanScreen({super.key});
+  @override
+  ConsumerState<MoviPlanScreen> createState() => _MoviPlanScreenState();
+}
+
+class _MoviPlanScreenState extends ConsumerState<MoviPlanScreen> {
+  String when = 'evening';
+  final budget = TextEditingController();
+  bool loading = false;
+  List<Map<String, dynamic>> plans = const [];
+
+  @override
+  void dispose() { budget.dispose(); super.dispose(); }
+
+  Future<void> generate() async {
+    setState(() => loading = true);
+    try {
+      final value = int.tryParse(budget.text);
+      plans = await ref.read(planRepositoryProvider).generate(when, 30, value == null ? null : value * 100);
+    } finally { if (mounted) setState(() => loading = false); }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Organizza con MòVi')),
+    body: ListView(padding: const EdgeInsets.all(16), children: [
+      DropdownButtonFormField<String>(initialValue: when, items: const [DropdownMenuItem(value: 'today', child: Text('Oggi')), DropdownMenuItem(value: 'evening', child: Text('Stasera')), DropdownMenuItem(value: 'tomorrow', child: Text('Domani')), DropdownMenuItem(value: 'weekend', child: Text('Weekend'))], onChanged: (value) => setState(() => when = value ?? when)),
+      TextField(controller: budget, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Budget opzionale (€)')),
+      FilledButton(onPressed: loading ? null : generate, child: Text(loading ? 'Creazione…' : 'CREA IL MIO PIANO')),
+      ...plans.map((plan) => Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('${plan['title']}', style: Theme.of(context).textTheme.titleLarge), Text((plan['reasons'] as List? ?? const []).join(' · ')), ...((plan['steps'] as List? ?? const []).whereType<Map>().map((raw) { final step = Map<String, dynamic>.from(raw); return ListTile(title: Text('${step['title']}'), subtitle: Text('${step['start']} · ${step['availability_status']}'), onTap: () => context.push(step['entity_type'] == 'event' ? '/customer/events/${step['entity_id']}' : '/customer/activities/${step['entity_id']}')); }))])))),
+    ]),
+  );
 }
 
 class CustomerApiAllEventsScreen extends ConsumerStatefulWidget {

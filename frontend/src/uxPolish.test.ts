@@ -11,6 +11,13 @@ test('customer discovery renders only real unified API results', () => {
   assert.match(app, /recommendation_reasons/);
 });
 
+test('MòVi Plan uses structured inputs and backend-generated steps', () => {
+  assert.match(app, /Organizza con MòVi/);
+  assert.match(app, /api<any>\('\/plans\/generate'/);
+  assert.match(app, /CREA IL MIO PIANO/);
+  assert.doesNotMatch(app, /chatbot|OpenAI API/);
+});
+
 test('successful events link to an available next edition', () => {
   assert.match(app, /event\.next_edition[\s\S]*Apri nuova edizione/);
   assert.doesNotMatch(app, /Nuova edizione non ancora collegata/);

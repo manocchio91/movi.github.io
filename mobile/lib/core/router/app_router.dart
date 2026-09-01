@@ -94,6 +94,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       path: 'reservations',
                       parentNavigatorKey: _rootKey,
                       builder: (_, __) => const ActivityReservationsScreen()),
+                  GoRoute(
+                      path: 'plan',
+                      parentNavigatorKey: _rootKey,
+                      builder: (_, __) => const MoviPlanScreen()),
                 ])
           ]),
           StatefulShellBranch(routes: [

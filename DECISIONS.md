@@ -263,3 +263,7 @@ Decisione: il gestore classifica manualmente `completed` o `no_show` solo dopo l
 ## Recommendation deterministica
 
 Decisione: Recommendation usa esclusivamente dati MòVi reali, disponibilità backend, preferenze dichiarate e follow. Pesi e motivazioni sono centralizzati e testabili. Nessuna inferenza da testo libero, profilazione opaca, machine learning o LLM è introdotta; la futura MòVi AI consumerà l'engine come source of truth.
+
+## MòVi Plan on-demand
+
+Decisione: i Plan non sono persistiti e non riservano capacità. Sono composti da massimo tre step con durate reali, buffer configurabile e distanza geografica; prezzi assenti non diventano zero. La revalidation restituisce esplicitamente gli step non più disponibili. Nessuna prenotazione distribuita o routing stradale è introdotto.

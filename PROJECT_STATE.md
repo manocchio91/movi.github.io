@@ -165,3 +165,9 @@ Deploy controllato della Release Candidate nel Prompt 8/8.
 - Feed normalizzato Event/Activity con filtri temporali, geografici, categoria, tipo, family e disponibilità reale.
 - Interest Profile trasparente basato su preferenze e follow; scoring configurabile con motivazioni verificabili.
 - Web e Flutter consumano ranking backend; nessun LLM, chatbot o dato simulato.
+
+## MòVi Plan deterministico
+
+- Composizione on-demand di massimo tre proposte e tre step usando Discovery, disponibilità, orari, distanza e prezzi reali.
+- Budget verificato solo sui costi conosciuti; valori mancanti restano esplicitamente parziali.
+- Revalidation per-step prima del booking supportata senza blocco capacità o transazioni multi-booking.

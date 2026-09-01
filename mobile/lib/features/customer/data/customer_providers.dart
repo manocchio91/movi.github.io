@@ -32,6 +32,8 @@ final discoveryProvider = FutureProvider<List<DiscoveryItem>>(
     (ref) => ref.watch(discoveryRepositoryProvider).load());
 final recommendationsProvider = FutureProvider<List<DiscoveryItem>>(
     (ref) => ref.watch(discoveryRepositoryProvider).load(recommended: true));
+final planRepositoryProvider = Provider<PlanRepository>((ref) => PlanRepository(
+    ref.watch(apiClientProvider), ref.watch(authenticationRepositoryProvider)));
 final eventDetailProvider = FutureProvider.family<ApiEvent, String>((ref, id) {
   ref.watch(eventDomainStoreProvider.select((state) => state.revision));
   return ref.watch(eventRepositoryProvider).event(id);

@@ -53,7 +53,7 @@ class DiscoveryEngine
                 $slots = collect();
                 for ($date = $from->startOfDay(); $date <= $to; $date = $date->addDay()) {
                     foreach ($activity->services as $service) {
-                        $slots = $slots->concat(collect($this->availability->forDate($service, $date))->filter(fn (array $slot) => $slot['available'] > 0 && (! $evening || CarbonImmutable::parse($slot['starts_at'])->hour >= 18)));
+                        $slots = $slots->concat(collect($this->availability->forDate($service, $date))->filter(fn (array $slot) => $slot['available'] > 0 && (! $evening || CarbonImmutable::parse($slot['starts_at'])->hour >= 18))->map(fn (array $slot) => [...$slot, 'service_ulid' => $service->ulid, 'duration_minutes' => $service->indicative_duration_minutes]));
                     }
                 }
                 if (($filters['available'] ?? true) && $slots->isEmpty()) {
@@ -64,7 +64,8 @@ class DiscoveryEngine
 
                 return ['entity_type' => 'activity', 'entity_id' => $activity->ulid, 'title' => $activity->name, 'slug' => $activity->slug, 'category' => null, 'image' => null,
                     'location' => $activity->municipality?->name, 'latitude' => $activity->municipality?->latitude, 'longitude' => $activity->municipality?->longitude,
-                    'starts_at' => $first['starts_at'] ?? null, 'availability_status' => $first ? 'available' : 'unavailable', 'available' => $first['available'] ?? 0,
+                    'starts_at' => $first['starts_at'] ?? null, 'ends_at' => $first ? CarbonImmutable::parse($first['starts_at'])->addMinutes((int) $first['duration_minutes'])->toIso8601String() : null,
+                    'duration_minutes' => $first['duration_minutes'] ?? null, 'service_id' => $first['service_ulid'] ?? null, 'availability_status' => $first ? 'available' : 'unavailable', 'available' => $first['available'] ?? 0,
                     'min_price_cents' => null, 'organizer' => $activity->organizerProfile?->name, 'distance_km' => $this->distance($activity->municipality?->latitude, $activity->municipality?->longitude, $filters),
                     'recommendation_score' => $score, 'recommendation_reasons' => $reasons, 'popularity' => (int) $activity->followers_count];
             })->filter();
@@ -77,7 +78,7 @@ class DiscoveryEngine
 
         return ['entity_type' => 'event', 'entity_id' => $event->ulid, 'title' => $event->title, 'slug' => $event->slug, 'category' => $event->categories->first()?->name,
             'image' => $event->organizerProfile?->cover_path ? asset('storage/'.$event->organizerProfile->cover_path) : null, 'location' => $event->municipality?->name,
-            'latitude' => $event->municipality?->latitude, 'longitude' => $event->municipality?->longitude, 'starts_at' => $event->starts_at->toIso8601String(),
+            'latitude' => $event->municipality?->latitude, 'longitude' => $event->municipality?->longitude, 'starts_at' => $event->starts_at->toIso8601String(), 'ends_at' => $event->ends_at?->toIso8601String(), 'duration_minutes' => $event->ends_at ? $event->starts_at->diffInMinutes($event->ends_at) : null, 'service_id' => null,
             'availability_status' => $event->available_total > 0 ? 'available' : 'sold_out', 'available' => $event->available_total,
             'min_price_cents' => $event->ticketTypes->where('is_active', true)->min('price_cents'), 'organizer' => $event->organizerProfile?->name,
             'distance_km' => $this->distance($event->municipality?->latitude, $event->municipality?->longitude, $filters), 'recommendation_score' => $score,

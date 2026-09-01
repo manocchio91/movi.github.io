@@ -40,6 +40,7 @@ use App\Http\Controllers\Api\V1\OrganizerProfileController;
 use App\Http\Controllers\Api\V1\OrganizerPublicController;
 use App\Http\Controllers\Api\V1\OrganizerReservationController;
 use App\Http\Controllers\Api\V1\OrganizerReviewController;
+use App\Http\Controllers\Api\V1\PlanController;
 use App\Http\Controllers\Api\V1\PreferenceController;
 use App\Http\Controllers\Api\V1\ReservationController;
 use App\Http\Controllers\Api\V1\ReviewController;
@@ -56,6 +57,9 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/discovery', [DiscoveryController::class, 'discovery']);
     Route::get('/recommendations', [DiscoveryController::class, 'recommendations']);
     Route::post('/recommendations/opened', [DiscoveryController::class, 'opened']);
+    Route::post('/plans/generate', [PlanController::class, 'generate']);
+    Route::post('/plans/revalidate', [PlanController::class, 'revalidate']);
+    Route::post('/plans/interaction', [PlanController::class, 'interaction']);
     Route::get('/activities', [ActivityController::class, 'index']);
     Route::get('/activities/{activity:ulid}', [ActivityController::class, 'show']);
     Route::get('/activities/{activity:ulid}/services/{service:ulid}/availability', [ActivityController::class, 'availability']);

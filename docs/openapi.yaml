@@ -1699,6 +1699,21 @@ paths:
       operationId: post_recommendation_opened
       summary: Registra apertura deduplicata di un risultato raccomandato
       responses: { "200": { description: Apertura registrata }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
+  /plans/generate:
+    post:
+      operationId: post_plans_generate
+      summary: Genera fino a tre piani deterministici da Event e Activity reali
+      responses: { "200": { description: Piani temporanei ordinati e motivati }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
+  /plans/revalidate:
+    post:
+      operationId: post_plans_revalidate
+      summary: Rivalida disponibilità reale di tutti gli step di un piano
+      responses: { "200": { description: Stato di ogni step e lista indisponibili }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
+  /plans/interaction:
+    post:
+      operationId: post_plans_interaction
+      summary: Registra apertura piano o step senza PII
+      responses: { "200": { description: Interazione registrata }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
 components:
   schemas:
     ErrorResponse:
