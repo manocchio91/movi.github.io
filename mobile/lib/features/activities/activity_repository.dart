@@ -26,9 +26,10 @@ class ActivityModel {
 }
 
 class ReservationModel {
-  const ReservationModel(this.id, this.activity, this.service, this.startsAt,
-      this.partySize, this.status);
+  const ReservationModel(this.id, this.activityId, this.activity, this.service,
+      this.startsAt, this.partySize, this.status);
   final String id;
+  final String activityId;
   final String activity;
   final String service;
   final String startsAt;
@@ -37,11 +38,50 @@ class ReservationModel {
   factory ReservationModel.fromJson(Map<String, dynamic> json) =>
       ReservationModel(
           '${json['ulid']}',
+          '${_map(json['activity'])['ulid'] ?? ''}',
           '${_map(json['activity'])['name'] ?? ''}',
           '${_map(json['service'])['name'] ?? ''}',
           '${json['starts_at']}',
           (json['party_size'] as num).toInt(),
           '${json['status']}');
+}
+
+class MenuItemModel {
+  const MenuItemModel(this.id, this.name, this.description, this.priceCents,
+      this.available, this.allergens);
+  final String id;
+  final String name;
+  final String description;
+  final int? priceCents;
+  final bool available;
+  final List<String> allergens;
+  factory MenuItemModel.fromJson(Map<String, dynamic> json) => MenuItemModel(
+      '${json['ulid']}',
+      '${json['name']}',
+      '${json['description'] ?? ''}',
+      (json['price_cents'] as num?)?.toInt(),
+      json['available'] == true,
+      (json['allergens'] as List? ?? const [])
+          .map((value) => '$value')
+          .toList());
+}
+
+class MenuSectionModel {
+  const MenuSectionModel(this.name, this.items);
+  final String name;
+  final List<MenuItemModel> items;
+  factory MenuSectionModel.fromJson(Map<String, dynamic> json) =>
+      MenuSectionModel('${json['name']}',
+          _list(json['items']).map(MenuItemModel.fromJson).toList());
+}
+
+class MenuModel {
+  const MenuModel(this.name, this.sections);
+  final String name;
+  final List<MenuSectionModel> sections;
+  factory MenuModel.fromJson(Map<String, dynamic> json) => MenuModel(
+      '${json['name']}',
+      _list(json['sections']).map(MenuSectionModel.fromJson).toList());
 }
 
 class ActivityRepository {
@@ -67,6 +107,14 @@ class ActivityRepository {
         await _client.get('/activities/$id', token: await _token());
     _ok(response);
     return ActivityModel.fromJson(_map(response.body['data']));
+  }
+
+  Future<MenuModel?> menu(String id) async {
+    final response = await _client.get('/activities/$id/menu',
+        token: await _auth.accessToken());
+    if (response.statusCode == 404) return null;
+    _ok(response);
+    return MenuModel.fromJson(_map(response.body['data']));
   }
 
   Future<List<Map<String, dynamic>>> availability(
@@ -104,6 +152,19 @@ class ActivityRepository {
   Future<void> cancel(String id) async {
     final response = await _client.post('/me/reservations/$id/cancel',
         token: await _token());
+    _ok(response);
+  }
+
+  Future<void> preorder(
+      String reservationId, String menuItemId, int quantity) async {
+    final response = await _client.put(
+        '/me/reservations/$reservationId/preorder',
+        token: await _token(),
+        body: {
+          'items': [
+            {'menu_item_ulid': menuItemId, 'quantity': quantity}
+          ]
+        });
     _ok(response);
   }
 

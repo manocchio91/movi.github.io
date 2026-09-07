@@ -8,6 +8,7 @@ use App\Http\Requests\UpsertActivityServiceRequest;
 use App\Http\Resources\ActivityServiceResource;
 use App\Models\Activity;
 use App\Models\ActivityService;
+use App\Models\Menu;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -17,7 +18,7 @@ class OrganizerActivityServiceController extends Controller
     public function store(UpsertActivityServiceRequest $request, Activity $activity): JsonResponse
     {
         $this->authorize('update', $activity);
-        $service = $activity->services()->create([...$request->validated(), 'ulid' => (string) Str::ulid(), 'capacity_mode' => 'covers']);
+        $service = $activity->services()->create([...$this->serviceData($request, $activity), 'ulid' => (string) Str::ulid(), 'capacity_mode' => 'covers']);
 
         return response()->json(['data' => ActivityServiceResource::make($service)], 201);
     }
@@ -26,7 +27,7 @@ class OrganizerActivityServiceController extends Controller
     {
         $this->authorize('update', $activity);
         abort_unless($service->activity_id === $activity->id, 404);
-        $service->update($request->validated());
+        $service->update($this->serviceData($request, $activity));
 
         return response()->json(['data' => ActivityServiceResource::make($service->refresh())]);
     }
@@ -45,5 +46,15 @@ class OrganizerActivityServiceController extends Controller
         });
 
         return response()->json(['data' => ActivityServiceResource::make($service->load(['availabilityRules', 'availabilityExceptions']))]);
+    }
+
+    private function serviceData(UpsertActivityServiceRequest $request, Activity $activity): array
+    {
+        $data = $request->validated();
+        $menuUlid = $data['preorder_menu_ulid'] ?? null;
+        unset($data['preorder_menu_ulid']);
+        $data['preorder_menu_id'] = $menuUlid ? Menu::query()->where('activity_id', $activity->id)->where('ulid', $menuUlid)->firstOrFail()->id : null;
+
+        return $data;
     }
 }

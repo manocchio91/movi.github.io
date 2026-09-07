@@ -21,6 +21,9 @@ class UpsertActivityServiceRequest extends FormRequest
             'max_party_size' => ['required', 'integer', 'gte:min_party_size', 'max:100'],
             'minimum_advance_minutes' => ['required', 'integer', 'min:0', 'max:525600'],
             'indicative_duration_minutes' => ['required', 'integer', 'min:15', 'max:1440'],
+            'preorder_enabled' => ['sometimes', 'boolean'],
+            'preorder_edit_deadline_minutes' => ['sometimes', 'integer', 'min:0', 'max:10080'],
+            'preorder_menu_ulid' => ['nullable', 'ulid', 'exists:menus,ulid'],
         ];
     }
 }

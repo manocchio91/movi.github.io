@@ -24,6 +24,9 @@ class CancelReservation
             }
             abort_unless($locked->status === ReservationStatus::Confirmed && $locked->starts_at->isFuture(), 422, 'Prenotazione non annullabile.');
             $locked->forceFill(['status' => ReservationStatus::Cancelled, 'cancelled_at' => now(), 'cancellation_reason' => $reason, 'cancelled_by_user_id' => $operator->id])->save();
+            if ($locked->preorder()->where('status', 'confirmed')->update(['status' => 'cancelled'])) {
+                $this->analytics->recordActivity('preorder_cancelled', $locked->activity, $locked->user, $locked);
+            }
             $notification = Notification::query()->create([
                 'ulid' => (string) Str::ulid(), 'user_id' => $locked->user_id, 'activity_id' => $locked->activity_id,
                 'reservation_id' => $locked->id, 'kind' => 'reservation_cancelled', 'channel' => 'internal',

@@ -153,4 +153,5 @@ Completata senza deploy remoto:
 - [x] Discovery & Recommendation Foundation
 - [x] MòVi Plan deterministico
 - [x] MòVi AI su intenti strutturati
+- [x] Menu digitale e pre-order Restaurant
 - Graphical restaurant floor plan — possible future enhancement, not required for MòVi 2.0.

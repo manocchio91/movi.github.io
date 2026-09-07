@@ -47,6 +47,11 @@ class Activity extends Model
         return $this->hasMany(Reservation::class);
     }
 
+    public function menus(): HasMany
+    {
+        return $this->hasMany(Menu::class);
+    }
+
     /** @return HasMany<ActivityReview, $this> */
     public function reviews(): HasMany
     {

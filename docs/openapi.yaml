@@ -1729,6 +1729,28 @@ paths:
                 message: { type: string, maxLength: 1000 }
                 previous_intent: { type: [object, "null"] }
       responses: { "200": { description: Intento interpretato e piani reali con disponibilità verificata }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
+  /activities/{activity}/menu:
+    get:
+      operationId: get_activity_published_menu
+      summary: Restituisce esclusivamente il menu pubblicato dell'Activity
+      parameters: [{ name: activity, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Menu digitale pubblicato }, "404": { description: Nessun menu pubblicato } }
+  /organizer/activities/{activity}/menus/import:
+    post:
+      operationId: post_organizer_menu_import
+      summary: Importa XLSX o DOCX in una bozza da revisionare
+      parameters: [{ name: activity, in: path, required: true, schema: { type: string } }]
+      responses: { "201": { description: Bozza e report import }, "403": { description: Activity non posseduta }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
+  /me/reservations/{reservation}/preorder:
+    parameters: [{ name: reservation, in: path, required: true, schema: { type: string } }]
+    get:
+      operationId: get_reservation_preorder
+      summary: Legge il preordine della prenotazione autorizzata
+      responses: { "200": { description: Preordine con snapshot }, "404": { description: Preordine assente } }
+    put:
+      operationId: put_reservation_preorder
+      summary: Conferma o aggiorna un preordine entro la deadline
+      responses: { "200": { description: Preordine confermato; pagamento al locale }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
 components:
   schemas:
     ErrorResponse:

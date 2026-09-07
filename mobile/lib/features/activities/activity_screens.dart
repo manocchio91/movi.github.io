@@ -85,6 +85,40 @@ class _ActivityDetailState extends ConsumerState<ActivityDetailScreen> {
             ]),
             body: ListView(padding: const EdgeInsets.all(16), children: [
               Text(activity.description),
+              FutureBuilder<MenuModel?>(
+                  future:
+                      ref.read(activityRepositoryProvider).menu(activity.id),
+                  builder: (context, menuSnapshot) {
+                    final menu = menuSnapshot.data;
+                    if (menu == null) return const SizedBox.shrink();
+                    return Card(
+                        child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('MENU · ${menu.name}',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge),
+                                  ...menu.sections.expand((section) => [
+                                        Text(section.name,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleMedium),
+                                        ...section.items.map((item) => ListTile(
+                                            title: Text(item.name),
+                                            subtitle: Text(
+                                                '${item.description}${item.allergens.isEmpty ? '' : ' · Allergeni dichiarati: ${item.allergens.join(', ')}'}'),
+                                            trailing: Text(item.priceCents ==
+                                                    null
+                                                ? '—'
+                                                : '€ ${(item.priceCents! / 100).toStringAsFixed(2)}${item.available ? '' : ' · Non disponibile'}'))),
+                                      ]),
+                                  const Text(
+                                      'Le informazioni sugli allergeni provengono dal locale. Comunica sempre allergie al ristoratore.'),
+                                ])));
+                  }),
               DropdownButtonFormField(
                   initialValue: service,
                   decoration: const InputDecoration(labelText: 'Servizio'),
@@ -175,14 +209,41 @@ class ActivityReservationsScreen extends ConsumerWidget {
                       subtitle: Text(
                           '${reservation.startsAt} · ${reservation.partySize} persone · ${reservation.status}'),
                       trailing: reservation.status == 'confirmed'
-                          ? TextButton(
-                              onPressed: () async {
-                                await ref
-                                    .read(activityRepositoryProvider)
-                                    .cancel(reservation.id);
-                                ref.invalidate(reservationsProvider);
+                          ? PopupMenuButton<String>(
+                              onSelected: (action) async {
+                                final repository =
+                                    ref.read(activityRepositoryProvider);
+                                if (action == 'cancel') {
+                                  await repository.cancel(reservation.id);
+                                  ref.invalidate(reservationsProvider);
+                                  return;
+                                }
+                                final menu = await repository
+                                    .menu(reservation.activityId);
+                                final items = menu?.sections
+                                        .expand((section) => section.items)
+                                        .where((item) => item.available)
+                                        .toList() ??
+                                    const [];
+                                if (items.isEmpty || !context.mounted) return;
+                                final item = items.first;
+                                await repository.preorder(
+                                    reservation.id, item.id, 1);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text(
+                                              'Pre-order confermato. Pagherai direttamente al locale.')));
+                                }
                               },
-                              child: const Text('Cancella'))
+                              itemBuilder: (_) => const [
+                                    PopupMenuItem(
+                                        value: 'preorder',
+                                        child: Text('SCEGLI DAL MENU')),
+                                    PopupMenuItem(
+                                        value: 'cancel',
+                                        child: Text('Cancella'))
+                                  ])
                           : null))
                   .toList())));
 }
@@ -195,8 +256,12 @@ class OrganizerActivityManagerScreen extends ConsumerWidget {
         body: FutureBuilder(
           future: Future.wait([
             ref.read(roleApiRepositoryProvider).get('/organizer/activities'),
-            ref.read(roleApiRepositoryProvider).get('/organizer/reservations/dashboard'),
-            ref.read(roleApiRepositoryProvider).get('/organizer/reservations/analytics'),
+            ref
+                .read(roleApiRepositoryProvider)
+                .get('/organizer/reservations/dashboard'),
+            ref
+                .read(roleApiRepositoryProvider)
+                .get('/organizer/reservations/analytics'),
           ]),
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
@@ -207,9 +272,11 @@ class OrganizerActivityManagerScreen extends ConsumerWidget {
             }
             final responses = snapshot.data!;
             final activities = _rows(responses[0]['data']);
-            final dashboard = Map<String, dynamic>.from(responses[1]['data'] as Map);
+            final dashboard =
+                Map<String, dynamic>.from(responses[1]['data'] as Map);
             final today = Map<String, dynamic>.from(dashboard['today'] as Map);
-            final analytics = Map<String, dynamic>.from(responses[2]['data'] as Map);
+            final analytics =
+                Map<String, dynamic>.from(responses[2]['data'] as Map);
             return ListView(padding: const EdgeInsets.all(16), children: [
               Wrap(spacing: 8, runSpacing: 8, children: [
                 Chip(label: Text('${today['reservations']} prenotazioni oggi')),

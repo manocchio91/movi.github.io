@@ -90,3 +90,10 @@ test('activity reservations use real capacity APIs without table mode', () => {
   assert.ok(app.includes('MòVi Manager · Attività'));
   assert.ok(!app.includes('floor-plan editor'));
 });
+
+test('restaurant menu and manager preorder summary use real APIs', () => {
+  assert.match(app, /`\/activities\/\$\{ulid\}\/menu`/);
+  assert.match(app, /Pre-order da preparare oggi/);
+  assert.match(app, /Le informazioni sugli allergeni provengono dal locale/);
+  assert.doesNotMatch(app, /pagamento effettuato/);
+});

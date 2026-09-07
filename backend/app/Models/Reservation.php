@@ -46,4 +46,9 @@ class Reservation extends Model
     {
         return $this->hasOne(ActivityReview::class);
     }
+
+    public function preorder(): HasOne
+    {
+        return $this->hasOne(PreOrder::class);
+    }
 }

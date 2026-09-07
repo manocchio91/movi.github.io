@@ -194,3 +194,5 @@ Il Reservation Manager riusa questo dominio. Le API Organizer applicano ownershi
 `DiscoveryEngine` è un servizio applicativo indipendente dalle UI. Normalizza Event e Activity, applica disponibilità source-of-truth, distanza deterministica e Interest Profile esplicito. Il ranking usa pesi centralizzati; MòVi Plan e una futura MòVi AI potranno invocare questo servizio senza sostituirne i vincoli di dominio.
 
 `PlanningEngine` consuma `DiscoveryEngine`, limita candidati e combinazioni, verifica compatibilità temporale/geografica e produce DTO temporanei senza persistenza. MòVi AI traduce testo non fidato in `StructuredIntent` validato e invoca il Planning Engine; Plan, Discovery e Availability restano le source of truth.
+
+Menu, MenuSection e MenuItem appartengono esclusivamente alle Activity Restaurant. L'import deterministico XLSX/DOCX produce sempre draft. PreOrder appartiene a una Reservation, usa transazione e lock di riga, applica deadline del Service e conserva nome/prezzo dei piatti come snapshot.

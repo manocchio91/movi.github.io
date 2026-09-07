@@ -6,8 +6,35 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('menu model preserves nullable prices and declared allergens', () {
+    final menu = MenuModel.fromJson({
+      'name': 'Cena',
+      'sections': [
+        {
+          'name': 'Primi',
+          'items': [
+            {
+              'name': 'Carbonara',
+              'price_cents': null,
+              'available': true,
+              'allergens': ['uova']
+            }
+          ]
+        }
+      ]
+    });
+    expect(menu.sections.single.items.single.priceCents, isNull);
+    expect(menu.sections.single.items.single.allergens, ['uova']);
+  });
   test('discovery model parses normalized backend results and reasons', () {
-    final item = DiscoveryItem.fromJson({'entity_id': '01DISCOVERY', 'entity_type': 'activity', 'title': 'Cena', 'location': 'Campobasso', 'availability_status': 'available', 'recommendation_reasons': ['Attività che segui']});
+    final item = DiscoveryItem.fromJson({
+      'entity_id': '01DISCOVERY',
+      'entity_type': 'activity',
+      'title': 'Cena',
+      'location': 'Campobasso',
+      'availability_status': 'available',
+      'recommendation_reasons': ['Attività che segui']
+    });
     expect(item.type, 'activity');
     expect(item.reasons, ['Attività che segui']);
   });

@@ -271,3 +271,7 @@ Decisione: i Plan non sono persistiti e non riservano capacità. Sono composti d
 ## MòVi AI come interprete, non source of truth
 
 Decisione: il provider AI può produrre soltanto uno `StructuredIntent` schema-validato a partire dal testo della query. Orchestrazione, autorizzazione, catalogo, ranking e disponibilità restano backend MòVi; nessun loop agentico, SQL diretto, dato personale superfluo o testo completo negli analytics.
+
+## Menu importato e Pre-order
+
+Decisione: XLSX/DOCX vengono interpretati deterministicamente senza AI, macro o file persistenti e generano sempre una bozza revisionabile. Il pre-order è opzionale, non è un pagamento, richiede una Reservation confermata e congela nome e prezzo del piatto al momento della conferma. Gli allergeni non vengono mai dedotti.

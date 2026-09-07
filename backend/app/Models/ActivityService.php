@@ -8,11 +8,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ActivityService extends Model
 {
-    protected $fillable = ['ulid', 'activity_id', 'name', 'type', 'active', 'booking_enabled', 'min_party_size', 'max_party_size', 'minimum_advance_minutes', 'indicative_duration_minutes', 'capacity_mode'];
+    protected $fillable = ['ulid', 'activity_id', 'name', 'type', 'active', 'booking_enabled', 'min_party_size', 'max_party_size', 'minimum_advance_minutes', 'indicative_duration_minutes', 'capacity_mode', 'preorder_enabled', 'preorder_edit_deadline_minutes', 'preorder_menu_id'];
 
     protected function casts(): array
     {
-        return ['active' => 'boolean', 'booking_enabled' => 'boolean'];
+        return ['active' => 'boolean', 'booking_enabled' => 'boolean', 'preorder_enabled' => 'boolean'];
     }
 
     public function getRouteKeyName(): string

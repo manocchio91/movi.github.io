@@ -177,3 +177,9 @@ Deploy controllato della Release Candidate nel Prompt 8/8.
 - Layer di interpretazione degli intenti strutturati sopra Planning, Discovery e Availability; non genera entità, prezzi o disponibilità.
 - Provider configurabile e fallback deterministico; query complete e PII non sono registrate negli analytics.
 - Web e Flutter espongono “Chiedi a MòVi” con contesto precedente leggero e Plan card reali.
+
+## Menu digitale e Pre-order Restaurant
+
+- Menu Activity separato in sezioni/piatti, sempre draft dopo import XLSX/DOCX e pubblicato solo dal gestore.
+- Pre-order opzionale per Service, vincolato a Reservation valida, deadline configurabile e snapshot economici server-side.
+- Nessun pagamento online; allergeni visibili solo quando dichiarati e verificati dal locale.

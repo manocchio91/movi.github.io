@@ -7,12 +7,14 @@ use App\Enums\ReservationStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\OrganizerReservationIndexRequest;
 use App\Http\Requests\TransitionReservationRequest;
+use App\Http\Resources\PreOrderResource;
 use App\Http\Resources\ReservationResource;
 use App\Models\ActivityService;
 use App\Models\Reservation;
 use App\Services\Reservations\AvailabilityService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
@@ -27,7 +29,11 @@ class OrganizerReservationController extends Controller
     {
         $this->authorize('view', $reservation);
 
-        return response()->json(['data' => ReservationResource::make($reservation->load(['activity.municipality', 'service', 'user', 'review']))]);
+        $reservation->load(['activity.municipality', 'service', 'user', 'review', 'preorder.items']);
+        $data = ReservationResource::make($reservation)->resolve();
+        $data['preorder'] = $reservation->preorder ? PreOrderResource::make($reservation->preorder)->resolve() : null;
+
+        return response()->json(['data' => $data]);
     }
 
     public function transition(TransitionReservationRequest $request, Reservation $reservation, TransitionReservation $transition): JsonResponse
@@ -53,8 +59,13 @@ class OrganizerReservationController extends Controller
                 'cancellations' => $day->where('status', ReservationStatus::Cancelled)->count(), 'no_show' => $day->where('status', ReservationStatus::NoShow)->count()];
         };
 
+        /** @var Collection<int, Reservation> $preorderReservations */
+        $preorderReservations = (clone $base)->whereDate('starts_at', $today)->whereHas('preorder', fn (Builder $q) => $q->where('status', 'confirmed'))->with(['service', 'preorder.items'])->get();
+        $preparation = $preorderReservations->groupBy(fn (Reservation $reservation): string => $reservation->service->name.' '.$reservation->starts_at->format('H:i'))->map(fn ($rows) => $rows->pluck('preorder')->flatMap->items->groupBy('item_name_snapshot')->map(fn ($items, $name) => ['name' => $name, 'quantity' => $items->sum('quantity')])->values());
+
         return response()->json(['data' => ['today' => $summary($today), 'next_days' => collect(range(1, 7))->map(fn (int $day) => $summary($today->addDays($day))),
-            'upcoming' => ReservationResource::collection((clone $base)->where('status', ReservationStatus::Confirmed)->where('starts_at', '>=', now())->with(['activity', 'service', 'user'])->oldest('starts_at')->limit(10)->get())]]);
+            'upcoming' => ReservationResource::collection((clone $base)->where('status', ReservationStatus::Confirmed)->where('starts_at', '>=', now())->with(['activity', 'service', 'user', 'preorder.items'])->oldest('starts_at')->limit(10)->get()),
+            'preorder_preparation' => $preparation]]);
     }
 
     public function customers(): JsonResponse
