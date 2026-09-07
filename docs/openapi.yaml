@@ -1714,6 +1714,21 @@ paths:
       operationId: post_plans_interaction
       summary: Registra apertura piano o step senza PII
       responses: { "200": { description: Interazione registrata }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
+  /ai/plan:
+    post:
+      operationId: post_ai_plan
+      summary: Interpreta testo non fidato in un intento strutturato e invoca MòVi Plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message: { type: string, maxLength: 1000 }
+                previous_intent: { type: [object, "null"] }
+      responses: { "200": { description: Intento interpretato e piani reali con disponibilità verificata }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
 components:
   schemas:
     ErrorResponse:

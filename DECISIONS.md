@@ -267,3 +267,7 @@ Decisione: Recommendation usa esclusivamente dati MòVi reali, disponibilità ba
 ## MòVi Plan on-demand
 
 Decisione: i Plan non sono persistiti e non riservano capacità. Sono composti da massimo tre step con durate reali, buffer configurabile e distanza geografica; prezzi assenti non diventano zero. La revalidation restituisce esplicitamente gli step non più disponibili. Nessuna prenotazione distribuita o routing stradale è introdotto.
+
+## MòVi AI come interprete, non source of truth
+
+Decisione: il provider AI può produrre soltanto uno `StructuredIntent` schema-validato a partire dal testo della query. Orchestrazione, autorizzazione, catalogo, ranking e disponibilità restano backend MòVi; nessun loop agentico, SQL diretto, dato personale superfluo o testo completo negli analytics.

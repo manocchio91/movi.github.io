@@ -61,11 +61,12 @@ class PlanRepository {
   PlanRepository(this._client, this._auth);
   final ApiClient _client;
   final AuthenticationRepository _auth;
-  Future<List<Map<String, dynamic>>> generate(String when, int radiusKm, int? budgetCents) async {
-    final response = await _client.post('/plans/generate', token: await _auth.accessToken(), body: {'when': when, 'radius_km': radiusKm, if (budgetCents != null) 'budget_cents': budgetCents});
+  Future<Map<String, dynamic>> generate(String message, {Map<String, dynamic>? previousIntent}) async {
+    final response = await _client.post('/ai/plan', token: await _auth.accessToken(), body: {'message': message, if (previousIntent != null) 'previous_intent': previousIntent});
     if (response.statusCode < 200 || response.statusCode >= 300) throw CustomerApiException('${response.body['message'] ?? 'Piano non disponibile.'}');
     final data = response.body['data'];
-    return data is List ? data.whereType<Map>().map((item) => Map<String, dynamic>.from(item)).toList() : const [];
+    if (data is! Map) throw const CustomerApiException('Risposta MòVi AI non valida.');
+    return Map<String, dynamic>.from(data);
   }
 }
 

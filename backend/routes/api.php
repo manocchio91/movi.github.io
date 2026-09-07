@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\V1\EventController;
 use App\Http\Controllers\Api\V1\FavoriteController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\LocationController;
+use App\Http\Controllers\Api\V1\MoviAiController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\NotificationPreferenceController;
 use App\Http\Controllers\Api\V1\OrganizerActivityController;
@@ -60,6 +61,7 @@ Route::prefix('v1')->group(function (): void {
     Route::post('/plans/generate', [PlanController::class, 'generate']);
     Route::post('/plans/revalidate', [PlanController::class, 'revalidate']);
     Route::post('/plans/interaction', [PlanController::class, 'interaction']);
+    Route::post('/ai/plan', [MoviAiController::class, 'plan'])->middleware(['auth:sanctum', 'role:customer', 'throttle:30,1']);
     Route::get('/activities', [ActivityController::class, 'index']);
     Route::get('/activities/{activity:ulid}', [ActivityController::class, 'show']);
     Route::get('/activities/{activity:ulid}/services/{service:ulid}/availability', [ActivityController::class, 'availability']);

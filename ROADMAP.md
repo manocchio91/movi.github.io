@@ -152,5 +152,5 @@ Completata senza deploy remoto:
 - [ ] Table Mode
 - [x] Discovery & Recommendation Foundation
 - [x] MòVi Plan deterministico
-- [ ] MòVi AI
+- [x] MòVi AI su intenti strutturati
 - Graphical restaurant floor plan — possible future enhancement, not required for MòVi 2.0.

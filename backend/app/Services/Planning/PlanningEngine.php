@@ -34,6 +34,7 @@ class PlanningEngine
         $candidates = $this->discovery->search(array_filter($filters, fn ($value) => $value !== null), $user, true)
             ->filter(fn (array $row) => $this->withinTime($row, $input))->take((int) config('planning.candidate_limit'))->values();
         $groups = $candidates->map(fn (array $row) => [$row]);
+        $maxSteps = min((int) config('planning.max_steps'), (int) ($input['max_steps'] ?? config('planning.max_steps')));
         $timed = $candidates->filter(fn (array $row) => $row['ends_at'] !== null)->sortBy('starts_at')->values();
         for ($i = 0; $i < $timed->count(); $i++) {
             for ($j = $i + 1; $j < $timed->count(); $j++) {
@@ -41,9 +42,11 @@ class PlanningEngine
                 if (! $this->compatible($pair[0], $pair[1])) {
                     continue;
                 }
-                $groups->push($pair);
+                if ($maxSteps >= 2) {
+                    $groups->push($pair);
+                }
                 for ($k = $j + 1; $k < $timed->count(); $k++) {
-                    if ($this->compatible($pair[1], $timed[$k])) {
+                    if ($maxSteps >= 3 && $this->compatible($pair[1], $timed[$k])) {
                         $groups->push([$pair[0], $pair[1], $timed[$k]]);
                     }
                 }

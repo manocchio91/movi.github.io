@@ -213,29 +213,35 @@ class MoviPlanScreen extends ConsumerStatefulWidget {
 }
 
 class _MoviPlanScreenState extends ConsumerState<MoviPlanScreen> {
-  String when = 'evening';
-  final budget = TextEditingController();
+  final message = TextEditingController();
   bool loading = false;
   List<Map<String, dynamic>> plans = const [];
+  Map<String, dynamic>? response;
+  String? error;
 
   @override
-  void dispose() { budget.dispose(); super.dispose(); }
+  void dispose() { message.dispose(); super.dispose(); }
 
   Future<void> generate() async {
-    setState(() => loading = true);
+    if (message.text.trim().isEmpty) return;
+    setState(() { loading = true; error = null; });
     try {
-      final value = int.tryParse(budget.text);
-      plans = await ref.read(planRepositoryProvider).generate(when, 30, value == null ? null : value * 100);
+      response = await ref.read(planRepositoryProvider).generate(message.text.trim(), previousIntent: response?['parsed_intent'] is Map ? Map<String, dynamic>.from(response!['parsed_intent'] as Map) : null);
+      plans = (response?['plans'] as List? ?? const []).whereType<Map>().map((item) => Map<String, dynamic>.from(item)).toList();
+    } catch (exception) {
+      error = exception.toString();
     } finally { if (mounted) setState(() => loading = false); }
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Organizza con MòVi')),
+    appBar: AppBar(title: const Text('Chiedi a MòVi')),
     body: ListView(padding: const EdgeInsets.all(16), children: [
-      DropdownButtonFormField<String>(initialValue: when, items: const [DropdownMenuItem(value: 'today', child: Text('Oggi')), DropdownMenuItem(value: 'evening', child: Text('Stasera')), DropdownMenuItem(value: 'tomorrow', child: Text('Domani')), DropdownMenuItem(value: 'weekend', child: Text('Weekend'))], onChanged: (value) => setState(() => when = value ?? when)),
-      TextField(controller: budget, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Budget opzionale (€)')),
-      FilledButton(onPressed: loading ? null : generate, child: Text(loading ? 'Creazione…' : 'CREA IL MIO PIANO')),
+      TextField(controller: message, maxLength: 1000, decoration: const InputDecoration(labelText: 'Cosa vuoi fare?', hintText: 'Organizzami sabato sera con cena e musica.')),
+      Wrap(spacing: 8, children: ['Stasera', 'Weekend', 'Cena + evento', 'Famiglia', 'Vicino a me'].map((text) => ActionChip(label: Text(text), onPressed: () => setState(() => message.text = text))).toList()),
+      FilledButton(onPressed: loading ? null : generate, child: Text(loading ? 'Ricerca…' : 'CHIEDI A MÒVI')),
+      if (error != null) Text(error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+      if (response != null) Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Ho interpretato la richiesta'), Text('${response!['interpretation_summary']}'), ...((response!['warnings'] as List? ?? const []).map((warning) => Text('$warning')))]))),
       ...plans.map((plan) => Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('${plan['title']}', style: Theme.of(context).textTheme.titleLarge), Text((plan['reasons'] as List? ?? const []).join(' · ')), ...((plan['steps'] as List? ?? const []).whereType<Map>().map((raw) { final step = Map<String, dynamic>.from(raw); return ListTile(title: Text('${step['title']}'), subtitle: Text('${step['start']} · ${step['availability_status']}'), onTap: () => context.push(step['entity_type'] == 'event' ? '/customer/events/${step['entity_id']}' : '/customer/activities/${step['entity_id']}')); }))])))),
     ]),
   );

@@ -171,3 +171,9 @@ Deploy controllato della Release Candidate nel Prompt 8/8.
 - Composizione on-demand di massimo tre proposte e tre step usando Discovery, disponibilità, orari, distanza e prezzi reali.
 - Budget verificato solo sui costi conosciuti; valori mancanti restano esplicitamente parziali.
 - Revalidation per-step prima del booking supportata senza blocco capacità o transazioni multi-booking.
+
+## MòVi AI
+
+- Layer di interpretazione degli intenti strutturati sopra Planning, Discovery e Availability; non genera entità, prezzi o disponibilità.
+- Provider configurabile e fallback deterministico; query complete e PII non sono registrate negli analytics.
+- Web e Flutter espongono “Chiedi a MòVi” con contesto precedente leggero e Plan card reali.
