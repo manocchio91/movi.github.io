@@ -9,8 +9,8 @@ extension AppRoleLabel on AppRole {
       };
 
   String get label => switch (this) {
-        AppRole.customer => 'Customer',
-        AppRole.organizer => 'Organizer',
+        AppRole.customer => 'Cliente',
+        AppRole.organizer => 'Organizzatore',
         AppRole.admin => 'Admin',
       };
 

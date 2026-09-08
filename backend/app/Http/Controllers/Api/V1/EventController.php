@@ -19,6 +19,7 @@ class EventController extends Controller
         $events = Event::query()
             ->with(['categories', 'municipality', 'organizerProfile', 'ticketTypes'])
             ->whereIn('status', [EventStatus::Published, EventStatus::SoldOut])
+            ->where('starts_at', '>=', now())
             ->when($search !== '', fn ($q) => $q->where(fn ($event) => $event
                 ->where('title', 'ilike', "%{$search}%")
                 ->orWhere('description', 'ilike', "%{$search}%")))
@@ -41,7 +42,7 @@ class EventController extends Controller
 
     public function show(Event $event, AnalyticsRecorder $analytics): JsonResponse
     {
-        abort_unless(in_array($event->status, [EventStatus::Published, EventStatus::SoldOut], true), 404);
+        abort_unless(in_array($event->getAttribute('status'), [EventStatus::Published, EventStatus::SoldOut], true), 404);
         $analytics->recordDiscovery($event, 'event_detail_view', request()->user(), $this->analyticsSession(request()));
 
         return response()->json([
@@ -62,12 +63,17 @@ class EventController extends Controller
         $event->ticketTypes->each->makeHidden(['id', 'event_id']);
         $event->organizerProfile?->makeHidden(['id', 'owner_user_id', 'municipality_id']);
         if ($event->organizerProfile) {
-            $event->organizerProfile->setAttribute('logo_url', $event->organizerProfile->logo_path ? asset('storage/'.$event->organizerProfile->logo_path) : null);
-            $event->organizerProfile->setAttribute('cover_url', $event->organizerProfile->cover_path ? asset('storage/'.$event->organizerProfile->cover_path) : null);
+            $logoPath = $event->organizerProfile->getAttribute('logo_path');
+            $coverPath = $event->organizerProfile->getAttribute('cover_path');
+            $event->organizerProfile->setAttribute('logo_url', $logoPath ? asset('storage/'.$logoPath) : null);
+            $event->organizerProfile->setAttribute('cover_url', $coverPath ? asset('storage/'.$coverPath) : null);
         }
-        $event->setAttribute('canonical_url', config('frontend.url').'/customer/events/'.$event->ulid);
-        $ticketAvailability = $event->ticketTypes->where('is_active', true)->sum(fn ($ticket) => $ticket->max_quantity === null ? $event->available_total : max(0, $ticket->max_quantity - $ticket->booked_quantity));
-        $event->setAttribute('bookable_available_total', min($event->available_total, $ticketAvailability));
+        $imagePath = $event->getAttribute('image_path');
+        $availableTotal = (int) $event->getAttribute('available_total');
+        $event->setAttribute('canonical_url', config('frontend.url').'/customer/events/'.$event->getAttribute('ulid'));
+        $event->setAttribute('image_url', $imagePath ? asset('storage/'.$imagePath) : null);
+        $ticketAvailability = $event->ticketTypes->where('is_active', true)->sum(fn ($ticket) => $ticket->getAttribute('max_quantity') === null ? $availableTotal : max(0, (int) $ticket->getAttribute('max_quantity') - (int) $ticket->getAttribute('booked_quantity')));
+        $event->setAttribute('bookable_available_total', min($availableTotal, $ticketAvailability));
 
         return $event;
     }

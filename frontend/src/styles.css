@@ -1885,6 +1885,11 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand-600); box-
 .customer-layout .booking-facts dt { color: #8f96aa; }
 .customer-layout .booking-facts dd { color: #fff; }
 .customer-layout form.wide-panel { background: #111522; border-color: var(--premium-line); }
+.preference-form { display: grid; gap: 24px; }
+.preference-form fieldset { border: 1px solid var(--premium-line); border-radius: 14px; display: grid; gap: 12px; padding: 18px; }
+.preference-options { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); }
+.event-cover-editor { align-items: start; border: 1px solid var(--premium-line); border-radius: 14px; display: grid; gap: 14px; padding: 18px; }
+.event-cover-editor img { border-radius: 12px; height: 180px; object-fit: contain; width: min(100%,420px); }
 
 /* Organizer premium command center */
 .organizer-layout { grid-template-columns: 260px minmax(0,1fr); }

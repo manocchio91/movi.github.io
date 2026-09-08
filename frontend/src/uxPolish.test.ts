@@ -128,3 +128,15 @@ test('customer regressions restore sidebar, bookable availability and real QR ac
   assert.match(app, /QRCode\.toDataURL/);
   assert.doesNotMatch(app, /class: 'booking-qr' \}, customerQrTokens/);
 });
+
+test('customer preferences and event cover use existing platform contracts', () => {
+  assert.match(app, /renderCustomerPreferences/);
+  assert.match(app, /api<any>\('\/me\/preferences'\)/);
+  assert.match(app, /api<any>\('\/me\/notification-preferences'\)/);
+  assert.match(app, /followed_organizer_events_enabled/);
+  assert.match(app, /\/organizer\/events\/\$\{saved\.data\.ulid\}\/image/);
+  assert.match(app, /Usa il logo dell’Organizzatore/);
+  assert.match(app, /title: 'Cliente'/);
+  assert.match(app, /title: 'Organizzatore'/);
+  assert.doesNotMatch(app, /Nuovo ristorante/);
+});

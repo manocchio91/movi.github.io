@@ -77,6 +77,19 @@ class PublicEventSearchTest extends TestCase
         $this->assertSame($withoutSearch['data'], $blankSearch['data']);
     }
 
+    public function test_public_feed_excludes_past_events_so_a_new_valid_event_is_immediately_visible(): void
+    {
+        [$category] = $this->fixtures();
+        $past = $this->event('Evento passato', 'Non deve occupare il feed', $category);
+        $past->forceFill(['starts_at' => now()->subDay()])->save();
+        $future = $this->event('Nuovo evento pubblicato', 'Deve comparire', $category);
+
+        $this->getJson('/api/v1/events')->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.ulid', $future->ulid)
+            ->assertJsonMissing(['ulid' => $past->ulid]);
+    }
+
     public function test_public_contract_distinguishes_global_capacity_from_ticket_availability(): void
     {
         [$category] = $this->fixtures();

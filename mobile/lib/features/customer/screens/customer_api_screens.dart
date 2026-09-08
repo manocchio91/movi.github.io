@@ -478,7 +478,7 @@ class CustomerApiEventDetailScreen extends ConsumerWidget {
                 TextButton.icon(
                     onPressed: () => context.push('/customer/following'),
                     icon: const Icon(Icons.people_alt_outlined),
-                    label: const Text('Vedi Organizer seguiti')),
+                    label: const Text('Vedi Organizzatori seguiti')),
               ],
               Align(
                 alignment: Alignment.centerLeft,
@@ -691,7 +691,7 @@ class _OrganizerFollowButtonState extends ConsumerState<OrganizerFollowButton> {
           ? 'Caricamento…'
           : following == true
               ? 'Seguito · Smetti di seguire'
-              : 'Segui Organizer'));
+              : 'Segui Organizzatore'));
 }
 
 class CustomerFollowingScreen extends ConsumerWidget {
@@ -699,7 +699,7 @@ class CustomerFollowingScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => Scaffold(
-      appBar: AppBar(title: const Text('Organizer seguiti')),
+      appBar: AppBar(title: const Text('Organizzatori seguiti')),
       body: FutureBuilder<List<Map<String, dynamic>>>(
           future: ref.read(followRepositoryProvider).following(),
           builder: (context, snapshot) {
@@ -712,7 +712,7 @@ class CustomerFollowingScreen extends ConsumerWidget {
             final items = snapshot.data ?? const [];
             if (items.isEmpty) {
               return const Center(
-                  child: Text('Non segui ancora alcun Organizer.'));
+                  child: Text('Non segui ancora alcun Organizzatore.'));
             }
             return ListView.builder(
                 padding: const EdgeInsets.all(20),

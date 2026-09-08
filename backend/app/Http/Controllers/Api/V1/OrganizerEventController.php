@@ -10,11 +10,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\IndexOrganizerEventRequest;
 use App\Http\Requests\StoreEventRequest;
 use App\Http\Requests\UpdateEventRequest;
+use App\Http\Requests\UploadEventImageRequest;
 use App\Models\Event;
 use App\Services\BusinessIntelligence\OrganizerDashboardMetrics;
 use App\Services\OrganizerEventSummaryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class OrganizerEventController extends Controller
@@ -73,21 +75,49 @@ class OrganizerEventController extends Controller
 
         $event->load(['categories', 'ticketTypes', 'municipality']);
 
-        return response()->json(['data' => $event->getAttributes() + ['categories' => $event->categories, 'ticket_types' => $event->ticketTypes, 'municipality' => $event->municipality, 'summary_metrics' => $summary->summarize($event)]]);
+        return response()->json(['data' => $this->eventData($event, $summary)]);
     }
 
     public function update(UpdateEventRequest $request, Event $event, UpdateEvent $updateEvent, OrganizerEventSummaryService $summary): JsonResponse
     {
         $event = $updateEvent->handle($event, $request->validated());
 
-        return response()->json(['data' => $event->getAttributes() + ['categories' => $event->categories, 'ticket_types' => $event->ticketTypes, 'municipality' => $event->municipality, 'summary_metrics' => $summary->summarize($event)]]);
+        return response()->json(['data' => $this->eventData($event, $summary)]);
     }
 
-    public function publish(Event $event, PublishEvent $publishEvent): JsonResponse
+    public function image(UploadEventImageRequest $request, Event $event): JsonResponse
+    {
+        $disk = (string) config('filesystems.public', 'public');
+        $path = $request->file('image')->store('events/'.$event->getAttribute('ulid'), $disk);
+        $oldPath = $event->getAttribute('image_path');
+        $event->forceFill(['image_path' => $path])->save();
+        if ($oldPath) {
+            Storage::disk($disk)->delete($oldPath);
+        }
+
+        return response()->json(['data' => ['image_url' => Storage::disk($disk)->url($path)]]);
+    }
+
+    public function destroyImage(Event $event): JsonResponse
+    {
+        $this->authorize('update', $event);
+        $disk = (string) config('filesystems.public', 'public');
+        $oldPath = $event->getAttribute('image_path');
+        $event->forceFill(['image_path' => null])->save();
+        if ($oldPath) {
+            Storage::disk($disk)->delete($oldPath);
+        }
+
+        return response()->json(['data' => ['image_url' => null]]);
+    }
+
+    public function publish(Event $event, PublishEvent $publishEvent, OrganizerEventSummaryService $summary): JsonResponse
     {
         $this->authorize('viewOrganizer', $event);
 
-        return response()->json(['data' => $publishEvent->handle($event)->load(['categories', 'ticketTypes'])]);
+        $published = $publishEvent->handle($event)->load(['categories', 'ticketTypes', 'municipality']);
+
+        return response()->json(['data' => $this->eventData($published, $summary)]);
     }
 
     public function closeBookings(Event $event): JsonResponse
@@ -143,12 +173,26 @@ class OrganizerEventController extends Controller
                     fputcsv($output, [$row['booking_code'], $row['name'], $row['email'], $row['phone'], $row['tickets'], $row['people'], $row['status'], $row['checked_in_at']]);
                 }
                 fclose($output);
-            }, "partecipanti-{$event->ulid}.csv", ['Content-Type' => 'text/csv; charset=UTF-8']);
+            }, 'partecipanti-'.$event->getAttribute('ulid').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
         }
         $totals = $event->bookings()->whereIn('status', ['confirmed', 'checked_in', 'completed']);
         $page = $query->paginate((int) ($validated['per_page'] ?? 15));
 
         return response()->json(['data' => $page->getCollection()->map($serialize)->values(), 'summary' => ['bookings_total' => (clone $totals)->count(), 'people_total' => (int) (clone $totals)->sum('total_people'), 'checked_in_total' => (int) (clone $totals)->whereHas('checkIns')->sum('total_people')], 'meta' => ['current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'per_page' => $page->perPage(), 'total' => $page->total(), 'from' => $page->firstItem(), 'to' => $page->lastItem()]]);
+    }
+
+    /** @return array<string, mixed> */
+    private function eventData(Event $event, OrganizerEventSummaryService $summary): array
+    {
+        $imagePath = $event->getAttribute('image_path');
+
+        return $event->getAttributes() + [
+            'image_url' => $imagePath ? Storage::disk((string) config('filesystems.public', 'public'))->url($imagePath) : null,
+            'categories' => $event->categories,
+            'ticket_types' => $event->ticketTypes,
+            'municipality' => $event->municipality,
+            'summary_metrics' => $summary->summarize($event),
+        ];
     }
 
     public function reviews(Event $event): JsonResponse

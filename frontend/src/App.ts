@@ -150,6 +150,7 @@ type OrganizerEventFilter = 'future' | 'completed' | 'unpublished';
 type OrganizerEvent = {
   ulid: string;
   title: string;
+  image_url?: string | null;
   status: OrganizerEventStatus;
   starts_at: string;
   ends_at: string | null;
@@ -351,7 +352,7 @@ const customerMenu = [
   ['Tutti gli Eventi', '/customer/explore'],
   ['Eventi di Successo', '/customer/successful-events'],
   ['Le mie prenotazioni', '/customer/bookings'],
-  ['Organizer seguiti', '/customer/following'],
+  ['Organizzatori seguiti', '/customer/following'],
   ['Attività', '/customer/activities'],
   ['Prenotazioni locali', '/customer/reservations'],
   ['Organizza con MòVi', '/customer/plan'],
@@ -474,6 +475,8 @@ export default defineComponent({
     const eventFormErrors = ref<Record<string, string[]>>({});
     const eventFormGeneralError = ref('');
     const eventFormSuccess = ref('');
+    const eventCoverFile = ref<File | null>(null);
+    const eventImageUrl = ref<string | null>(null);
     const categoriesLoading = ref(false);
     const eventCategories = ref<EventCategory[]>([]);
     const eventMunicipalities = ref<EventMunicipality[]>([]);
@@ -511,13 +514,15 @@ export default defineComponent({
     const customerPassword = ref({ current_password: '', password: '', password_confirmation: '' });
     const customerBookings = ref<CustomerBooking[]>([]);
     const cancellingCustomerBooking = ref<string | null>(null);
-    const customerFavorites = ref<CustomerEvent[]>([]);
     const customerQrTokens = ref<Record<string, string>>({});
     const customerQrImages = ref<Record<string, string>>({});
     const customerSectionLoading = ref(false);
     const customerSectionMessage = ref('');
     const publicOrganizer = ref<any>(null);
     const customerFollowing = ref<any[]>([]);
+    const customerPreferenceCategories = ref<EventCategory[]>([]);
+    const customerPreferredCategoryIds = ref<number[]>([]);
+    const customerNotificationPreferences = ref({ internal_enabled: true, email_enabled: true, promotional_enabled: false, operational_enabled: true, followed_organizer_events_enabled: true, frequency: 'immediate' });
     const followActionLoading = ref(false);
     const customerActivities = ref<any[]>([]);
     const selectedActivity = ref<any | null>(null);
@@ -654,7 +659,7 @@ export default defineComponent({
 
         if (error instanceof ApiError && error.status === 403) {
           dashboardForbidden.value = true;
-          dashboardError.value = error.message || 'Accesso non autorizzato o profilo Organizer non approvato.';
+          dashboardError.value = error.message || 'Accesso non autorizzato o profilo Organizzatore non approvato.';
           return;
         }
 
@@ -706,7 +711,7 @@ export default defineComponent({
 
         if (error instanceof ApiError && error.status === 403) {
           organizerEventsForbidden.value = true;
-          organizerEventsError.value = error.message || 'Accesso non autorizzato o profilo Organizer non approvato.';
+          organizerEventsError.value = error.message || 'Accesso non autorizzato o profilo Organizzatore non approvato.';
           return;
         }
 
@@ -733,6 +738,8 @@ export default defineComponent({
         indoor_outdoor: event.indoor_outdoor,
       };
       eventBookedPeople.value = event.summary_metrics.booked_people;
+      eventCoverFile.value = null;
+      eventImageUrl.value = event.image_url ?? null;
       tickets.value = event.ticket_types.length > 0 ? event.ticket_types.map((ticket) => ({
         ulid: ticket.ulid,
         name: ticket.name,
@@ -757,6 +764,8 @@ export default defineComponent({
       eventFormErrors.value = {};
       if (!eventUlid) {
         eventFormData.value = emptyEventForm();
+        eventCoverFile.value = null;
+        eventImageUrl.value = null;
         eventBookedPeople.value = 0;
         tickets.value = [emptyEventTicket()];
       }
@@ -876,6 +885,15 @@ export default defineComponent({
           finalEvent = published.data;
         }
 
+        if (eventCoverFile.value) {
+          const imageForm = new FormData();
+          imageForm.append('image', eventCoverFile.value);
+          const image = await api<{ data: { image_url: string } }>(`/organizer/events/${saved.data.ulid}/image`, { method: 'POST', body: imageForm });
+          finalEvent.image_url = image?.data.image_url ?? null;
+          eventImageUrl.value = finalEvent.image_url;
+          eventCoverFile.value = null;
+        }
+
         eventFormMode.value = 'edit';
         route.value = `/organizer/events/${finalEvent.ulid}/edit`;
         applyEventDetailToForm(finalEvent);
@@ -979,13 +997,21 @@ export default defineComponent({
       }
     };
 
-    const loadCustomerSection = async (section: 'profile' | 'bookings' | 'favorites' | 'following') => {
+    const loadCustomerSection = async (section: 'profile' | 'bookings' | 'following' | 'preferences') => {
       customerSectionLoading.value = true; customerSectionMessage.value = '';
       try {
         if (section === 'profile') customerProfile.value = (await api<any>('/me/profile'))?.data ?? customerProfile.value;
         if (section === 'bookings') customerBookings.value = (await api<any>('/me/bookings'))?.data ?? [];
-        if (section === 'favorites') customerFavorites.value = (await api<any>('/me/favorites'))?.data ?? [];
         if (section === 'following') customerFollowing.value = (await api<any>('/customer/following'))?.data ?? [];
+        if (section === 'preferences') {
+          const [categories, preferred, notifications, following] = await Promise.all([
+            api<any>('/categories'), api<any>('/me/preferences'), api<any>('/me/notification-preferences'), api<any>('/customer/following'),
+          ]);
+          customerPreferenceCategories.value = categories?.data ?? [];
+          customerPreferredCategoryIds.value = (preferred?.data ?? []).map((category: EventCategory) => category.id);
+          customerNotificationPreferences.value = notifications?.data ?? customerNotificationPreferences.value;
+          customerFollowing.value = following?.data ?? [];
+        }
       } catch (error) { customerSectionMessage.value = userMessage(error, 'Dati non disponibili.'); }
       finally { customerSectionLoading.value = false; }
     };
@@ -1011,8 +1037,27 @@ export default defineComponent({
 
     const loadPublicOrganizer = async (ulid: string) => {
       customerSectionLoading.value = true; customerSectionMessage.value = ''; publicOrganizer.value = null;
-      try { publicOrganizer.value = await api(`/organizers/${ulid}`); } catch (error) { customerSectionMessage.value = userMessage(error, 'Organizer non disponibile.'); }
+      try { publicOrganizer.value = await api(`/organizers/${ulid}`); } catch (error) { customerSectionMessage.value = userMessage(error, 'Organizzatore non disponibile.'); }
       finally { customerSectionLoading.value = false; }
+    };
+
+    const saveCustomerPreferences = async () => {
+      customerSectionLoading.value = true; customerSectionMessage.value = '';
+      try {
+        await Promise.all([
+          api('/me/preferences', { method: 'PUT', body: JSON.stringify({ category_ids: customerPreferredCategoryIds.value }) }),
+          api('/me/notification-preferences', { method: 'PUT', body: JSON.stringify(customerNotificationPreferences.value) }),
+        ]);
+        customerSectionMessage.value = 'Preferenze e notifiche aggiornate.';
+      } catch (error) { customerSectionMessage.value = userMessage(error, 'Preferenze non aggiornate.'); }
+      finally { customerSectionLoading.value = false; }
+    };
+
+    const useOrganizerLogoForEvent = async () => {
+      if (!eventFormData.value.ulid) { eventCoverFile.value = null; eventImageUrl.value = null; return; }
+      await api(`/organizer/events/${eventFormData.value.ulid}/image`, { method: 'DELETE' });
+      eventCoverFile.value = null; eventImageUrl.value = null;
+      eventFormSuccess.value = 'Verrà utilizzato il logo dell’Organizzatore.';
     };
 
     const joinCustomerWaitlist = async () => {
@@ -1061,7 +1106,6 @@ export default defineComponent({
       finally { followActionLoading.value = false; }
     };
 
-    const removeFavorite = async (ulid: string) => { await api(`/me/favorites/${ulid}`, { method: 'DELETE' }); await loadCustomerSection('favorites'); };
     const reviewBooking = async (booking: any) => { const rating = Number(window.prompt('Valutazione da 1 a 5')); if (!Number.isInteger(rating) || rating < 1 || rating > 5) return; const comment = window.prompt('Recensione') ?? ''; try { await api(`/events/${booking.event.ulid}/reviews`, { method: 'POST', body: JSON.stringify({ rating, comment, would_recommend: rating >= 4 }) }); customerSectionMessage.value = 'Recensione pubblicata.'; } catch (error) { customerSectionMessage.value = userMessage(error, 'Recensione non pubblicata.'); } };
 
     const uploadOrganizerImage = async (kind: 'logo' | 'cover', file?: File) => {
@@ -1495,7 +1539,7 @@ export default defineComponent({
     const createCustomerReservation = async (slot: any) => { if (!selectedActivity.value) return; activityMessage.value = ''; if (!customerProfile.value.phone) { activityMessage.value = 'Aggiungi un telefono reale nel profilo prima di prenotare.'; return; } try { const result = await api<any>(`/activities/${selectedActivity.value.ulid}/reservations`, { method: 'POST', headers: { 'Idempotency-Key': crypto.randomUUID() }, body: JSON.stringify({ service_ulid: activityServiceUlid.value, starts_at: slot.starts_at, party_size: activityPartySize.value, contact_phone: customerProfile.value.phone }) }); activityMessage.value = `Prenotazione confermata: ${result?.data?.ulid ?? ''}`; await loadActivityAvailability(); } catch (error) { activityMessage.value = userMessage(error, 'Prenotazione non riuscita.'); } };
     const toggleActivityFollow = async () => { if (!selectedActivity.value) return; const following = selectedActivity.value.is_following === true; const response = await api<any>(`/customer/activities/${selectedActivity.value.ulid}/follow`, { method: following ? 'DELETE' : 'POST' }); selectedActivity.value.is_following = response?.data?.is_following ?? !following; };
     const loadCustomerReservations = async () => { customerReservations.value = (await api<any>('/me/reservations'))?.data ?? []; };
-    const cancelCustomerReservation = async (reservation: any) => { if (!window.confirm('Annullare questa prenotazione?')) return; await api(`/me/reservations/${reservation.ulid}/cancel`, { method: 'POST', body: JSON.stringify({ reason: 'Annullata dal Customer' }) }); await loadCustomerReservations(); };
+    const cancelCustomerReservation = async (reservation: any) => { if (!window.confirm('Annullare questa prenotazione?')) return; await api(`/me/reservations/${reservation.ulid}/cancel`, { method: 'POST', body: JSON.stringify({ reason: 'Annullata dal Cliente' }) }); await loadCustomerReservations(); };
     const openPreorder = async (reservation: any) => { preorderLoading.value = true; preorderError.value = ''; try { const [menu, existing] = await Promise.all([api<any>(`/activities/${reservation.activity.ulid}/menu`), api<any>(`/me/reservations/${reservation.ulid}/preorder`).catch(() => null)]); activePreorderReservation.value = reservation; activePreorderMenu.value = menu?.data ?? null; preorderQuantities.value = Object.fromEntries((existing?.data?.items ?? []).map((item: any) => [item.menu_item_ulid, item.quantity])); } catch (error) { preorderError.value = userMessage(error, 'Menu non disponibile.'); } finally { preorderLoading.value = false; } };
     const changePreorderQuantity = (ulid: string, delta: number) => { preorderQuantities.value = { ...preorderQuantities.value, [ulid]: Math.max(0, Math.min(50, (preorderQuantities.value[ulid] ?? 0) + delta)) }; };
     const savePreorder = async () => { if (!activePreorderReservation.value) return; const items = Object.entries(preorderQuantities.value).filter(([, quantity]) => quantity > 0).map(([menu_item_ulid, quantity]) => ({ menu_item_ulid, quantity })); if (!items.length) { preorderError.value = 'Seleziona almeno un piatto.'; return; } preorderLoading.value = true; preorderError.value = ''; try { await api(`/me/reservations/${activePreorderReservation.value.ulid}/preorder`, { method: 'PUT', body: JSON.stringify({ items }) }); customerSectionMessage.value = 'Pre-order confermato. Pagherai direttamente al locale.'; activePreorderReservation.value = null; await loadCustomerReservations(); } catch (error) { preorderError.value = userMessage(error, 'Pre-order non salvato.'); } finally { preorderLoading.value = false; } };
@@ -1537,7 +1581,7 @@ export default defineComponent({
       if (route.value.startsWith('/customer/organizers/')) await loadPublicOrganizer(route.value.split('/')[3]);
       if (route.value === '/customer/profile') await loadCustomerSection('profile');
       if (route.value === '/customer/bookings') await loadCustomerSection('bookings');
-      if (route.value === '/customer/preferences') await loadCustomerSection('favorites');
+      if (route.value === '/customer/preferences') await loadCustomerSection('preferences');
       if (route.value === '/customer/following') await loadCustomerSection('following');
       if (route.value.startsWith('/customer')) await loadCustomerData();
       if (route.value.startsWith('/admin')) { await loadAdminData(); if (route.value === '/admin/subscriptions') await loadAdminPlans(); }
@@ -1842,8 +1886,8 @@ export default defineComponent({
     };
 
     const roleOptions: Array<{ audience: AuthAudience; icon: string; title: string; description: string; cta: string }> = [
-      { audience: 'customer', icon: '✦', title: 'Customer', description: 'Scopri esperienze, prenota e porta sempre con te i tuoi QR.', cta: 'Scopri gli eventi' },
-      { audience: 'organizer', icon: '◆', title: 'Organizer', description: 'Crea eventi, monitora prenotazioni e gestisci i partecipanti.', cta: 'Gestisci gli eventi' },
+      { audience: 'customer', icon: '✦', title: 'Cliente', description: 'Scopri esperienze, prenota e porta sempre con te i tuoi QR.', cta: 'Scopri gli eventi' },
+      { audience: 'organizer', icon: '◆', title: 'Organizzatore', description: 'Crea eventi, monitora prenotazioni e gestisci i partecipanti.', cta: 'Gestisci gli eventi' },
       { audience: 'admin', icon: '◈', title: 'Admin', description: 'Controlla la piattaforma, modera contenuti e gestisci gli accordi.', cta: 'Apri il backoffice' },
     ];
 
@@ -1901,7 +1945,7 @@ export default defineComponent({
       authInput('Conferma password', 'password_confirmation', 'password', organizerRegistrationForm.value.password_confirmation, (value) => { organizerRegistrationForm.value.password_confirmation = value; }),
       authInput('Nome organizzazione', 'organization_name', 'text', organizerRegistrationForm.value.organization_name, (value) => { organizerRegistrationForm.value.organization_name = value; }),
       authInput('Tipo organizzazione', 'organization_type', 'text', organizerRegistrationForm.value.organization_type, (value) => { organizerRegistrationForm.value.organization_type = value; }),
-      h('button', { class: 'auth-submit', type: 'submit', disabled: authLoading.value }, authLoading.value ? 'Registrazione in corso…' : 'Crea account Organizer'),
+      h('button', { class: 'auth-submit', type: 'submit', disabled: authLoading.value }, authLoading.value ? 'Registrazione in corso…' : 'Crea account Organizzatore'),
     ]);
 
     const renderLogin = () => authAudience.value === null ? renderRoleSelection() : h('section', { class: 'auth-screen' }, [
@@ -1911,8 +1955,8 @@ export default defineComponent({
         h('p', 'Accedi oppure crea un account reale. Le credenziali vengono sempre verificate dal backend.'),
         h('div', { class: 'auth-tabs', role: 'tablist' }, [
           h('button', { type: 'button', class: authMode.value === 'login' ? 'active' : '', onClick: () => setAuthMode('login') }, 'Accedi'),
-          authAudience.value === 'customer' ? h('button', { type: 'button', class: authMode.value === 'register-customer' ? 'active' : '', onClick: () => setAuthMode('register-customer') }, 'Registrati come Customer') : null,
-          authAudience.value === 'organizer' ? h('button', { type: 'button', class: authMode.value === 'register-organizer' ? 'active' : '', onClick: () => setAuthMode('register-organizer') }, 'Registrati come Organizer') : null,
+          authAudience.value === 'customer' ? h('button', { type: 'button', class: authMode.value === 'register-customer' ? 'active' : '', onClick: () => setAuthMode('register-customer') }, 'Registrati come Cliente') : null,
+          authAudience.value === 'organizer' ? h('button', { type: 'button', class: authMode.value === 'register-organizer' ? 'active' : '', onClick: () => setAuthMode('register-organizer') }, 'Registrati come Organizzatore') : null,
           h('button', { type: 'button', onClick: () => { authAudience.value = null; authMode.value = 'login'; } }, 'Cambia area'),
         ]),
         authError.value ? h('p', { class: 'api-error', role: 'alert' }, authError.value) : null,
@@ -1937,8 +1981,8 @@ export default defineComponent({
 
     const renderOrganizerOnboarding = () => h('main', { class: 'auth-screen onboarding-screen' }, [
       h('section', { class: 'auth-panel onboarding-panel' }, [
-        h('span', { class: 'eyebrow' }, 'Profilo Organizer'),
-        h('h1', route.value === '/organizer/profile' ? 'Modifica profilo Organizer' : 'Completa il profilo Organizer'),
+        h('span', { class: 'eyebrow' }, 'Profilo Organizzatore'),
+        h('h1', route.value === '/organizer/profile' ? 'Modifica profilo Organizzatore' : 'Completa il profilo Organizzatore'),
         route.value === '/organizer/profile' ? h('div', { class: 'review-reason', role: 'status' }, [
           h('strong', organizerProfile.value.profile_change_status === 'pending' ? 'Modifiche in attesa di approvazione' : organizerProfile.value.profile_change_status === 'rejected' ? 'Modifiche non approvate' : 'Profilo approvato'),
           organizerProfile.value.profile_change_status === 'rejected' && organizerProfile.value.profile_change_review_notes ? h('p', organizerProfile.value.profile_change_review_notes) : null,
@@ -1984,8 +2028,8 @@ export default defineComponent({
               profileInput('Sito web', 'website_url', 'url'), profileInput('Instagram', 'instagram_url', 'url'),
               profileInput('Facebook', 'facebook_url', 'url'), profileInput('TikTok', 'tiktok_url', 'url'),
               profileInput('YouTube', 'youtube_url', 'url'),
-              h('label', { class: 'auth-field' }, [h('span', 'Logo'), organizerProfile.value.logo_url ? h('img', { src: organizerProfile.value.logo_url, alt: 'Logo Organizer', class: 'organizer-profile-image' }) : null, h('input', { type: 'file', accept: 'image/*', onChange: (event: Event) => { void uploadOrganizerImage('logo', (event.target as HTMLInputElement).files?.[0]); } })]),
-              h('label', { class: 'auth-field' }, [h('span', 'Copertina'), organizerProfile.value.cover_url ? h('img', { src: organizerProfile.value.cover_url, alt: 'Copertina Organizer', class: 'organizer-profile-image cover' }) : null, h('input', { type: 'file', accept: 'image/*', onChange: (event: Event) => { void uploadOrganizerImage('cover', (event.target as HTMLInputElement).files?.[0]); } })]),
+              h('label', { class: 'auth-field' }, [h('span', 'Logo'), organizerProfile.value.logo_url ? h('img', { src: organizerProfile.value.logo_url, alt: 'Logo Organizzatore', class: 'organizer-profile-image' }) : null, h('input', { type: 'file', accept: 'image/*', onChange: (event: Event) => { void uploadOrganizerImage('logo', (event.target as HTMLInputElement).files?.[0]); } })]),
+              h('label', { class: 'auth-field' }, [h('span', 'Copertina'), organizerProfile.value.cover_url ? h('img', { src: organizerProfile.value.cover_url, alt: 'Copertina Organizzatore', class: 'organizer-profile-image cover' }) : null, h('input', { type: 'file', accept: 'image/*', onChange: (event: Event) => { void uploadOrganizerImage('cover', (event.target as HTMLInputElement).files?.[0]); } })]),
               h('label', { class: 'auth-field onboarding-description' }, [h('span', 'Descrizione'), h('textarea', {
                 value: organizerProfile.value.description ?? '',
                 onInput: (event: Event) => { organizerProfile.value.description = (event.target as HTMLTextAreaElement).value; },
@@ -2053,7 +2097,7 @@ export default defineComponent({
       const activeTickets = event.ticket_types.filter((ticket) => ticket.is_active);
       const bookable = event.bookable_available_total ?? Math.min(event.available_total, activeTickets.reduce((total, ticket) => total + (Number.isFinite(ticketAvailable(ticket)) ? ticketAvailable(ticket) : event.available_total), 0));
       return [h('div', { class: 'section-title' }, [h('div', [h('h2', event.title), h('span', `${event.municipality?.name ?? 'Luogo non indicato'} · ${new Date(event.starts_at).toLocaleString('it-IT')}`)]), h('div', { class: 'action-row' }, [h('button', { type: 'button', onClick: () => { void shareCustomerEvent(event); } }, 'Condividi'), h('button', { type: 'button', onClick: () => { shareCustomerEventOnWhatsApp(event); } }, 'WhatsApp'), h('button', { onClick: () => { void go('/customer/explore'); } }, 'Torna agli eventi')])]), customerShareMessage.value ? h('p', { role: 'status' }, customerShareMessage.value) : null, h('article', { class: 'wide-panel customer-event-detail' }, [
-        h('p', event.description), h('p', [h('strong', bookable > 0 ? `${bookable} posti prenotabili su ${event.capacity_total}` : event.available_total > 0 ? `${event.available_total} posti complessivi · biglietti esauriti` : `Evento esaurito · ${event.capacity_total} posti complessivi`), ' · Organizzato da ', event.organizer_profile ? h('button', { class: 'link-button', onClick: () => { void go(`/customer/organizers/${event.organizer_profile!.ulid}`); } }, event.organizer_profile.name) : 'Organizer']), h('h3', 'Scegli i ticket'),
+        h('p', event.description), h('p', [h('strong', bookable > 0 ? `${bookable} posti prenotabili su ${event.capacity_total}` : event.available_total > 0 ? `${event.available_total} posti complessivi · biglietti esauriti` : `Evento esaurito · ${event.capacity_total} posti complessivi`), ' · Organizzato da ', event.organizer_profile ? h('button', { class: 'link-button', onClick: () => { void go(`/customer/organizers/${event.organizer_profile!.ulid}`); } }, event.organizer_profile.name) : 'Organizzatore']), h('h3', 'Scegli i ticket'),
         activeTickets.length === 0 ? h('p', 'Nessun ticket disponibile.') : h('div', { class: 'customer-ticket-list' }, activeTickets.map((ticket) => h('label', { class: 'customer-ticket-row' }, [h('span', [h('strong', ticket.name), h('small', formatEuro(ticket.price_cents)), h('small', `${purchasableTickets(event, ticket)} biglietti disponibili`), ticketAvailable(ticket) < event.available_total ? h('small', 'Disponibilità limitata per questa tipologia di biglietto.') : null]), h('input', { type: 'number', min: 0, max: purchasableTickets(event, ticket), value: customerTicketQuantities.value[ticket.ulid] ?? 0, disabled: customerBookingLoading.value || customerBookingResult.value !== null, 'aria-label': `Quantità ${ticket.name}`, onInput: (inputEvent: Event) => { customerTicketQuantities.value[ticket.ulid] = Math.min(purchasableTickets(event, ticket), Math.max(0, Number((inputEvent.target as HTMLInputElement).value) || 0)); } })]))),
         renderBookingSummary(event, customerTicketQuantities.value),
         h('label', { class: 'auth-field' }, [h('span', 'Telefono obbligatorio'), h('input', { type: 'tel', required: true, autocomplete: 'tel', value: customerBookingPhone.value, disabled: customerBookingLoading.value || customerBookingResult.value !== null, 'aria-invalid': customerBookingFieldErrors.value.phone ? 'true' : 'false', onInput: (inputEvent: Event) => { customerBookingPhone.value = (inputEvent.target as HTMLInputElement).value; delete customerBookingFieldErrors.value.phone; } }), customerBookingFieldErrors.value.phone ? h('small', { class: 'api-error' }, customerBookingFieldErrors.value.phone[0]) : null]),
@@ -2127,11 +2171,27 @@ export default defineComponent({
       ]),
       customerSectionMessage.value ? h('p', { role: 'status' }, customerSectionMessage.value) : null,
     ];
-    const renderCustomerFavorites = () => [h('div', { class: 'section-title' }, [h('h2', 'Eventi preferiti')]), customerFavorites.value.length === 0 ? emptyState('Nessun evento preferito.') : h('div', { class: 'event-grid' }, customerFavorites.value.map((event) => h('article', { class: 'experience-card' }, [h('h3', event.title), h('button', { onClick: () => { void go(`/customer/events/${event.ulid}`); } }, 'Apri'), h('button', { onClick: () => { void removeFavorite(event.ulid); } }, 'Rimuovi')])) )];
-    const renderPublicOrganizer = () => { const payload = publicOrganizer.value; if (customerSectionLoading.value) return [h('article', { class: 'wide-panel' }, 'Caricamento Organizer…')]; if (!payload) return [emptyState(customerSectionMessage.value || 'Organizer non disponibile.')]; const organizer = payload.data; return [h('article', { class: 'wide-panel organizer-public' }, [organizer.cover_url ? h('img', { src: organizer.cover_url, alt: '', class: 'organizer-cover' }) : null, organizer.logo_url ? h('img', { src: organizer.logo_url, alt: `Logo ${organizer.name}`, class: 'organizer-logo' }) : null, h('h2', organizer.name), h('p', organizer.description ?? ''), h('p', `${organizer.public_email ?? ''} ${organizer.phone ?? ''}`), h('div', { class: 'action-row' }, [h('button', { type: 'button', disabled: followActionLoading.value, onClick: () => { void toggleOrganizerFollow(); } }, followActionLoading.value ? 'Aggiornamento…' : organizer.is_following ? 'Seguito · Smetti di seguire' : 'Segui'), ...['website_url', 'facebook_url', 'instagram_url', 'tiktok_url', 'youtube_url'].filter((key) => organizer[key]).map((key) => h('a', { href: organizer[key], target: '_blank', rel: 'noopener' }, key.replace('_url', '')))]), h('strong', `${organizer.events_count ?? 0} eventi · ${payload.reviews_count ?? 0} recensioni · ${organizer.followers_count ?? 0} follower`), customerSectionMessage.value ? h('p', { role: 'status' }, customerSectionMessage.value) : null]), h('h3', 'Eventi futuri'), h('div', { class: 'event-grid' }, (payload.future_experiences ?? []).map(renderEventCard)), h('h3', 'Eventi conclusi'), h('div', { class: 'event-grid' }, (payload.completed_experiences ?? []).map(renderEventCard))]; };
+    const renderPublicOrganizer = () => { const payload = publicOrganizer.value; if (customerSectionLoading.value) return [h('article', { class: 'wide-panel' }, 'Caricamento Organizzatore…')]; if (!payload) return [emptyState(customerSectionMessage.value || 'Organizzatore non disponibile.')]; const organizer = payload.data; return [h('article', { class: 'wide-panel organizer-public' }, [organizer.cover_url ? h('img', { src: organizer.cover_url, alt: '', class: 'organizer-cover' }) : null, organizer.logo_url ? h('img', { src: organizer.logo_url, alt: `Logo ${organizer.name}`, class: 'organizer-logo' }) : null, h('h2', organizer.name), h('p', organizer.description ?? ''), h('p', `${organizer.public_email ?? ''} ${organizer.phone ?? ''}`), h('div', { class: 'action-row' }, [h('button', { type: 'button', disabled: followActionLoading.value, onClick: () => { void toggleOrganizerFollow(); } }, followActionLoading.value ? 'Aggiornamento…' : organizer.is_following ? 'Seguito · Smetti di seguire' : 'Segui'), ...['website_url', 'facebook_url', 'instagram_url', 'tiktok_url', 'youtube_url'].filter((key) => organizer[key]).map((key) => h('a', { href: organizer[key], target: '_blank', rel: 'noopener' }, key.replace('_url', '')))]), h('strong', `${organizer.events_count ?? 0} eventi · ${payload.reviews_count ?? 0} recensioni · ${organizer.followers_count ?? 0} follower`), customerSectionMessage.value ? h('p', { role: 'status' }, customerSectionMessage.value) : null]), h('h3', 'Eventi futuri'), h('div', { class: 'event-grid' }, (payload.future_experiences ?? []).map(renderEventCard)), h('h3', 'Eventi conclusi'), h('div', { class: 'event-grid' }, (payload.completed_experiences ?? []).map(renderEventCard))]; };
     const renderCustomerFollowing = () => [
-      h('div', { class: 'section-title' }, [h('h2', 'Organizer seguiti'), h('span', `${customerFollowing.value.length} seguiti`)]),
-      customerSectionLoading.value ? h('article', { class: 'wide-panel' }, 'Caricamento…') : customerFollowing.value.length === 0 ? emptyState('Non segui ancora alcun Organizer.') : h('div', { class: 'event-grid' }, customerFollowing.value.map((organizer) => h('article', { class: 'experience-card' }, [organizer.logo_url ? h('img', { src: organizer.logo_url, alt: '' }) : null, h('h3', organizer.name), h('p', organizer.municipality?.name ?? ''), h('button', { type: 'button', onClick: () => { void go(`/customer/organizers/${organizer.ulid}`); } }, 'Apri profilo')]))),
+      h('div', { class: 'section-title' }, [h('h2', 'Organizzatori seguiti'), h('span', `${customerFollowing.value.length} seguiti`)]),
+      customerSectionLoading.value ? h('article', { class: 'wide-panel' }, 'Caricamento…') : customerFollowing.value.length === 0 ? emptyState('Non segui ancora alcun Organizzatore.') : h('div', { class: 'event-grid' }, customerFollowing.value.map((organizer) => h('article', { class: 'experience-card' }, [organizer.logo_url ? h('img', { src: organizer.logo_url, alt: '' }) : null, h('h3', organizer.name), h('p', organizer.municipality?.name ?? ''), h('button', { type: 'button', onClick: () => { void go(`/customer/organizers/${organizer.ulid}`); } }, 'Apri profilo')]))),
+    ];
+
+    const renderCustomerPreferences = () => [
+      h('div', { class: 'section-title' }, [h('h2', 'Preferenze e notifiche'), h('span', 'Personalizza ciò che vuoi ricevere')]),
+      h('form', { class: 'wide-panel preference-form', onSubmit: (event: Event) => { event.preventDefault(); void saveCustomerPreferences(); } }, [
+        h('fieldset', [h('legend', 'Categorie preferite'), h('div', { class: 'preference-options' }, customerPreferenceCategories.value.map((category) => h('label', { class: 'checkbox-field' }, [h('input', { type: 'checkbox', checked: customerPreferredCategoryIds.value.includes(category.id), onChange: (event: Event) => { const checked = (event.target as HTMLInputElement).checked; customerPreferredCategoryIds.value = checked ? [...customerPreferredCategoryIds.value, category.id] : customerPreferredCategoryIds.value.filter((id) => id !== category.id); } }), h('span', category.name)])))]),
+        h('fieldset', [h('legend', 'Notifiche'),
+          h('label', { class: 'checkbox-field' }, [h('input', { type: 'checkbox', checked: customerNotificationPreferences.value.promotional_enabled, onChange: (event: Event) => { customerNotificationPreferences.value.promotional_enabled = (event.target as HTMLInputElement).checked; } }), h('span', 'Nuovi eventi nelle categorie preferite')]),
+          h('label', { class: 'checkbox-field' }, [h('input', { type: 'checkbox', checked: customerNotificationPreferences.value.followed_organizer_events_enabled, onChange: (event: Event) => { customerNotificationPreferences.value.followed_organizer_events_enabled = (event.target as HTMLInputElement).checked; } }), h('span', 'Nuovi eventi degli Organizzatori seguiti')]),
+          h('label', { class: 'checkbox-field' }, [h('input', { type: 'checkbox', checked: customerNotificationPreferences.value.internal_enabled, onChange: (event: Event) => { customerNotificationPreferences.value.internal_enabled = (event.target as HTMLInputElement).checked; } }), h('span', 'Notifiche nell’app')]),
+          h('label', { class: 'checkbox-field' }, [h('input', { type: 'checkbox', checked: customerNotificationPreferences.value.email_enabled, onChange: (event: Event) => { customerNotificationPreferences.value.email_enabled = (event.target as HTMLInputElement).checked; } }), h('span', 'Notifiche email')]),
+          h('label', { class: 'auth-field' }, [h('span', 'Frequenza'), h('select', { value: customerNotificationPreferences.value.frequency, onChange: (event: Event) => { customerNotificationPreferences.value.frequency = (event.target as HTMLSelectElement).value; } }, [h('option', { value: 'immediate' }, 'Immediata'), h('option', { value: 'daily' }, 'Giornaliera'), h('option', { value: 'weekly' }, 'Settimanale')])]),
+        ]),
+        h('fieldset', [h('legend', 'Organizzatori seguiti'), ...(customerFollowing.value.length ? customerFollowing.value.map((organizer) => h('p', `${organizer.name}${organizer.municipality?.name ? ` · ${organizer.municipality.name}` : ''}`)) : [h('p', 'Nessun Organizzatore seguito.')]), h('button', { type: 'button', onClick: () => { void go('/customer/following'); } }, 'Gestisci Organizzatori seguiti')]),
+        h('button', { type: 'submit', disabled: customerSectionLoading.value }, customerSectionLoading.value ? 'Salvataggio…' : 'Salva preferenze'),
+        customerSectionMessage.value ? h('p', { role: 'status' }, customerSectionMessage.value) : null,
+      ]),
     ];
 
     const renderCustomerBookingEdit = () => {
@@ -2203,7 +2263,7 @@ export default defineComponent({
           : route.value === '/customer/profile' ? renderCustomerProfile()
           : route.value === '/customer/following' ? renderCustomerFollowing()
           : route.value === '/customer/bookings' ? renderCustomerBookings()
-          : route.value === '/customer/preferences' ? renderCustomerFavorites()
+          : route.value === '/customer/preferences' ? renderCustomerPreferences()
           : route.value === '/customer/explore'
           ? renderAllEvents()
           : route.value === '/customer/successful-events'
@@ -2216,14 +2276,14 @@ export default defineComponent({
       if (dashboardLoading.value) {
         return [h('article', { class: 'wide-panel dashboard-state' }, [
           h('strong', 'Caricamento dashboard...'),
-          h('p', 'Recupero dei KPI Organizer dal backend.'),
+          h('p', 'Recupero dei KPI Organizzatore dal backend.'),
         ])];
       }
 
       if (dashboardForbidden.value) {
         return [h('article', { class: 'wide-panel dashboard-state dashboard-forbidden' }, [
           h('strong', 'Dashboard non accessibile'),
-          h('p', dashboardError.value || 'Accesso non autorizzato o profilo Organizer non approvato.'),
+          h('p', dashboardError.value || 'Accesso non autorizzato o profilo Organizzatore non approvato.'),
         ])];
       }
 
@@ -2449,6 +2509,12 @@ export default defineComponent({
         eventFormSuccess.value ? h('p', { class: 'form-success', role: 'status' }, eventFormSuccess.value) : null,
         eventFormGeneralError.value ? h('p', { class: 'api-error', role: 'alert' }, eventFormGeneralError.value) : null,
         h('form', { class: 'wide-panel event-editor', onSubmit: (event: Event) => event.preventDefault() }, [
+          h('section', { class: 'event-cover-editor event-form-wide' }, [
+            h('div', [h('h3', 'Copertina evento'), h('p', 'Facoltativa. In assenza della copertina verrà usato il logo dell’Organizzatore, poi la grafica MòVi.')]),
+            eventImageUrl.value ? h('img', { src: eventImageUrl.value, alt: 'Copertina evento corrente' }) : null,
+            h('label', { class: 'event-form-field' }, [h('span', 'Carica immagine JPG, PNG o WebP'), h('input', { type: 'file', accept: '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp', disabled: eventFormSubmitting.value, onChange: (event: Event) => { eventCoverFile.value = (event.target as HTMLInputElement).files?.[0] ?? null; } })]),
+            h('button', { type: 'button', disabled: eventFormSubmitting.value || (!eventImageUrl.value && !eventCoverFile.value), onClick: () => { void useOrganizerLogoForEvent(); } }, 'Usa il logo dell’Organizzatore'),
+          ]),
           h('div', { class: 'event-form-grid' }, [
             input('Titolo', 'title'),
             input('Descrizione breve', 'summary'),
@@ -2705,9 +2771,9 @@ export default defineComponent({
         ]),
       ]),
       h('section', { class: 'admin-kpi-grid' }, [
-        adminKpi('Organizer totali', adminDashboard.value?.organizers?.total, `${number(adminDashboard.value?.organizers?.approved)} approvati`, 'mint'),
-        adminKpi('Organizer pending', adminDashboard.value?.organizers?.pending, `${number(adminDashboard.value?.organizers?.suspended)} sospesi`, 'alert'),
-        adminKpi('Customer attivi', adminDashboard.value?.customers?.active, `${number(adminDashboard.value?.customers?.total)} totali`, 'blue'),
+        adminKpi('Organizzatori totali', adminDashboard.value?.organizers?.total, `${number(adminDashboard.value?.organizers?.approved)} approvati`, 'mint'),
+        adminKpi('Organizzatori in attesa', adminDashboard.value?.organizers?.pending, `${number(adminDashboard.value?.organizers?.suspended)} sospesi`, 'alert'),
+        adminKpi('Clienti attivi', adminDashboard.value?.customers?.active, `${number(adminDashboard.value?.customers?.total)} totali`, 'blue'),
         adminKpi('Eventi pubblicati', adminDashboard.value?.events?.published, `${number(adminDashboard.value?.events?.draft)} bozze`, 'gold'),
         adminKpi('Prenotazioni valide', adminDashboard.value?.bookings?.valid, `${number(adminDashboard.value?.bookings?.cancelled)} annullate`, 'mint'),
         adminKpi('Partecipanti', adminDashboard.value?.participants, 'fatturabili sui piani PpB', 'blue'),
@@ -2886,7 +2952,7 @@ export default defineComponent({
     };
 
     const renderAdminOrganizers = () => [
-      h('div', { class: 'page-heading' }, [h('h1', 'Richieste Organizer'), h('p', 'Esamina i dati fiscali e gestisci l’abilitazione alle funzioni operative.')]),
+      h('div', { class: 'page-heading' }, [h('h1', 'Richieste Organizzatori'), h('p', 'Esamina i dati fiscali e gestisci l’abilitazione alle funzioni operative.')]),
       h('div', { class: 'filter-strip' }, [
         h('form', { onSubmit: (event: Event) => { event.preventDefault(); adminOrganizerPage.value = 1; void loadAdminOrganizerRequests(); } }, [h('input', { value: adminOrganizerSearch.value, placeholder: 'Cerca nome o email', onInput: (event: Event) => { adminOrganizerSearch.value = (event.target as HTMLInputElement).value; } }), h('button', { type: 'submit' }, 'Cerca')]),
         h('label', [h('span', 'Stato '), h('select', {
@@ -2997,7 +3063,7 @@ export default defineComponent({
     ];
 
     const renderSubscriptions = () => [
-      h('div', { class: 'page-heading' }, [h('h1', 'Abbonamenti'), h('p', 'Catalogo commerciale e accordi assegnati agli Organizer.')]),
+      h('div', { class: 'page-heading' }, [h('h1', 'Abbonamenti'), h('p', 'Catalogo commerciale e accordi assegnati agli Organizzatori.')]),
       h('section', { class: 'subscription-section' }, [
         h('div', { class: 'panel-heading outside' }, [h('h2', 'Catalogo piani'), h('span', 'Importi visualizzati in euro e salvati in centesimi')]),
         h('div', { class: 'subscription-plan-grid' }, [...adminPlans.value, { name: '', description: '', billing_model: 'unlimited', billing_interval: 'monthly', monthly_price_cents: 0, booking_fee_cents: 0, is_active: true }].map((plan) => h('form', { class: 'admin-panel subscription-plan-form', onSubmit: (event: Event) => { event.preventDefault(); void saveAdminPlan(plan); } }, [
@@ -3012,7 +3078,7 @@ export default defineComponent({
         ]))),
       ]),
       h('section', { class: 'subscription-section' }, [
-        h('div', { class: 'panel-heading outside' }, [h('h2', 'Accordi Organizer'), h('span', 'Assegnazione e modifica dal dettaglio Organizer')]),
+        h('div', { class: 'panel-heading outside' }, [h('h2', 'Accordi Organizzatori'), h('span', 'Assegnazione e modifica dal dettaglio Organizzatore')]),
         adminTable(['Organizzatore', 'Piano', 'Scadenza accordo', 'Stato'], overview().subscriptions ?? [], (subscription) => [
           h('td', h('strong', subscription.organizer ?? '-')),
           h('td', subscription.plan ?? '-'),
@@ -3049,7 +3115,7 @@ export default defineComponent({
     ];
 
     const renderRegistrations = () => h('div', { class: 'registration-stack' }, [
-      ...(overview().latest_registrations?.organizers ?? []).slice(0, 3).map((item: any) => h('article', [h('strong', item.name), h('small', `Organizer - ${item.municipality ?? 'territorio non definito'}`)])),
+      ...(overview().latest_registrations?.organizers ?? []).slice(0, 3).map((item: any) => h('article', [h('strong', item.name), h('small', `Organizzatore - ${item.municipality ?? 'territorio non definito'}`)])),
       ...(overview().latest_registrations?.customers ?? []).slice(0, 3).map((item: any) => h('article', [h('strong', item.name), h('small', `Cliente - ${item.registered_at ?? ''}`)])),
     ]);
 
@@ -3076,13 +3142,13 @@ export default defineComponent({
           class: route.value === target ? 'active' : '',
           type: 'button',
           onClick: () => { void go(target); },
-        }, [h('i', adminIcon(label)), h('span', label === 'Organizzatori' ? `Richieste Organizer (${adminOrganizerPendingCount.value})` : label)]))),
+        }, [h('i', adminIcon(label)), h('span', label === 'Organizzatori' ? `Richieste Organizzatori (${adminOrganizerPendingCount.value})` : label)]))),
         h('button', { class: 'admin-logout', type: 'button', onClick: logout }, 'Esci'),
       ]),
       h('section', { class: 'admin-main' }, [
         h('header', { class: 'admin-topbar' }, [
           h('div', [h('span', currentUser.value?.email ?? ''), h('strong', 'Dashboard amministratore')]),
-          h('form', { onSubmit: (event: Event) => { event.preventDefault(); void runAdminSearch(); } }, [h('input', { value: adminSearchQuery.value, placeholder: 'Cerca Organizer, Customer, Eventi', onInput: (event: Event) => { adminSearchQuery.value = (event.target as HTMLInputElement).value; } }), h('button', { type: 'submit' }, 'Cerca')]),
+          h('form', { onSubmit: (event: Event) => { event.preventDefault(); void runAdminSearch(); } }, [h('input', { value: adminSearchQuery.value, placeholder: 'Cerca Organizzatori, Clienti, Eventi', onInput: (event: Event) => { adminSearchQuery.value = (event.target as HTMLInputElement).value; } }), h('button', { type: 'submit' }, 'Cerca')]),
           h('button', { type: 'button', onClick: () => { void loadAdminData(); } }, loading.value ? 'Aggiorno...' : 'Aggiorna dati'),
         ]),
         adminSearchResults.value ? h('section', { class: 'admin-panel' }, [h('h3', 'Risultati ricerca'), h('p', `${adminSearchResults.value.organizers.length} Organizer · ${adminSearchResults.value.customers.length} Customer · ${adminSearchResults.value.events.length} Eventi`), ...['organizers', 'customers', 'events'].flatMap((group) => adminSearchResults.value[group].map((item: any) => h('button', { type: 'button', onClick: () => { if (group === 'organizers') { void go('/admin/organizers'); void selectAdminOrganizer(item); } else void go(group === 'customers' ? '/admin/customers' : '/admin/events'); } }, [h('strong', item.name ?? item.title), h('small', item.email ?? item.status ?? '')])))]) : null,

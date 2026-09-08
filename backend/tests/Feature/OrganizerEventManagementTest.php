@@ -15,6 +15,8 @@ use App\Models\Region;
 use App\Models\TicketType;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
 use Tests\TestCase;
@@ -42,6 +44,29 @@ class OrganizerEventManagementTest extends TestCase
             'max_quantity' => 30,
             'price_cents' => 1500,
         ]);
+    }
+
+    public function test_owner_uploads_and_removes_optional_event_cover(): void
+    {
+        Storage::fake('public');
+        [$organizer, $profile, $municipality, $category] = $this->domain();
+        $event = $this->event($profile, $municipality, $category, EventStatus::Draft);
+
+        $response = $this->actingAs($organizer, 'sanctum')->post(
+            "/api/v1/organizer/events/{$event->ulid}/image",
+            ['image' => UploadedFile::fake()->createWithContent('cover.jpg', base64_decode('/9j/4AAQSkZJRgABAQAAAQABAAD/2Q=='))],
+            ['Accept' => 'application/json'],
+        )->assertOk();
+
+        $path = $event->refresh()->image_path;
+        $this->assertNotNull($path);
+        Storage::disk('public')->assertExists($path);
+
+        $this->deleteJson("/api/v1/organizer/events/{$event->ulid}/image")
+            ->assertOk()->assertJsonPath('data.image_url', null);
+        $this->assertNull($event->refresh()->image_path);
+        Storage::disk('public')->assertMissing($path);
+        $this->assertNotEmpty($response->json('data.image_url'));
     }
 
     public function test_create_requires_approved_organizer_and_rejects_protected_fields(): void

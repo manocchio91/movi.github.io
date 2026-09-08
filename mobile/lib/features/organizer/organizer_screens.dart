@@ -616,7 +616,7 @@ class OrganizerProfileScreen extends ConsumerWidget {
         builder: (profile) => [
           _HeroPanel(
               eyebrow: _statusLabel('${profile['verification_status'] ?? ''}'),
-              title: '${profile['name'] ?? 'Organizer'}',
+              title: '${profile['name'] ?? 'Organizzatore'}',
               message: '${profile['public_email'] ?? profile['email'] ?? ''}',
               icon: Icons.storefront_rounded),
           const SectionTitle('Attività'),

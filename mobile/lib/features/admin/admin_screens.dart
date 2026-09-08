@@ -23,7 +23,7 @@ class AdminDashboardScreen extends ConsumerWidget {
           const SectionTitle('Priorità'),
           _AdminLink(
               icon: Icons.storefront_rounded,
-              title: 'Organizer',
+              title: 'Organizzatori',
               subtitle: 'Approva e verifica le attività',
               onTap: () => context.go('/admin/management')),
           const SizedBox(height: 12),
@@ -86,12 +86,12 @@ class _AdminSearchScreenState extends ConsumerState<AdminSearchScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _SearchGroup(
-                          title: 'Organizer',
+                          title: 'Organizzatori',
                           items: _list(data['organizers']),
                           icon: Icons.storefront_rounded,
                           onTap: (id) => context.push('/admin/organizers/$id')),
                       _SearchGroup(
-                          title: 'Customer',
+                          title: 'Clienti',
                           items: _list(data['customers']),
                           icon: Icons.people_rounded,
                           onTap: (id) => context.push('/admin/customers/$id')),
@@ -131,8 +131,8 @@ class _AdminManagementScreenState extends ConsumerState<AdminManagementScreen>
       appBar: AppBar(
           title: const Text('Gestione'),
           bottom: TabBar(controller: tabs, tabs: const [
-            Tab(text: 'Organizer'),
-            Tab(text: 'Customer'),
+            Tab(text: 'Organizzatori'),
+            Tab(text: 'Clienti'),
             Tab(text: 'Eventi')
           ])),
       body: TabBarView(controller: tabs, children: const [
@@ -150,7 +150,7 @@ class _AdminOrganizerList extends ConsumerWidget {
       empty: 'Nessun organizer',
       builder: (item) => _AdminEntity(
           icon: Icons.storefront_rounded,
-          title: '${item['name'] ?? 'Organizer'}',
+          title: '${item['name'] ?? 'Organizzatore'}',
           subtitle: '${_map(item['owner'])['email'] ?? item['email'] ?? ''}',
           status: '${item['verification_status'] ?? ''}',
           onTap: () => context.push('/admin/organizers/${item['ulid']}')));
@@ -164,7 +164,7 @@ class _AdminCustomerList extends ConsumerWidget {
       empty: 'Nessun customer',
       builder: (item) => _AdminEntity(
           icon: Icons.person_rounded,
-          title: '${item['name'] ?? 'Customer'}',
+          title: '${item['name'] ?? 'Cliente'}',
           subtitle: '${item['email'] ?? ''}',
           status: '${item['status'] ?? ''}',
           onTap: () => context.push('/admin/customers/${item['ulid']}')));
@@ -198,11 +198,11 @@ class _AdminOrganizerDetailScreenState
   @override
   Widget build(BuildContext context) => _AdminFuture<Map<String, dynamic>>(
       key: ValueKey(refresh),
-      title: 'Dettaglio Organizer',
+      title: 'Dettaglio Organizzatore',
       future: ref.read(roleApiRepositoryProvider).adminOrganizer(widget.id),
       builder: (item) => [
             _AdminHero(
-                title: '${item['name'] ?? 'Organizer'}',
+                title: '${item['name'] ?? 'Organizzatore'}',
                 message:
                     '${_map(item['owner'])['email'] ?? item['email'] ?? ''}',
                 icon: Icons.storefront_rounded),
@@ -283,11 +283,11 @@ class AdminCustomerDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) =>
       _AdminFuture<Map<String, dynamic>>(
-          title: 'Dettaglio Customer',
+          title: 'Dettaglio Cliente',
           future: ref.read(roleApiRepositoryProvider).adminCustomer(id),
           builder: (item) => [
                 _AdminHero(
-                    title: '${item['name'] ?? 'Customer'}',
+                    title: '${item['name'] ?? 'Cliente'}',
                     message: '${item['email'] ?? ''}',
                     icon: Icons.person_rounded),
                 const SizedBox(height: 16),
@@ -310,7 +310,7 @@ class AdminCustomerDetailScreen extends ConsumerWidget {
                     Icons.star_rounded
                   ),
                   (
-                    'Organizer seguiti',
+                    'Organizzatori seguiti',
                     '${item['followed_organizers_count'] ?? 0}',
                     Icons.storefront_rounded
                   )
@@ -319,7 +319,7 @@ class AdminCustomerDetailScreen extends ConsumerWidget {
                 if (_list(item['recent_bookings']).isEmpty)
                   const EmptyState(
                       title: 'Nessuna prenotazione',
-                      message: 'Il Customer non ha prenotazioni recenti.',
+                      message: 'Il Cliente non ha prenotazioni recenti.',
                       icon: Icons.event_busy_rounded),
                 for (final booking in _list(item['recent_bookings']))
                   _AdminInfo(
@@ -406,7 +406,7 @@ class AdminPlansScreen extends ConsumerWidget {
                 const _AdminHero(
                     title: 'Piani commerciali',
                     message:
-                        'Offerta e condizioni principali per gli Organizer.',
+                        'Offerta e condizioni principali per gli Organizzatori.',
                     icon: Icons.payments_rounded),
                 const SectionTitle('Piani attivi'),
                 if (items.isEmpty)
@@ -603,7 +603,7 @@ class _AdminMetrics extends StatelessWidget {
         Icons.people_rounded
       ),
       (
-        'Organizer',
+        'Organizzatori',
         '${flattened['organizers_total'] ?? flattened['organizers_registered'] ?? 0}',
         Icons.storefront_rounded
       ),

@@ -98,7 +98,7 @@ paths:
         - { name: free, in: query, schema: { type: boolean } }
         - { name: available, in: query, schema: { type: boolean } }
       responses:
-        "200": { description: Lista paginata; ogni evento include bookable_available_total derivato dalla capienza globale e dai ticket attivi }
+        "200": { description: Lista paginata dei soli eventi pubblicati futuri; ogni evento include image_url opzionale e bookable_available_total }
         "400": { $ref: "#/components/responses/BadRequest" }
         "500": { $ref: "#/components/responses/InternalServerError" }
   /events/{event}:
@@ -109,7 +109,7 @@ paths:
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
-        "200": { description: Evento con canonical_url stabile e bookable_available_total; logo_url Organizer disponibile come fallback media }
+        "200": { description: "Evento con canonical_url, image_url opzionale e bookable_available_total; logo_url Organizzatore disponibile come fallback media" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "500": { $ref: "#/components/responses/InternalServerError" }
   /events/{event}/reviews:
@@ -903,6 +903,35 @@ paths:
         "404": { description: Evento non trovato }
         "422": { description: Payload non valido o vincolo prenotazioni violato }
         "500": { $ref: "#/components/responses/InternalServerError" }
+  /organizer/events/{event}/image:
+    post:
+      operationId: post_organizer_events_event_image
+      security: [{ bearerAuth: [] }]
+      summary: Carica o sostituisce la copertina opzionale di un proprio evento
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image: { type: string, format: binary, description: "JPG, PNG o WebP; massimo 5 MB" }
+      responses:
+        "200": { description: URL pubblica della copertina }
+        "403": { description: Evento appartenente a un altro Organizzatore }
+        "422": { description: File non valido }
+    delete:
+      operationId: delete_organizer_events_event_image
+      security: [{ bearerAuth: [] }]
+      summary: Rimuove la copertina per usare il logo dell’Organizzatore come fallback
+      parameters:
+        - { name: event, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Copertina rimossa }
+        "403": { description: Evento appartenente a un altro Organizzatore }
   /organizer/events/{event}/publish:
     post:
       operationId: post_organizer_events_event_publish

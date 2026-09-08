@@ -198,6 +198,8 @@ Route::prefix('v1')->group(function (): void {
                 Route::get('/organizer/events/{event:ulid}/reviews', [OrganizerEventController::class, 'reviews']);
                 Route::put('/organizer/events/{event:ulid}', [OrganizerEventController::class, 'update']);
                 Route::patch('/organizer/events/{event:ulid}', [OrganizerEventController::class, 'update']);
+                Route::post('/organizer/events/{event:ulid}/image', [OrganizerEventController::class, 'image'])->middleware('throttle:sensitive');
+                Route::delete('/organizer/events/{event:ulid}/image', [OrganizerEventController::class, 'destroyImage']);
                 Route::post('/organizer/events/{event:ulid}/publish', [OrganizerEventController::class, 'publish']);
                 Route::post('/organizer/events/{event:ulid}/close-bookings', [OrganizerEventController::class, 'closeBookings']);
                 Route::post('/organizer/events/{event:ulid}/cancel', [OrganizerEventController::class, 'cancel']);

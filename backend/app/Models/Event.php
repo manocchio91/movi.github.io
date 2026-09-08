@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Event extends Model
 {
     protected $fillable = [
-        'ulid', 'organizer_profile_id', 'event_series_id', 'venue_id', 'municipality_id', 'title', 'slug',
+        'ulid', 'organizer_profile_id', 'event_series_id', 'venue_id', 'municipality_id', 'title', 'slug', 'image_path',
         'summary', 'description', 'status', 'starts_at', 'ends_at', 'booking_closes_at',
         'capacity_total', 'available_total', 'is_free', 'price_notes', 'family_friendly',
         'indoor_outdoor', 'minimum_child_age', 'maximum_child_age', 'published_at',
