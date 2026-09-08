@@ -2,9 +2,13 @@
 
 namespace App\Actions\Organizers;
 
+use App\Enums\ActivityStatus;
+use App\Enums\ActivityType;
+use App\Models\Activity;
 use App\Models\OrganizerProfile;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ReviewOrganizerProfile
 {
@@ -30,6 +34,23 @@ class ReviewOrganizerProfile
                 'reviewed_at' => now(),
                 'review_notes' => $status === 'verified' ? null : trim((string) $reason),
             ])->save();
+
+            if ($status === 'verified' && ! $profile->activities()->exists()) {
+                Activity::query()->create([
+                    'ulid' => (string) Str::ulid(),
+                    'organizer_profile_id' => $profile->id,
+                    'municipality_id' => $profile->municipality_id,
+                    'name' => $profile->name,
+                    'slug' => Str::slug($profile->name).'-'.strtolower(Str::random(6)),
+                    'type' => str_contains(strtolower((string) $profile->type), 'ristor') ? ActivityType::Restaurant : ActivityType::Other,
+                    'description' => $profile->description,
+                    'address' => trim(implode(' ', array_filter([$profile->address, $profile->street_number]))),
+                    'postal_code' => $profile->postal_code,
+                    'phone' => $profile->phone,
+                    'public_email' => $profile->public_email,
+                    'status' => ActivityStatus::Published,
+                ]);
+            }
 
             return $profile->refresh();
         });

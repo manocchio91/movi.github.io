@@ -115,6 +115,7 @@ class OrganizerFiscalOnboardingTest extends TestCase
         $this->postJson("/api/v1/admin/organizers/{$profile->ulid}/reject", [])->assertUnprocessable();
         $this->postJson("/api/v1/admin/organizers/{$profile->ulid}/approve")->assertOk()
             ->assertJsonPath('data.verification_status', 'verified');
+        $this->assertDatabaseCount('activities', 1);
         $this->postJson("/api/v1/admin/organizers/{$profile->ulid}/approve")->assertStatus(409);
 
         Sanctum::actingAs($organizer);

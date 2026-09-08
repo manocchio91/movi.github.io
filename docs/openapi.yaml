@@ -587,14 +587,14 @@ paths:
     patch:
       operationId: patch_organizer_profile
       security: [{ bearerAuth: [] }]
-      summary: Salva parzialmente il profilo Organizer modificabile
+      summary: Salva il profilo iniziale oppure invia modifiche di un profilo verificato in approvazione
       requestBody:
         required: true
         content:
           application/json:
             schema: { $ref: "#/components/schemas/OrganizerProfileUpdate" }
       responses:
-        "200": { description: Profilo aggiornato }
+        "200": { description: Profilo aggiornato oppure modifiche registrate come pending senza alterare i dati pubblici approvati }
         "409": { description: Profilo non modificabile nello stato corrente }
         "422": { description: Dati non validi }
         "500": { $ref: "#/components/responses/InternalServerError" }
@@ -1177,6 +1177,34 @@ paths:
         "409": { description: Richiesta non in revisione }
         "422": { description: Motivazione mancante o non valida }
         "500": { $ref: "#/components/responses/InternalServerError" }
+  /admin/organizers/{organizer}/profile-changes/approve:
+    post:
+      operationId: post_admin_organizers_organizer_profile_changes_approve
+      security: [{ bearerAuth: [] }]
+      summary: Applica atomicamente le modifiche pending al profilo Organizer
+      parameters:
+        - { name: organizer, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Modifiche approvate e pubblicate }
+        "403": { description: Solo admin }
+        "409": { description: Nessuna modifica in revisione }
+  /admin/organizers/{organizer}/profile-changes/reject:
+    post:
+      operationId: post_admin_organizers_organizer_profile_changes_reject
+      security: [{ bearerAuth: [] }]
+      summary: Rifiuta le modifiche pending mantenendo i dati pubblici approvati
+      parameters:
+        - { name: organizer, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OrganizerReviewReason" }
+      responses:
+        "200": { description: Modifiche rifiutate }
+        "403": { description: Solo admin }
+        "409": { description: Nessuna modifica in revisione }
+        "422": { description: Motivazione mancante }
   /admin/organizers/{organizer}:
     get:
       operationId: get_admin_organizers_organizer

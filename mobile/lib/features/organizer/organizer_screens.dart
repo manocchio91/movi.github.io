@@ -633,6 +633,21 @@ class OrganizerProfileScreen extends ConsumerWidget {
               icon: Icons.verified_user_rounded,
               label: 'Stato approvazione',
               value: _statusLabel('${profile['verification_status'] ?? ''}')),
+          if (profile['profile_change_status'] != null)
+            _DetailTile(
+                icon: Icons.pending_actions_rounded,
+                label: 'Modifiche profilo',
+                value: switch ('${profile['profile_change_status']}') {
+                  'pending' => 'In attesa di approvazione',
+                  'rejected' => 'Modifiche non approvate',
+                  _ => 'Profilo approvato',
+                }),
+          if (profile['profile_change_status'] == 'rejected' &&
+              profile['profile_change_review_notes'] != null)
+            _DetailTile(
+                icon: Icons.info_outline_rounded,
+                label: 'Motivazione',
+                value: '${profile['profile_change_review_notes']}'),
           const SizedBox(height: 24),
           OutlinedButton.icon(
               onPressed: () =>

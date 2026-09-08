@@ -324,21 +324,13 @@ class OrganizerActivityManagerScreen extends ConsumerWidget {
                 Chip(label: Text('${analytics['no_show_rate']}% no-show')),
               ]),
               const SizedBox(height: 12),
-              FilledButton.icon(
-                  onPressed: () async {
-                    await ref
-                        .read(roleApiRepositoryProvider)
-                        .post('/organizer/activities', {
-                      'name': 'Nuovo ristorante',
-                      'type': 'restaurant',
-                      'description': '',
-                      'status': 'draft',
-                      'booking_enabled': false
-                    });
-                    if (context.mounted) Navigator.pop(context);
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Crea ristorante in bozza')),
+              if (activities.isEmpty)
+                const Card(
+                    child: ListTile(
+                        leading: Icon(Icons.hourglass_top_rounded),
+                        title: Text('Attività non disponibile'),
+                        subtitle: Text(
+                            'In attesa di approvazione dell’attività associata al profilo.'))),
               ...activities.map((activity) => Card(
                   child: ListTile(
                       title: Text('${activity['name']}'),

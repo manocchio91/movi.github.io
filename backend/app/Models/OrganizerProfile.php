@@ -16,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  */
 class OrganizerProfile extends Model
 {
+    protected $hidden = ['pending_changes'];
+
     protected $fillable = [
         'ulid', 'owner_user_id', 'name', 'type', 'description', 'email', 'phone',
         'website_url', 'municipality_id', 'address', 'street_number', 'postal_code',
@@ -33,7 +35,16 @@ class OrganizerProfile extends Model
             'reviewed_at' => 'datetime',
             'social_links' => 'array',
             'gallery' => 'array',
+            'pending_changes' => 'array',
+            'profile_change_submitted_at' => 'datetime',
+            'profile_change_reviewed_at' => 'datetime',
         ];
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function profileChangeReviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'profile_change_reviewed_by');
     }
 
     /** @return BelongsTo<User, $this> */

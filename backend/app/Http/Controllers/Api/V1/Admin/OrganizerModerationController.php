@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Actions\Organizers\ReviewOrganizerProfile;
+use App\Actions\Organizers\ReviewOrganizerProfileChanges;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\IndexAdminOrganizerRequest;
 use App\Http\Requests\ReviewOrganizerRequest;
@@ -40,7 +41,10 @@ class OrganizerModerationController extends Controller
     {
         $this->authorize('moderate', OrganizerProfile::class);
 
-        return response()->json(['data' => $organizer->load(['owner', 'municipality', 'subscription.plan'])]);
+        $organizer->makeVisible('pending_changes');
+        $organizer->setAttribute('profile_change_diff', collect($organizer->pending_changes ?? [])->map(fn ($value, $field) => ['field' => $field, 'current' => $organizer->{$field}, 'proposed' => $value])->values());
+
+        return response()->json(['data' => $organizer->load(['owner', 'municipality', 'subscription.plan', 'profileChangeReviewer'])]);
     }
 
     public function approve(OrganizerProfile $organizer, ReviewOrganizerProfile $review, OperationalEmailService $emails): JsonResponse
@@ -71,6 +75,20 @@ class OrganizerModerationController extends Controller
         $emails->organizerReviewed($organizer);
 
         return response()->json(['data' => $organizer]);
+    }
+
+    public function approveChanges(OrganizerProfile $organizer, ReviewOrganizerProfileChanges $review): JsonResponse
+    {
+        $this->authorize('moderate', OrganizerProfile::class);
+
+        return response()->json(['data' => $review->execute($organizer, request()->user(), 'approve')]);
+    }
+
+    public function rejectChanges(ReviewOrganizerRequest $request, OrganizerProfile $organizer, ReviewOrganizerProfileChanges $review): JsonResponse
+    {
+        $this->authorize('moderate', OrganizerProfile::class);
+
+        return response()->json(['data' => $review->execute($organizer, $request->user(), 'reject', $request->validated('reason'))]);
     }
 
     public function suspend(ReviewOrganizerRequest $request, OrganizerProfile $organizer): JsonResponse

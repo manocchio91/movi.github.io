@@ -57,6 +57,9 @@ type OrganizerProfileSummary = {
 
 type OrganizerVerificationStatus = 'incomplete' | 'pending' | 'changes_requested' | 'verified' | 'rejected' | 'suspended';
 type OrganizerProfile = OrganizerProfileSummary & {
+  profile_change_status?: 'pending' | 'approved' | 'rejected' | null;
+  profile_change_review_notes?: string | null;
+  profile_change_diff?: Array<{ field: string; current: unknown; proposed: unknown }>;
   type: string;
   description: string | null;
   municipality_id: number | null;
@@ -1351,7 +1354,9 @@ export default defineComponent({
         const payload = { ...organizerProfile.value, municipality_id: organizerProfile.value.municipality_id || null };
         const response = await api<{ data: OrganizerProfile }>('/organizer/profile', { method: 'PATCH', body: JSON.stringify(payload) });
         if (response?.data) organizerProfile.value = response.data;
-        organizerProfileSuccess.value = 'Profilo salvato. Puoi continuare più tardi.';
+        organizerProfileSuccess.value = route.value === '/organizer/profile'
+          ? 'Modifiche inviate. Saranno pubblicate dopo l\'approvazione dell\'amministratore.'
+          : 'Profilo salvato. Puoi continuare più tardi.';
       } catch (error) {
         if (error instanceof ApiError) organizerProfileErrors.value = error.errors;
         organizerProfileError.value = userMessage(error, 'Impossibile salvare il profilo.');
@@ -1435,6 +1440,19 @@ export default defineComponent({
       }
     };
 
+    const reviewAdminProfileChanges = async (decision: 'approve' | 'reject') => {
+      const organizer = selectedAdminOrganizer.value;
+      if (!organizer || adminOrganizerActionLoading.value) return;
+      const reason = decision === 'reject' ? window.prompt('Motivazione del rifiuto')?.trim() ?? '' : '';
+      if (decision === 'reject' && !reason) return;
+      adminOrganizerActionLoading.value = true;
+      try {
+        const response = await api<{ data: OrganizerProfile }>(`/admin/organizers/${organizer.ulid}/profile-changes/${decision}`, { method: 'POST', body: JSON.stringify(reason ? { reason } : {}) });
+        selectedAdminOrganizer.value = response?.data ?? null;
+      } catch (error) { adminOrganizerError.value = userMessage(error, 'Operazione non completata.'); }
+      finally { adminOrganizerActionLoading.value = false; }
+    };
+
     const loadAdminData = async () => {
       if (role.value !== 'admin' || !token.value) return;
 
@@ -1485,7 +1503,6 @@ export default defineComponent({
     const updateMenuItem = async (event: Event, activity: any, menu: any, item: any) => { event.preventDefault(); const form = new FormData(event.target as HTMLFormElement); const allergens = String(form.get('allergens') ?? '').split(',').map((value) => value.trim()).filter(Boolean); await menuRequest(activity, `/${menu.ulid}/items/${item.ulid}`, { method: 'PUT', body: JSON.stringify({ name: form.get('name'), description: form.get('description') || null, price_cents: form.get('price') === '' ? null : Math.round(Number(form.get('price')) * 100), allergens, allergen_information_verified: allergens.length > 0, available: form.get('available') === 'on', active: true, sort_order: Number(form.get('sort_order')) }) }, 'Piatto aggiornato.'); };
     const configurePreorder = async (event: Event, activity: any, service: any) => { event.preventDefault(); const form = new FormData(event.target as HTMLFormElement); await api(`/organizer/activities/${activity.ulid}/services/${service.ulid}`, { method: 'PUT', body: JSON.stringify({ preorder_enabled: form.get('enabled') === 'on', preorder_menu_ulid: form.get('menu') || null, preorder_edit_deadline_minutes: Number(form.get('deadline')) }) }); await loadOrganizerActivities(); };
     const transitionOrganizerReservation = async (reservation: any, status: 'completed' | 'no_show') => { await api(`/organizer/reservations/${reservation.ulid}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }); await loadOrganizerActivities(); };
-    const createOrganizerActivity = async (event: Event) => { event.preventDefault(); const form = new FormData(event.target as HTMLFormElement); await api('/organizer/activities', { method: 'POST', body: JSON.stringify({ name: form.get('name'), type: 'restaurant', description: form.get('description'), municipality_id: Number(form.get('municipality_id')), address: form.get('address'), booking_enabled: true, status: 'published' }) }); (event.target as HTMLFormElement).reset(); await loadOrganizerActivities(); };
     const createActivityService = async (event: Event, activity: any) => { event.preventDefault(); const form = new FormData(event.target as HTMLFormElement); await api(`/organizer/activities/${activity.ulid}/services`, { method: 'POST', body: JSON.stringify({ name: form.get('type') === 'lunch' ? 'Pranzo' : 'Cena', type: form.get('type'), active: true, booking_enabled: true, min_party_size: Number(form.get('min_party_size')), max_party_size: Number(form.get('max_party_size')), minimum_advance_minutes: Number(form.get('minimum_advance_minutes')), indicative_duration_minutes: 90 }) }); await loadOrganizerActivities(); };
     const configureActivitySlot = async (event: Event, activity: any, service: any) => { event.preventDefault(); const form = new FormData(event.target as HTMLFormElement); await api(`/organizer/activities/${activity.ulid}/services/${service.ulid}/availability`, { method: 'PUT', body: JSON.stringify({ rules: [{ weekday: Number(form.get('weekday')), start_time: form.get('start_time'), capacity: Number(form.get('capacity')) }] }) }); await loadOrganizerActivities(); };
     const configureActivityClosure = async (event: Event, activity: any, service: any) => { event.preventDefault(); const form = new FormData(event.target as HTMLFormElement); await api(`/organizer/activities/${activity.ulid}/services/${service.ulid}/availability`, { method: 'PUT', body: JSON.stringify({ exceptions: [{ date: form.get('date'), is_closed: true, note: form.get('note') }] }) }); await loadOrganizerActivities(); };
@@ -1914,6 +1931,10 @@ export default defineComponent({
       h('section', { class: 'auth-panel onboarding-panel' }, [
         h('span', { class: 'eyebrow' }, 'Profilo Organizer'),
         h('h1', route.value === '/organizer/profile' ? 'Modifica profilo Organizer' : 'Completa il profilo Organizer'),
+        route.value === '/organizer/profile' ? h('div', { class: 'review-reason', role: 'status' }, [
+          h('strong', organizerProfile.value.profile_change_status === 'pending' ? 'Modifiche in attesa di approvazione' : organizerProfile.value.profile_change_status === 'rejected' ? 'Modifiche non approvate' : 'Profilo approvato'),
+          organizerProfile.value.profile_change_status === 'rejected' && organizerProfile.value.profile_change_review_notes ? h('p', organizerProfile.value.profile_change_review_notes) : null,
+        ]) : null,
         organizerProfile.value.verification_status === 'changes_requested' ? h('div', { class: 'review-reason' }, [
           h('strong', 'Integrazione richiesta'), h('p', organizerProfile.value.review_notes ?? ''),
         ]) : null,
@@ -1966,9 +1987,9 @@ export default defineComponent({
           organizerProfileError.value ? h('p', { class: 'api-error' }, organizerProfileError.value) : null,
           organizerProfileSuccess.value ? h('p', { class: 'form-success' }, organizerProfileSuccess.value) : null,
           h('div', { class: 'onboarding-actions' }, [
-            h('button', { type: 'button', disabled: organizerProfileSaving.value, onClick: () => { void saveOrganizerProfile(); } }, route.value === '/organizer/profile' ? 'Salva profilo' : 'Salva e continua più tardi'),
-            route.value === '/organizer/profile' ? h('button', { type: 'button', onClick: () => { void go('/organizer/dashboard'); } }, 'Torna alla dashboard') : h('button', { class: 'auth-submit', type: 'submit', disabled: organizerProfileSaving.value }, organizerProfileSaving.value ? 'Salvataggio…' : 'Invia richiesta di approvazione'),
-            h('button', { type: 'button', onClick: () => { void logout(); } }, 'Esci'),
+            h('button', { class: 'auth-submit', type: route.value === '/organizer/profile' ? 'button' : 'submit', disabled: organizerProfileSaving.value, onClick: route.value === '/organizer/profile' ? () => { void saveOrganizerProfile(); } : undefined }, route.value === '/organizer/profile' ? (organizerProfileSaving.value ? 'Invio…' : 'Invia modifiche per approvazione') : (organizerProfileSaving.value ? 'Salvataggio…' : 'Invia richiesta di approvazione')),
+            route.value === '/organizer/profile' ? h('button', { type: 'button', disabled: organizerProfileSaving.value, onClick: () => { void go('/organizer/dashboard'); } }, 'Torna alla dashboard') : h('button', { type: 'button', disabled: organizerProfileSaving.value, onClick: () => { void saveOrganizerProfile(); } }, 'Salva e continua più tardi'),
+            route.value !== '/organizer/profile' ? h('button', { type: 'button', onClick: () => { void logout(); } }, 'Esci') : null,
           ]),
         ]),
       ]),
@@ -2575,7 +2596,7 @@ export default defineComponent({
       organizerReservationDashboard.value?.preorder_preparation ? h('section', { class: 'wide-panel' }, [h('h3', 'Pre-order da preparare oggi'), ...Object.entries(organizerReservationDashboard.value.preorder_preparation).map(([service, items]: [string, any]) => h('div', [h('strong', service), ...(items as any[]).map((item) => h('p', `${item.name} × ${item.quantity}`))]))]) : null,
       organizerReservationAnalytics.value ? h('section', { class: 'capacity-summary' }, [h('h3', 'Andamento prenotazioni'), h('p', `${organizerReservationAnalytics.value.reservations} prenotazioni · ${organizerReservationAnalytics.value.covers} coperti · media ${organizerReservationAnalytics.value.average_party_size} · cancellazioni ${organizerReservationAnalytics.value.cancellation_rate}% · no-show ${organizerReservationAnalytics.value.no_show_rate}%`)]) : null,
       h('section', { class: 'capacity-summary' }, [h('h3', 'Clienti'), ...organizerReservationCustomers.value.slice(0, 10).map((customer: any) => h('p', `${customer.name} · ${customer.reservations_count} prenotazioni · ${customer.no_shows} no-show${customer.repeat_customer ? ' · abituale' : ''}`))]),
-      h('form', { class: 'wide-panel booking-detail', onSubmit: createOrganizerActivity }, [h('h3', 'Nuovo ristorante'), h('input', { name: 'name', required: true, placeholder: 'Nome attività' }), h('textarea', { name: 'description', placeholder: 'Descrizione' }), h('select', { name: 'municipality_id', required: true }, [h('option', { value: '' }, 'Comune'), ...eventMunicipalities.value.map((municipality) => h('option', { value: municipality.id }, municipality.name))]), h('input', { name: 'address', placeholder: 'Indirizzo' }), h('button', { type: 'submit' }, 'Crea attività')]),
+      organizerActivities.value.length === 0 ? h('section', { class: 'wide-panel empty-state' }, [h('strong', 'Attività non disponibile'), h('p', organizerProfile.value.verification_status === 'rejected' ? 'La registrazione non è stata approvata. Verifica le indicazioni nel profilo.' : 'In attesa di approvazione dell’attività associata al profilo.')]) : null,
       ...organizerActivities.value.flatMap((activity: any) => [renderOrganizerActivity(activity), renderOrganizerActivityReservations(activity)]),
     ];
 
@@ -2584,6 +2605,7 @@ export default defineComponent({
       h('section', { class: 'role-content' }, [
         apiError.value ? h('p', { class: 'api-error' }, apiError.value) : null,
         ...(route.value === '/organizer/activities' ? renderOrganizerActivities()
+          : route.value === '/organizer/profile' ? [renderOrganizerOnboarding()]
           : route.value === '/organizer/bookings'
           ? renderOrganizerBookings()
           : route.value.startsWith('/organizer/bookings/')
@@ -2826,6 +2848,14 @@ export default defineComponent({
         ]),
         organizer.description ? h('p', organizer.description) : null,
         organizer.review_notes ? h('div', { class: 'review-reason' }, [h('strong', 'Motivazione'), h('p', organizer.review_notes)]) : null,
+        organizer.profile_change_status ? h('section', { class: 'booking-detail' }, [
+          h('h3', `Modifiche profilo: ${organizer.profile_change_status}`),
+          ...(organizer.profile_change_diff ?? []).map((change) => h('div', { class: 'admin-detail-grid' }, [field('Campo', change.field), field('Valore attuale', change.current), field('Nuovo valore', change.proposed)])),
+          organizer.profile_change_status === 'pending' ? h('div', { class: 'onboarding-actions' }, [
+            h('button', { disabled: adminOrganizerActionLoading.value, onClick: () => { void reviewAdminProfileChanges('approve'); } }, 'Approva modifiche'),
+            h('button', { disabled: adminOrganizerActionLoading.value, onClick: () => { void reviewAdminProfileChanges('reject'); } }, 'Rifiuta modifiche'),
+          ]) : null,
+        ]) : null,
         h('form', { class: 'booking-detail', onSubmit: (event: Event) => { void assignAdminPlan(event, organizer); } }, [
           h('h3', 'Accordo commerciale'),
           h('select', { name: 'plan_ulid', required: true }, [
@@ -3066,7 +3096,6 @@ export default defineComponent({
       if (route.value === '/unauthorized') return Unauthorized();
       if (role.value === 'customer') return CustomerLayout();
       if (role.value === 'organizer' && route.value === '/organizer/onboarding') return renderOrganizerOnboarding();
-      if (role.value === 'organizer' && route.value === '/organizer/profile') return renderOrganizerOnboarding();
       if (role.value === 'organizer' && route.value === '/organizer/pending') return renderOrganizerPending();
       if (role.value === 'organizer' && route.value === '/organizer/rejected') return renderOrganizerBlocked();
       if (role.value === 'organizer' && route.value === '/organizer/suspended') return renderOrganizerBlocked(true);

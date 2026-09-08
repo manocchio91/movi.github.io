@@ -107,3 +107,12 @@ test('release closure provides real menu management and multipiatto forms', () =
   assert.match(app, /Cancella pre-order/);
   assert.doesNotMatch(app, /window\.prompt\(`Quantità \$\{item\.name\}/);
 });
+
+test('organizer profile approval keeps the dashboard shell and removes activity creation UX', () => {
+  assert.match(app, /Invia modifiche per approvazione/);
+  assert.match(app, /Modifiche in attesa di approvazione/);
+  assert.match(app, /route\.value === '\/organizer\/profile' \? \[renderOrganizerOnboarding\(\)\]/);
+  assert.match(app, /profile-changes\/\$\{decision\}/);
+  assert.doesNotMatch(app, /Nuovo ristorante/);
+  assert.doesNotMatch(app, /Crea attività/);
+});

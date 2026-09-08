@@ -71,7 +71,7 @@ class MvpProfilesCommercialOperationsTest extends TestCase
         Sanctum::actingAs($profile->owner);
 
         $this->patchJson('/api/v1/organizer/profile', ['description' => 'Descrizione pubblica', 'vat_number' => 'IT00000000000'])
-            ->assertStatus(409);
+            ->assertOk()->assertJsonPath('data.description', null)->assertJsonPath('data.profile_change_status', 'pending');
         $this->patchJson('/api/v1/organizer/profile', ['description' => 'Descrizione pubblica'])->assertOk();
         $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=');
         $this->postJson('/api/v1/organizer/profile/images', ['logo' => UploadedFile::fake()->createWithContent('logo.png', $png)])
@@ -80,7 +80,7 @@ class MvpProfilesCommercialOperationsTest extends TestCase
             ->assertUnprocessable();
 
         $this->getJson('/api/v1/organizers/'.$profile->ulid)->assertOk()
-            ->assertJsonPath('data.description', 'Descrizione pubblica')
+            ->assertJsonPath('data.description', null)
             ->assertJsonMissingPath('data.vat_number')
             ->assertJsonMissingPath('data.pec')
             ->assertJsonMissingPath('data.address');

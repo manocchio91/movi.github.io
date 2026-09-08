@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Organizers\SubmitOrganizerProfile;
+use App\Actions\Organizers\SubmitOrganizerProfileChanges;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateOrganizerProfileRequest;
 use App\Http\Requests\UploadOrganizerImagesRequest;
@@ -21,19 +22,17 @@ class OrganizerProfileController extends Controller
         return response()->json(['data' => $this->withImageUrls($profile->load('municipality'))]);
     }
 
-    public function update(UpdateOrganizerProfileRequest $request): JsonResponse
+    public function update(UpdateOrganizerProfileRequest $request, SubmitOrganizerProfileChanges $submitChanges): JsonResponse
     {
         $profile = $request->user()->organizerProfile()->first();
         abort_unless($profile !== null, 404, 'Profilo organizzatore non trovato.');
         $this->authorize('update', $profile);
-        $fiscalFields = ['name', 'type', 'municipality_id', 'address', 'street_number', 'postal_code', 'province', 'country', 'vat_number', 'pec', 'sdi_code'];
-        abort_if(
-            ! in_array($profile->verification_status, ['incomplete', 'changes_requested'], true)
-            && array_intersect(array_keys($request->validated()), $fiscalFields) !== [],
-            409,
-            'I dati fiscali non sono modificabili nello stato corrente.',
-        );
-        $profile->update($request->validated());
+        if ($profile->verification_status === 'verified') {
+            $profile = $submitChanges->execute($profile, $request->validated());
+        } else {
+            abort_unless(in_array($profile->verification_status, ['incomplete', 'changes_requested'], true), 409, 'Il profilo non è modificabile nello stato corrente.');
+            $profile->update($request->validated());
+        }
 
         return response()->json(['data' => $this->withImageUrls($profile->refresh()->load('municipality'))]);
     }
@@ -43,6 +42,7 @@ class OrganizerProfileController extends Controller
         $profile = $request->user()->organizerProfile()->firstOrFail();
         $stored = [];
         $oldPaths = [];
+        $changes = [];
 
         try {
             foreach (['logo', 'cover'] as $field) {
@@ -50,10 +50,24 @@ class OrganizerProfileController extends Controller
                     continue;
                 }
                 $column = $field.'_path';
-                $oldPaths[] = $profile->{$column};
-                $stored[] = $profile->{$column} = $request->file($field)->store('organizers/'.$profile->ulid, (string) config('filesystems.public', 'public'));
+                $path = $request->file($field)->store('organizers/'.$profile->ulid, (string) config('filesystems.public', 'public'));
+                $stored[] = $path;
+                if ($profile->verification_status === 'verified') {
+                    $pending = $profile->profile_change_status === 'pending' ? ($profile->pending_changes ?? []) : [];
+                    if (isset($pending[$column])) {
+                        $oldPaths[] = $pending[$column];
+                    }
+                    $changes[$column] = $path;
+                } else {
+                    $oldPaths[] = $profile->{$column};
+                    $profile->{$column} = $path;
+                }
             }
-            $profile->save();
+            if ($profile->verification_status === 'verified') {
+                $profile = app(SubmitOrganizerProfileChanges::class)->execute($profile, $changes);
+            } else {
+                $profile->save();
+            }
         } catch (Throwable $exception) {
             Storage::disk((string) config('filesystems.public', 'public'))->delete($stored);
             throw $exception;
@@ -74,6 +88,7 @@ class OrganizerProfileController extends Controller
 
     private function withImageUrls(OrganizerProfile $profile): OrganizerProfile
     {
+        $profile->makeVisible('pending_changes');
         $profile->setAttribute('logo_url', $profile->logo_path ? Storage::disk((string) config('filesystems.public', 'public'))->url($profile->logo_path) : null);
         $profile->setAttribute('cover_url', $profile->cover_path ? Storage::disk((string) config('filesystems.public', 'public'))->url($profile->cover_path) : null);
 

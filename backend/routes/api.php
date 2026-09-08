@@ -235,6 +235,8 @@ Route::prefix('v1')->group(function (): void {
             Route::post('/admin/organizers/{organizer:ulid}/approve', [OrganizerModerationController::class, 'approve']);
             Route::post('/admin/organizers/{organizer:ulid}/request-changes', [OrganizerModerationController::class, 'requestChanges']);
             Route::post('/admin/organizers/{organizer:ulid}/reject', [OrganizerModerationController::class, 'reject']);
+            Route::post('/admin/organizers/{organizer:ulid}/profile-changes/approve', [OrganizerModerationController::class, 'approveChanges']);
+            Route::post('/admin/organizers/{organizer:ulid}/profile-changes/reject', [OrganizerModerationController::class, 'rejectChanges']);
             Route::post('/admin/organizers/{organizer:ulid}/suspend', [OrganizerModerationController::class, 'suspend']);
             Route::post('/admin/organizers/{organizer:ulid}/reactivate', [OrganizerModerationController::class, 'reactivate']);
             Route::post('/admin/reviews/{review:ulid}/approve', [ReviewModerationController::class, 'approve']);

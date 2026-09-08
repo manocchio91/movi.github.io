@@ -13,6 +13,8 @@ class AdminOrganizerInsightController extends Controller
         $this->authorize('moderate', OrganizerProfile::class);
 
         $events = $organizer->events();
+        $organizer->makeVisible('pending_changes');
+        $organizer->setAttribute('profile_change_diff', collect($organizer->pending_changes ?? [])->map(fn ($value, $field) => ['field' => $field, 'current' => $organizer->{$field}, 'proposed' => $value])->values());
 
         return response()->json([
             'data' => $organizer->load(['owner', 'municipality', 'ranking', 'subscription.plan', 'subscription.history'])->loadCount(['events', 'reviews']),

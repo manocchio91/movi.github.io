@@ -43,4 +43,19 @@ class ProductionReadinessTest extends TestCase
         (new ReadinessProbe)->handle();
         $this->assertNotNull(Cache::get('readiness:queue:last_ok'));
     }
+
+    public function test_cors_allows_the_frontend_analytics_header(): void
+    {
+        $response = $this->withHeaders([
+            'Origin' => 'http://localhost:5173',
+            'Access-Control-Request-Method' => 'GET',
+            'Access-Control-Request-Headers' => 'authorization,x-analytics-session',
+        ])->options('/api/v1/organizer/dashboard')
+            ->assertNoContent()
+            ->assertHeader('Access-Control-Allow-Origin', 'http://localhost:5173');
+
+        $allowedHeaders = (string) $response->headers->get('Access-Control-Allow-Headers');
+        $this->assertStringContainsString('authorization', $allowedHeaders);
+        $this->assertStringContainsString('x-analytics-session', $allowedHeaders);
+    }
 }
