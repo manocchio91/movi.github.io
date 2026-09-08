@@ -27,7 +27,8 @@ class ActivityModel {
 
 class ReservationModel {
   const ReservationModel(this.id, this.activityId, this.activity, this.service,
-      this.startsAt, this.partySize, this.status);
+      this.startsAt, this.partySize, this.status, this.reviewEligible,
+      this.preorderEnabled, this.preorderDeadlineMinutes);
   final String id;
   final String activityId;
   final String activity;
@@ -35,6 +36,9 @@ class ReservationModel {
   final String startsAt;
   final int partySize;
   final String status;
+  final bool reviewEligible;
+  final bool preorderEnabled;
+  final int preorderDeadlineMinutes;
   factory ReservationModel.fromJson(Map<String, dynamic> json) =>
       ReservationModel(
           '${json['ulid']}',
@@ -43,7 +47,9 @@ class ReservationModel {
           '${_map(json['service'])['name'] ?? ''}',
           '${json['starts_at']}',
           (json['party_size'] as num).toInt(),
-          '${json['status']}');
+          '${json['status']}', json['review_eligible'] == true,
+          _map(json['service'])['preorder_enabled'] == true,
+          (_map(json['service'])['preorder_edit_deadline_minutes'] as num?)?.toInt() ?? 120);
 }
 
 class MenuItemModel {
@@ -155,16 +161,28 @@ class ActivityRepository {
     _ok(response);
   }
 
-  Future<void> preorder(
-      String reservationId, String menuItemId, int quantity) async {
+  Future<Map<String, dynamic>?> preorderDetails(String reservationId) async {
+    final response = await _client.get('/me/reservations/$reservationId/preorder', token: await _token());
+    if (response.statusCode == 404) return null;
+    _ok(response);
+    return _map(response.body);
+  }
+
+  Future<Map<String, dynamic>> preorder(
+      String reservationId, Map<String, int> quantities) async {
     final response = await _client.put(
         '/me/reservations/$reservationId/preorder',
         token: await _token(),
         body: {
-          'items': [
-            {'menu_item_ulid': menuItemId, 'quantity': quantity}
-          ]
+          'items': quantities.entries.where((entry) => entry.value > 0).map((entry) =>
+            {'menu_item_ulid': entry.key, 'quantity': entry.value}).toList()
         });
+    _ok(response);
+    return _map(response.body['data']);
+  }
+
+  Future<void> cancelPreorder(String reservationId) async {
+    final response = await _client.post('/me/reservations/$reservationId/preorder/cancel', token: await _token());
     _ok(response);
   }
 
@@ -176,9 +194,9 @@ class ActivityRepository {
     _ok(response);
   }
 
-  Future<void> review(String id, int rating, String comment) async {
+  Future<void> review(String id, String reservationId, int rating, String comment) async {
     final response = await _client.post('/activities/$id/reviews',
-        token: await _token(), body: {'rating': rating, 'comment': comment});
+        token: await _token(), body: {'reservation_ulid': reservationId, 'rating': rating, 'comment': comment, 'would_recommend': rating >= 4});
     _ok(response);
   }
 }

@@ -1625,8 +1625,8 @@ paths:
     parameters: [ { name: activity, in: path, required: true, schema: { type: string } }, { name: service, in: path, required: true, schema: { type: string } } ]
     put:
       operationId: put_organizer_activity_service
-      summary: Aggiorna Service
-      responses: { "200": { description: Service aggiornato }, "403": { $ref: "#/components/responses/Forbidden" } }
+      summary: Aggiorna Service, inclusi menu, abilitazione e deadline pre-order
+      responses: { "200": { description: Service aggiornato }, "403": { $ref: "#/components/responses/Forbidden" }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
   /organizer/activities/{activity}/services/{service}/availability:
     parameters: [ { name: activity, in: path, required: true, schema: { type: string } }, { name: service, in: path, required: true, schema: { type: string } } ]
     put:
@@ -1741,6 +1741,70 @@ paths:
       summary: Importa XLSX o DOCX in una bozza da revisionare
       parameters: [{ name: activity, in: path, required: true, schema: { type: string } }]
       responses: { "201": { description: Bozza e report import }, "403": { description: Activity non posseduta }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
+  /organizer/activities/{activity}/menus:
+    parameters: [{ name: activity, in: path, required: true, schema: { type: string } }]
+    get:
+      operationId: get_organizer_activity_menus
+      summary: Elenca menu, sezioni e piatti dell'Activity posseduta
+      responses: { "200": { description: Menu gestibili }, "403": { $ref: "#/components/responses/Forbidden" } }
+    post:
+      operationId: post_organizer_activity_menu
+      summary: Crea un menu in bozza
+      responses: { "201": { description: Menu creato }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
+  /organizer/activities/{activity}/menus/{menu}:
+    parameters: [{ name: activity, in: path, required: true, schema: { type: string } }, { name: menu, in: path, required: true, schema: { type: string } }]
+    put:
+      operationId: put_organizer_activity_menu
+      summary: Aggiorna il menu posseduto
+      responses: { "200": { description: Menu aggiornato }, "403": { $ref: "#/components/responses/Forbidden" } }
+    delete:
+      operationId: delete_organizer_activity_menu
+      summary: Elimina un menu non più necessario
+      responses: { "204": { description: Menu eliminato }, "403": { $ref: "#/components/responses/Forbidden" } }
+  /organizer/activities/{activity}/menus/{menu}/sections:
+    post:
+      operationId: post_organizer_menu_section
+      summary: Aggiunge una sezione ordinata
+      parameters: [{ name: activity, in: path, required: true, schema: { type: string } }, { name: menu, in: path, required: true, schema: { type: string } }]
+      responses: { "201": { description: Sezione creata }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
+  /organizer/activities/{activity}/menus/{menu}/sections/{section}:
+    parameters: [{ name: activity, in: path, required: true, schema: { type: string } }, { name: menu, in: path, required: true, schema: { type: string } }, { name: section, in: path, required: true, schema: { type: string } }]
+    put:
+      operationId: put_organizer_menu_section
+      summary: Aggiorna nome e ordinamento sezione
+      responses: { "200": { description: Sezione aggiornata }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
+    delete:
+      operationId: delete_organizer_menu_section
+      summary: Elimina la sezione
+      responses: { "204": { description: Sezione eliminata }, "403": { $ref: "#/components/responses/Forbidden" } }
+  /organizer/activities/{activity}/menus/{menu}/sections/{section}/items:
+    post:
+      operationId: post_organizer_menu_item
+      summary: Aggiunge un piatto con prezzo e allergeni dichiarati
+      parameters: [{ name: activity, in: path, required: true, schema: { type: string } }, { name: menu, in: path, required: true, schema: { type: string } }, { name: section, in: path, required: true, schema: { type: string } }]
+      responses: { "201": { description: Piatto creato }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
+  /organizer/activities/{activity}/menus/{menu}/items/{item}:
+    parameters: [{ name: activity, in: path, required: true, schema: { type: string } }, { name: menu, in: path, required: true, schema: { type: string } }, { name: item, in: path, required: true, schema: { type: string } }]
+    put:
+      operationId: put_organizer_menu_item
+      summary: Aggiorna piatto, disponibilità e ordinamento
+      responses: { "200": { description: Piatto aggiornato }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
+    delete:
+      operationId: delete_organizer_menu_item
+      summary: Elimina il piatto
+      responses: { "204": { description: Piatto eliminato }, "403": { $ref: "#/components/responses/Forbidden" } }
+  /organizer/activities/{activity}/menus/{menu}/publish:
+    post:
+      operationId: post_organizer_menu_publish
+      summary: Pubblica una bozza revisionata
+      parameters: [{ name: activity, in: path, required: true, schema: { type: string } }, { name: menu, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Menu pubblicato }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
+  /organizer/activities/{activity}/menus/{menu}/unpublish:
+    post:
+      operationId: post_organizer_menu_unpublish
+      summary: Riporta il menu in bozza
+      parameters: [{ name: activity, in: path, required: true, schema: { type: string } }, { name: menu, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Menu in bozza }, "403": { $ref: "#/components/responses/Forbidden" } }
   /me/reservations/{reservation}/preorder:
     parameters: [{ name: reservation, in: path, required: true, schema: { type: string } }]
     get:
@@ -1751,6 +1815,12 @@ paths:
       operationId: put_reservation_preorder
       summary: Conferma o aggiorna un preordine entro la deadline
       responses: { "200": { description: Preordine confermato; pagamento al locale }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
+  /me/reservations/{reservation}/preorder/cancel:
+    post:
+      operationId: post_reservation_preorder_cancel
+      summary: Cancella il preordine autorizzato entro la deadline
+      parameters: [{ name: reservation, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Preordine cancellato }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
 components:
   schemas:
     ErrorResponse:

@@ -116,7 +116,7 @@ class OrganizerReservationController extends Controller
 
     private function query(OrganizerReservationIndexRequest $request): Builder
     {
-        return $this->ownedQuery()->with(['activity.municipality', 'service', 'user', 'review'])
+        return $this->ownedQuery()->with(['activity.municipality', 'service', 'user', 'review', 'preorder.items'])
             ->when($request->date === 'today', fn (Builder $q) => $q->whereDate('starts_at', today()))
             ->when($request->date === 'tomorrow', fn (Builder $q) => $q->whereDate('starts_at', today()->addDay()))
             ->when($request->from, fn (Builder $q, string $v) => $q->whereDate('starts_at', '>=', $v))->when($request->to, fn (Builder $q, string $v) => $q->whereDate('starts_at', '<=', $v))

@@ -15,7 +15,7 @@ class OrganizerActivityController extends Controller
 {
     public function index(): JsonResponse
     {
-        return ActivityResource::collection(request()->user()->organizerProfile->activities()->with(['municipality', 'services.availabilityRules', 'services.availabilityExceptions'])->latest()->get())->response();
+        return ActivityResource::collection(request()->user()->organizerProfile->activities()->with(['municipality', 'services.preorderMenu', 'services.availabilityRules', 'services.availabilityExceptions'])->latest()->get())->response();
     }
 
     public function store(UpsertActivityRequest $request): JsonResponse
@@ -30,7 +30,7 @@ class OrganizerActivityController extends Controller
     {
         $this->authorize('update', $activity);
 
-        return response()->json(['data' => ActivityResource::make($activity->load(['municipality', 'services.availabilityRules', 'services.availabilityExceptions']))]);
+        return response()->json(['data' => ActivityResource::make($activity->load(['municipality', 'services.preorderMenu', 'services.availabilityRules', 'services.availabilityExceptions']))]);
     }
 
     public function update(UpsertActivityRequest $request, Activity $activity): JsonResponse
@@ -38,7 +38,7 @@ class OrganizerActivityController extends Controller
         $this->authorize('update', $activity);
         $activity->update($request->validated());
 
-        return response()->json(['data' => ActivityResource::make($activity->refresh()->load(['municipality', 'services.availabilityRules', 'services.availabilityExceptions']))]);
+        return response()->json(['data' => ActivityResource::make($activity->refresh()->load(['municipality', 'services.preorderMenu', 'services.availabilityRules', 'services.availabilityExceptions']))]);
     }
 
     public function reservations(Activity $activity): JsonResponse

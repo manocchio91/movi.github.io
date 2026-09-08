@@ -43,4 +43,10 @@ class ActivityService extends Model
     {
         return $this->hasMany(Reservation::class, 'service_id');
     }
+
+    /** @return BelongsTo<Menu, $this> */
+    public function preorderMenu(): BelongsTo
+    {
+        return $this->belongsTo(Menu::class, 'preorder_menu_id');
+    }
 }

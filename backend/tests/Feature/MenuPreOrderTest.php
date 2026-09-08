@@ -97,6 +97,7 @@ class MenuPreOrderTest extends TestCase
         $path = tempnam(sys_get_temp_dir(), 'menu-archive');
         $zip = new ZipArchive;
         $zip->open($path, ZipArchive::OVERWRITE);
+        $zip->addFromString('[Content_Types].xml', '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>');
         foreach ($entries as $name => $content) {
             $zip->addFromString($name, $content);
         }

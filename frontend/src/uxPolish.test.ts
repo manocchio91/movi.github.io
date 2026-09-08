@@ -97,3 +97,13 @@ test('restaurant menu and manager preorder summary use real APIs', () => {
   assert.match(app, /Le informazioni sugli allergeni provengono dal locale/);
   assert.doesNotMatch(app, /pagamento effettuato/);
 });
+
+test('release closure provides real menu management and multipiatto forms', () => {
+  assert.match(app, /Menu Manager/);
+  assert.match(app, /CARICA MENU/);
+  assert.match(app, /Import completato: revisiona la bozza/);
+  assert.match(app, /preorder_edit_deadline_minutes/);
+  assert.match(app, /changePreorderQuantity/);
+  assert.match(app, /Cancella pre-order/);
+  assert.doesNotMatch(app, /window\.prompt\(`Quantità \$\{item\.name\}/);
+});

@@ -13,6 +13,9 @@ class ActivityServiceResource extends JsonResource
         /** @var ActivityService $service */
         $service = $this->resource;
 
-        return ['ulid' => $service->ulid, 'name' => $service->name, 'type' => $service->type, 'active' => $service->active, 'booking_enabled' => $service->booking_enabled, 'min_party_size' => $service->min_party_size, 'max_party_size' => $service->max_party_size, 'minimum_advance_minutes' => $service->minimum_advance_minutes, 'indicative_duration_minutes' => $service->indicative_duration_minutes, 'capacity_mode' => $service->capacity_mode, 'rules' => $this->whenLoaded('availabilityRules'), 'exceptions' => $this->whenLoaded('availabilityExceptions')];
+        return ['ulid' => $service->ulid, 'name' => $service->name, 'type' => $service->type, 'active' => $service->active, 'booking_enabled' => $service->booking_enabled, 'min_party_size' => $service->min_party_size, 'max_party_size' => $service->max_party_size, 'minimum_advance_minutes' => $service->minimum_advance_minutes, 'indicative_duration_minutes' => $service->indicative_duration_minutes, 'capacity_mode' => $service->capacity_mode,
+            'preorder_enabled' => $service->preorder_enabled, 'preorder_edit_deadline_minutes' => $service->preorder_edit_deadline_minutes,
+            'preorder_menu_ulid' => $this->whenLoaded('preorderMenu', fn () => $service->preorderMenu?->ulid),
+            'rules' => $this->whenLoaded('availabilityRules'), 'exceptions' => $this->whenLoaded('availabilityExceptions')];
     }
 }

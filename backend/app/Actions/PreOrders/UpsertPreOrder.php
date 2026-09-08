@@ -47,7 +47,7 @@ class UpsertPreOrder
             }
             $this->analytics->recordActivity($created ? 'preorder_confirmed' : 'preorder_updated', $locked->activity, $locked->user, $locked);
 
-            return $preorder->load('items');
+            return $preorder->load('items.menuItem');
         });
     }
 }

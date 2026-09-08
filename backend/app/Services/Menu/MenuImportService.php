@@ -14,6 +14,8 @@ use ZipArchive;
 
 class MenuImportService
 {
+    private const REQUIRED_CONTENT_TYPES = '[Content_Types].xml';
+
     public function import(Activity $activity, UploadedFile $file, ?string $name = null): array
     {
         $zip = new ZipArchive;
@@ -24,10 +26,15 @@ class MenuImportService
         for ($i = 0; $i < $zip->numFiles; $i++) {
             $stat = $zip->statIndex($i);
             $total += (int) ($stat['size'] ?? 0);
-            if ($total > config('menu.max_uncompressed_bytes') || str_contains((string) ($stat['name'] ?? ''), '..')) {
+            $entry = str_replace('\\', '/', (string) ($stat['name'] ?? ''));
+            if ($total > config('menu.max_uncompressed_bytes') || str_starts_with($entry, '/') || preg_match('#(^|/)\.\.(/|$)#', $entry)) {
                 $zip->close();
                 throw ValidationException::withMessages(['file' => ['Archivio non sicuro.']]);
             }
+        }
+        if ($zip->locateName(self::REQUIRED_CONTENT_TYPES) === false) {
+            $zip->close();
+            throw ValidationException::withMessages(['file' => ['Struttura Office non valida.']]);
         }
         $extension = strtolower($file->getClientOriginalExtension());
         $rows = $extension === 'xlsx' ? $this->xlsx($zip) : $this->docx($zip);
@@ -77,12 +84,12 @@ class MenuImportService
         $shared = [];
         $sharedXml = $zip->getFromName('xl/sharedStrings.xml');
         if ($sharedXml !== false) {
-            foreach ((new SimpleXMLElement($sharedXml))->si as $si) {
+            foreach ($this->xml($sharedXml)->si as $si) {
                 $shared[] = trim((string) $si->t ?: implode('', array_map('strval', iterator_to_array($si->r->t))));
             }
         }
         $matrix = [];
-        foreach ((new SimpleXMLElement($sheet))->sheetData->row as $row) {
+        foreach ($this->xml($sheet)->sheetData->row as $row) {
             $values = [];
             foreach ($row->c as $cell) {
                 $value = (string) $cell->v;
@@ -101,7 +108,7 @@ class MenuImportService
         $xml = $zip->getFromName('word/document.xml');
         if ($xml === false) {
             return [];
-        } $document = new SimpleXMLElement($xml);
+        } $document = $this->xml($xml);
         $document->registerXPathNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
         $lines = [];
         foreach ($document->xpath('//w:p') ?: [] as $paragraph) {
@@ -147,5 +154,24 @@ class MenuImportService
         }
 
         return (int) round((float) str_replace(',', '.', $normalized) * 100);
+    }
+
+    private function xml(string $contents): SimpleXMLElement
+    {
+        if (strlen($contents) > config('menu.max_xml_bytes') || preg_match('/<!DOCTYPE|<!ENTITY/i', $contents)) {
+            throw ValidationException::withMessages(['file' => ['XML Office non sicuro o troppo grande.']]);
+        }
+        $previous = libxml_use_internal_errors(true);
+        try {
+            $xml = simplexml_load_string($contents, SimpleXMLElement::class, LIBXML_NONET | LIBXML_NOBLANKS | LIBXML_COMPACT);
+            if (! $xml instanceof SimpleXMLElement) {
+                throw ValidationException::withMessages(['file' => ['XML Office non valido.']]);
+            }
+
+            return $xml;
+        } finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previous);
+        }
     }
 }

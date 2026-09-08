@@ -23,11 +23,13 @@ class PreOrder extends Model
         return 'ulid';
     }
 
+    /** @return BelongsTo<Reservation, $this> */
     public function reservation(): BelongsTo
     {
         return $this->belongsTo(Reservation::class);
     }
 
+    /** @return HasMany<PreOrderItem, $this> */
     public function items(): HasMany
     {
         return $this->hasMany(PreOrderItem::class, 'preorder_id');

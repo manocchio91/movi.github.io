@@ -11,11 +11,13 @@ class PreOrderItem extends Model
 
     protected $fillable = ['preorder_id', 'menu_item_id', 'quantity', 'unit_price_snapshot', 'item_name_snapshot', 'subtotal'];
 
+    /** @return BelongsTo<PreOrder, $this> */
     public function preorder(): BelongsTo
     {
         return $this->belongsTo(PreOrder::class, 'preorder_id');
     }
 
+    /** @return BelongsTo<MenuItem, $this> */
     public function menuItem(): BelongsTo
     {
         return $this->belongsTo(MenuItem::class);

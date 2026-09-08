@@ -178,19 +178,21 @@ class _ActivityDetailState extends ConsumerState<ActivityDetailScreen> {
                                 : null,
                         child: const Text('Prenota')));
               }),
-              OutlinedButton(
-                  onPressed: () async {
-                    await ref
-                        .read(activityRepositoryProvider)
-                        .review(activity.id, 5, 'Esperienza consigliata');
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Recensione inviata')));
-                    }
-                  },
-                  child: const Text('Recensione verificata'))
             ]));
       });
+}
+
+class ActivityReviewDialog extends StatefulWidget {
+  const ActivityReviewDialog({super.key, required this.activityId, required this.reservationId, required this.repository});
+  final String activityId;
+  final String reservationId;
+  final ActivityRepository repository;
+  @override State<ActivityReviewDialog> createState() => _ActivityReviewDialogState();
+}
+class _ActivityReviewDialogState extends State<ActivityReviewDialog> {
+  final comment = TextEditingController(); int rating = 5; bool loading = false; String? error;
+  @override void dispose() { comment.dispose(); super.dispose(); }
+  @override Widget build(BuildContext context) => AlertDialog(title: const Text('Recensione'), content: Column(mainAxisSize: MainAxisSize.min, children: [DropdownButtonFormField<int>(initialValue: rating, decoration: const InputDecoration(labelText: 'Valutazione'), items: [1,2,3,4,5].map((value) => DropdownMenuItem(value: value, child: Text('$value stelle'))).toList(), onChanged: (value) => rating = value ?? 5), TextField(controller: comment, maxLength: 2000, decoration: const InputDecoration(labelText: 'Testo')), if (error != null) Text(error!, style: TextStyle(color: Theme.of(context).colorScheme.error))]), actions: [TextButton(onPressed: loading ? null : () => Navigator.pop(context), child: const Text('Chiudi')), FilledButton(onPressed: loading ? null : () async { if (comment.text.trim().isEmpty) { setState(() => error = 'Inserisci un testo.'); return; } setState(() { loading = true; error = null; }); try { await widget.repository.review(widget.activityId, widget.reservationId, rating, comment.text.trim()); if (!context.mounted) return; Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Recensione inviata'))); } catch (e) { if (mounted) setState(() { loading = false; error = '$e'; }); } }, child: Text(loading ? 'Invio…' : 'Invia'))]);
 }
 
 class ActivityReservationsScreen extends ConsumerWidget {
@@ -208,7 +210,7 @@ class ActivityReservationsScreen extends ConsumerWidget {
                           '${reservation.activity} · ${reservation.service}'),
                       subtitle: Text(
                           '${reservation.startsAt} · ${reservation.partySize} persone · ${reservation.status}'),
-                      trailing: reservation.status == 'confirmed'
+                      trailing: reservation.reviewEligible ? FilledButton(onPressed: () => showDialog<void>(context: context, builder: (_) => ActivityReviewDialog(activityId: reservation.activityId, reservationId: reservation.id, repository: ref.read(activityRepositoryProvider))), child: const Text('Recensisci')) : reservation.status == 'confirmed'
                           ? PopupMenuButton<String>(
                               onSelected: (action) async {
                                 final repository =
@@ -218,34 +220,71 @@ class ActivityReservationsScreen extends ConsumerWidget {
                                   ref.invalidate(reservationsProvider);
                                   return;
                                 }
-                                final menu = await repository
-                                    .menu(reservation.activityId);
-                                final items = menu?.sections
-                                        .expand((section) => section.items)
-                                        .where((item) => item.available)
-                                        .toList() ??
-                                    const [];
-                                if (items.isEmpty || !context.mounted) return;
-                                final item = items.first;
-                                await repository.preorder(
-                                    reservation.id, item.id, 1);
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content: Text(
-                                              'Pre-order confermato. Pagherai direttamente al locale.')));
-                                }
+                                if (!context.mounted) return;
+                                await showDialog<void>(context: context, builder: (_) => PreorderDialog(reservation: reservation, repository: repository));
                               },
-                              itemBuilder: (_) => const [
+                              itemBuilder: (_) => [
                                     PopupMenuItem(
+                                        enabled: reservation.preorderEnabled,
                                         value: 'preorder',
-                                        child: Text('SCEGLI DAL MENU')),
-                                    PopupMenuItem(
+                                        child: const Text('SCEGLI DAL MENU')),
+                                    const PopupMenuItem(
                                         value: 'cancel',
                                         child: Text('Cancella'))
                                   ])
                           : null))
                   .toList())));
+}
+
+class PreorderDialog extends StatefulWidget {
+  const PreorderDialog({super.key, required this.reservation, required this.repository});
+  final ReservationModel reservation;
+  final ActivityRepository repository;
+  @override
+  State<PreorderDialog> createState() => _PreorderDialogState();
+}
+
+class _PreorderDialogState extends State<PreorderDialog> {
+  MenuModel? menu;
+  final quantities = <String, int>{};
+  bool loading = true;
+  String? error;
+  late String deadline;
+
+  @override
+  void initState() { super.initState(); deadline = DateTime.parse(widget.reservation.startsAt).subtract(Duration(minutes: widget.reservation.preorderDeadlineMinutes)).toLocal().toString(); _load(); }
+
+  Future<void> _load() async {
+    setState(() { loading = true; error = null; });
+    try {
+      final values = await Future.wait([widget.repository.menu(widget.reservation.activityId), widget.repository.preorderDetails(widget.reservation.id)]);
+      menu = values[0] as MenuModel?;
+      final existing = values[1] as Map<String, dynamic>?;
+      deadline = existing?['deadline']?.toString() ?? deadline;
+      final existingData = existing?['data'];
+      for (final row in _rows(existingData is Map<String, dynamic> ? existingData['items'] : null)) { final id = '${row['menu_item_ulid'] ?? ''}'; if (id.isNotEmpty) quantities[id] = (row['quantity'] as num).toInt(); }
+    } catch (e) { error = '$e'; }
+    if (mounted) setState(() => loading = false);
+  }
+
+  int get total => menu?.sections.expand((s) => s.items).fold<int>(0, (sum, item) => sum + (item.priceCents ?? 0) * (quantities[item.id] ?? 0)) ?? 0;
+  void change(MenuItemModel item, int delta) => setState(() => quantities[item.id] = ((quantities[item.id] ?? 0) + delta).clamp(0, 50).toInt());
+
+  Future<void> _submit() async {
+    if (!quantities.values.any((value) => value > 0)) { setState(() => error = 'Seleziona almeno un piatto.'); return; }
+    setState(() { loading = true; error = null; });
+    try { final result = await widget.repository.preorder(widget.reservation.id, quantities); if (!mounted) return; Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Pre-order confermato · totale backend € ${((result['total_known_amount'] as num?)?.toInt() ?? 0) / 100}. Pagherai direttamente al locale.'))); }
+    catch (e) { if (mounted) setState(() { loading = false; error = '$e'; }); }
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Scegli dal menu'),
+    content: SizedBox(width: 520, child: loading ? const Center(child: CircularProgressIndicator()) : error != null && menu == null ? Column(mainAxisSize: MainAxisSize.min, children: [Text(error!), TextButton(onPressed: _load, child: const Text('Riprova'))]) : SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+      ...?menu?.sections.expand((section) => [Text(section.name, style: Theme.of(context).textTheme.titleMedium), ...section.items.map((item) => ListTile(enabled: item.available, title: Text(item.name), subtitle: Text(item.available ? (item.description.isEmpty ? 'Disponibile' : item.description) : 'Non disponibile'), leading: IconButton(icon: const Icon(Icons.remove), onPressed: item.available && (quantities[item.id] ?? 0) > 0 ? () => change(item, -1) : null), trailing: Row(mainAxisSize: MainAxisSize.min, children: [Text('${quantities[item.id] ?? 0}'), IconButton(icon: const Icon(Icons.add), onPressed: item.available ? () => change(item, 1) : null)])))]),
+      const Divider(), Text('Modificabile fino al ${DateTime.tryParse(deadline)?.toLocal() ?? deadline}'), Text('Totale indicativo € ${(total / 100).toStringAsFixed(2)}'), const Text('Il totale definitivo è calcolato dal backend. Pagherai direttamente al locale.'), if (error != null) Text(error!, style: TextStyle(color: Theme.of(context).colorScheme.error))
+    ]))),
+    actions: [TextButton(onPressed: loading ? null : () => Navigator.pop(context), child: const Text('Chiudi')), TextButton(onPressed: loading ? null : () async { try { await widget.repository.cancelPreorder(widget.reservation.id); if (context.mounted) Navigator.pop(context); } catch (e) { if (mounted) setState(() => error = '$e'); } }, child: const Text('Cancella pre-order')), FilledButton(onPressed: loading ? null : _submit, child: const Text('Conferma'))]);
 }
 
 class OrganizerActivityManagerScreen extends ConsumerWidget {

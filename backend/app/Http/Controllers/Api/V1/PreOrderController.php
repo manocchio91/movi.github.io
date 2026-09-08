@@ -17,7 +17,7 @@ class PreOrderController extends Controller
     {
         $this->authorize('view', $reservation);
 
-        return response()->json(['data' => PreOrderResource::make($reservation->preorder()->with('items')->firstOrFail()), 'deadline' => $reservation->starts_at->copy()->subMinutes($reservation->service->preorder_edit_deadline_minutes)]);
+        return response()->json(['data' => PreOrderResource::make($reservation->preorder()->with('items.menuItem')->firstOrFail()), 'deadline' => $reservation->starts_at->copy()->subMinutes($reservation->service->preorder_edit_deadline_minutes)]);
     }
 
     public function store(UpsertPreOrderRequest $request, Reservation $reservation, UpsertPreOrder $action): JsonResponse
@@ -36,6 +36,6 @@ class PreOrderController extends Controller
         $preorder->update(['status' => 'cancelled']);
         $analytics->recordActivity('preorder_cancelled', $reservation->activity, $reservation->user, $reservation);
 
-        return response()->json(['data' => PreOrderResource::make($preorder->load('items'))]);
+        return response()->json(['data' => PreOrderResource::make($preorder->load('items.menuItem'))]);
     }
 }

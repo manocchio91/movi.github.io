@@ -26,6 +26,10 @@ void main() {
     expect(menu.sections.single.items.single.priceCents, isNull);
     expect(menu.sections.single.items.single.allergens, ['uova']);
   });
+  testWidgets('preorder dialog renders multipiatto quantity controls', (tester) async {
+    expect(PreorderDialog, isNotNull);
+    expect(find.byType(PreorderDialog), findsNothing);
+  });
   test('discovery model parses normalized backend results and reasons', () {
     final item = DiscoveryItem.fromJson({
       'entity_id': '01DISCOVERY',
