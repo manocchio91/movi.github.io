@@ -35,7 +35,7 @@ jobs:
       - run: cd backend && cp .env.example .env && php artisan key:generate
       - run: cd backend && php artisan migrate --force
       - run: cd backend && ./vendor/bin/pint --test
-      - run: cd backend && ./vendor/bin/phpstan analyse
+      - run: cd backend && ./vendor/bin/phpstan analyse --memory-limit=512M
       - run: cd backend && php artisan test
 
   frontend:
@@ -48,3 +48,25 @@ jobs:
       - run: cd frontend && npm ci
       - run: cd frontend && npm run lint
       - run: cd frontend && npm run build
+      - run: cd frontend && npm test
+
+  mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: cd mobile && flutter pub get
+      - run: cd mobile && flutter analyze
+      - run: cd mobile && flutter test
+
+  openapi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npx --yes @redocly/cli lint docs/openapi.yaml

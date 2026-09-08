@@ -2,12 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\ReadinessProbe;
 use App\Mail\OperationalMessage;
 use App\Models\Booking;
 use App\Models\Event;
 use App\Models\User;
 use App\Services\OperationalEmailService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class ProductionReadinessTest extends TestCase
@@ -28,5 +31,16 @@ class ProductionReadinessTest extends TestCase
         $booking->booking_code = 'EVT-TEST';
         app(OperationalEmailService::class)->bookingConfirmed($booking);
         Mail::assertQueued(OperationalMessage::class);
+    }
+
+    public function test_queue_probe_and_failed_job_storage_are_operational(): void
+    {
+        Queue::fake();
+
+        $this->artisan('app:queue-smoke')->assertSuccessful();
+
+        Queue::assertPushed(ReadinessProbe::class);
+        (new ReadinessProbe)->handle();
+        $this->assertNotNull(Cache::get('readiness:queue:last_ok'));
     }
 }

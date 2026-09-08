@@ -4,6 +4,8 @@
 
 Copiare `.env.production.example` in `.env.production` fuori dal versionamento, sostituire ogni placeholder e generare `APP_KEY` in modo sicuro. In produzione sono obbligatori `APP_ENV=production`, `APP_DEBUG=false`, URL HTTPS espliciti, SMTP reale, password PostgreSQL/Redis non predefinite e proxy fidati limitati.
 
+Validare prima del build con `sh scripts/validate-production-env.sh .env.production`; il comando rifiuta placeholder, HTTP, CORS wildcard e queue/cache non Redis.
+
 Impostare `VITE_API_BASE_URL` sull'URL HTTPS pubblico completo delle API prima della build web. Per Android compilare Flutter passando lo stesso endpoint: `flutter build apk --release --dart-define=API_BASE_URL=https://api.example.com/api/v1`. I fallback `localhost`/`10.0.2.2` sono esclusivamente locali.
 
 ## Deploy
@@ -36,6 +38,8 @@ docker compose -f docker-compose.production.yml exec -T postgres pg_restore --cl
 ```
 
 Dopo il restore eseguire `php artisan migrate --force`, riavviare i servizi e verificare health check e flussi critici. Backup e restore dello storage upload devono seguire lo stesso punto temporale del database.
+
+Per il drill usare sempre un database separato con suffisso `_restore_smoke`, verificare migration/tabelle e rimuovere soltanto quel database al termine. Mai eseguire `--clean` contro production durante una prova.
 
 ## Gate
 
