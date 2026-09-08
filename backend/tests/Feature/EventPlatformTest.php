@@ -522,7 +522,7 @@ class EventPlatformTest extends TestCase
 
         $this->assertStringContainsString('Tutti gli Eventi', $app);
         $this->assertStringNotContainsString('Esplora eventi', $app);
-        $this->assertStringContainsString('Annulla prenotazione', $app);
+        $this->assertStringContainsString('Cancella prenotazione', $app);
         $this->assertStringContainsString('booking.can_cancel ? h(\'button\'', $app);
     }
 

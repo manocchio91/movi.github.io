@@ -1,4 +1,5 @@
 import { cloneVNode, computed, defineComponent, h, onMounted, ref } from 'vue';
+import QRCode from 'qrcode';
 import { buildBookingUpdatePayload, runBookingUpdate } from './bookingUpdate';
 
 type Role = 'guest' | 'customer' | 'organizer' | 'admin';
@@ -204,11 +205,11 @@ type CustomerTicket = { ulid: string; name: string; audience: 'generic' | 'adult
 type CustomerEvent = {
   ulid: string; title: string; summary: string; description: string; status: 'published' | 'sold_out'; starts_at: string;
   capacity_total: number; available_total: number; is_free: boolean; municipality?: { name: string }; categories?: EventCategory[];
-  category?: string; canonical_url: string; organizer_profile?: { ulid: string; name: string; logo_url?: string | null; cover_url?: string | null }; ticket_types: CustomerTicket[];
+  category?: string; canonical_url: string; image_url?: string | null; bookable_available_total?: number; organizer_profile?: { ulid: string; name: string; logo_url?: string | null; cover_url?: string | null }; ticket_types: CustomerTicket[];
 };
 type CustomerBookingResult = { ulid: string; booking_code: string; total_people: number; total_price_cents: number; qr_token: string };
 type CustomerBooking = {
-  ulid: string; booking_code: string; contact_phone: string | null; total_people: number; total_price_cents: number; status: string; can_cancel: boolean; can_edit: boolean; notes: string | null;
+  ulid: string; booking_code: string; contact_phone: string | null; total_people: number; total_price_cents: number; status: string; can_cancel: boolean; can_edit: boolean; can_review?: boolean; notes: string | null;
   event: { ulid: string; title: string; starts_at: string };
   items: Array<{ quantity: number; ticket_type: CustomerTicket }>;
 };
@@ -512,6 +513,7 @@ export default defineComponent({
     const cancellingCustomerBooking = ref<string | null>(null);
     const customerFavorites = ref<CustomerEvent[]>([]);
     const customerQrTokens = ref<Record<string, string>>({});
+    const customerQrImages = ref<Record<string, string>>({});
     const customerSectionLoading = ref(false);
     const customerSectionMessage = ref('');
     const publicOrganizer = ref<any>(null);
@@ -877,7 +879,7 @@ export default defineComponent({
         eventFormMode.value = 'edit';
         route.value = `/organizer/events/${finalEvent.ulid}/edit`;
         applyEventDetailToForm(finalEvent);
-        eventFormSuccess.value = publish ? 'Evento pubblicato.' : 'Evento salvato.';
+        eventFormSuccess.value = publish ? 'Evento pubblicato.' : isEdit ? 'Evento aggiornato correttamente.' : 'Evento creato correttamente.';
         organizerEventsLoadedKey.value = '';
       } catch (error) {
         if (error instanceof ApiError && error.status === 401) {
@@ -1071,7 +1073,9 @@ export default defineComponent({
     const loadCustomerQrSafe = async (ulid: string) => {
       customerSectionMessage.value = '';
       try {
-        customerQrTokens.value[ulid] = (await api<any>('/me/bookings/'+ulid+'/qr'))?.data?.qr_token ?? '';
+        const token = (await api<any>('/me/bookings/'+ulid+'/qr'))?.data?.qr_token ?? '';
+        customerQrTokens.value[ulid] = token;
+        customerQrImages.value[ulid] = token ? await QRCode.toDataURL(token, { width: 240, margin: 2 }) : '';
       } catch {
         customerSectionMessage.value = 'QR non disponibile. Riprova più tardi.';
       }
@@ -1083,6 +1087,7 @@ export default defineComponent({
       try {
         await api('/me/bookings/'+booking.ulid+'/cancel', { method: 'POST' });
         delete customerQrTokens.value[booking.ulid];
+        delete customerQrImages.value[booking.ulid];
         await loadCustomerSection('bookings');
         customerSectionMessage.value = 'Prenotazione annullata.';
       } catch (error) {
@@ -1136,7 +1141,10 @@ export default defineComponent({
         });
         customerBookingResult.value = response?.data ?? null;
         customerBookingConfirmOpen.value = false;
-        if (customerBookingResult.value) event.available_total = Math.max(0, event.available_total - customerBookingResult.value.total_people);
+        if (customerBookingResult.value) {
+          event.available_total = Math.max(0, event.available_total - customerBookingResult.value.total_people);
+          customerQrImages.value[customerBookingResult.value.ulid] = await QRCode.toDataURL(customerBookingResult.value.qr_token, { width: 240, margin: 2 });
+        }
         if (customerBookingSavePhone.value) customerProfile.value.phone = customerBookingPhone.value;
       } catch (error) {
         customerBookingConfirmOpen.value = false;
@@ -1989,7 +1997,7 @@ export default defineComponent({
           h('div', { class: 'onboarding-actions' }, [
             h('button', { class: 'auth-submit', type: route.value === '/organizer/profile' ? 'button' : 'submit', disabled: organizerProfileSaving.value, onClick: route.value === '/organizer/profile' ? () => { void saveOrganizerProfile(); } : undefined }, route.value === '/organizer/profile' ? (organizerProfileSaving.value ? 'Invio…' : 'Invia modifiche per approvazione') : (organizerProfileSaving.value ? 'Salvataggio…' : 'Invia richiesta di approvazione')),
             route.value === '/organizer/profile' ? h('button', { type: 'button', disabled: organizerProfileSaving.value, onClick: () => { void go('/organizer/dashboard'); } }, 'Torna alla dashboard') : h('button', { type: 'button', disabled: organizerProfileSaving.value, onClick: () => { void saveOrganizerProfile(); } }, 'Salva e continua più tardi'),
-            route.value !== '/organizer/profile' ? h('button', { type: 'button', onClick: () => { void logout(); } }, 'Esci') : null,
+            h('button', { class: 'profile-exit-button', type: 'button', disabled: organizerProfileSaving.value, onClick: () => { void logout(); } }, 'Esci'),
           ]),
         ]),
       ]),
@@ -2024,7 +2032,7 @@ export default defineComponent({
 
     const renderEventCard = (event: CustomerEvent) => {
       const date = event.starts_at ? new Date(event.starts_at) : null;
-      const cover = event.organizer_profile?.cover_url;
+      const cover = event.image_url ?? event.organizer_profile?.logo_url;
       return h('article', { class: 'experience-card event-card' }, [
         h('div', { class: ['event-card-cover', cover ? 'has-image' : ''], style: cover ? { backgroundImage: `url(${cover})` } : undefined }, [h('span', { class: 'event-date' }, [h('strong', date ? String(date.getDate()).padStart(2, '0') : '—'), h('small', date ? date.toLocaleDateString('it-IT', { month: 'short' }) : '')]), h('span', { class: 'event-category' }, event.category ?? event.categories?.[0]?.name ?? 'Evento')]),
         h('div', { class: 'event-card-content' }, [h('p', { class: 'event-place' }, `⌖ ${event.municipality?.name ?? event.municipality ?? 'Molise'}`), h('h3', event.title), h('div', { class: 'event-card-footer' }, [h('div', [h('strong', event.is_free ? 'Gratis' : 'Prenotabile'), h('small', `${event.available_total ?? 0} posti`)]), h('button', { type: 'button', 'aria-label': `Apri ${event.title}`, onClick: () => { void go(`/customer/events/${event.ulid}`); } }, 'Scopri →')])]),
@@ -2043,15 +2051,16 @@ export default defineComponent({
       const event = selectedCustomerEvent.value;
       if (!event) return [emptyState('Evento non disponibile.')];
       const activeTickets = event.ticket_types.filter((ticket) => ticket.is_active);
+      const bookable = event.bookable_available_total ?? Math.min(event.available_total, activeTickets.reduce((total, ticket) => total + (Number.isFinite(ticketAvailable(ticket)) ? ticketAvailable(ticket) : event.available_total), 0));
       return [h('div', { class: 'section-title' }, [h('div', [h('h2', event.title), h('span', `${event.municipality?.name ?? 'Luogo non indicato'} · ${new Date(event.starts_at).toLocaleString('it-IT')}`)]), h('div', { class: 'action-row' }, [h('button', { type: 'button', onClick: () => { void shareCustomerEvent(event); } }, 'Condividi'), h('button', { type: 'button', onClick: () => { shareCustomerEventOnWhatsApp(event); } }, 'WhatsApp'), h('button', { onClick: () => { void go('/customer/explore'); } }, 'Torna agli eventi')])]), customerShareMessage.value ? h('p', { role: 'status' }, customerShareMessage.value) : null, h('article', { class: 'wide-panel customer-event-detail' }, [
-        h('p', event.description), h('p', [h('strong', `${event.available_total} posti disponibili su ${event.capacity_total}`), ' · Organizzato da ', event.organizer_profile ? h('button', { class: 'link-button', onClick: () => { void go(`/customer/organizers/${event.organizer_profile!.ulid}`); } }, event.organizer_profile.name) : 'Organizer']), h('h3', 'Scegli i ticket'),
+        h('p', event.description), h('p', [h('strong', bookable > 0 ? `${bookable} posti prenotabili su ${event.capacity_total}` : event.available_total > 0 ? `${event.available_total} posti complessivi · biglietti esauriti` : `Evento esaurito · ${event.capacity_total} posti complessivi`), ' · Organizzato da ', event.organizer_profile ? h('button', { class: 'link-button', onClick: () => { void go(`/customer/organizers/${event.organizer_profile!.ulid}`); } }, event.organizer_profile.name) : 'Organizer']), h('h3', 'Scegli i ticket'),
         activeTickets.length === 0 ? h('p', 'Nessun ticket disponibile.') : h('div', { class: 'customer-ticket-list' }, activeTickets.map((ticket) => h('label', { class: 'customer-ticket-row' }, [h('span', [h('strong', ticket.name), h('small', formatEuro(ticket.price_cents)), h('small', `${purchasableTickets(event, ticket)} biglietti disponibili`), ticketAvailable(ticket) < event.available_total ? h('small', 'Disponibilità limitata per questa tipologia di biglietto.') : null]), h('input', { type: 'number', min: 0, max: purchasableTickets(event, ticket), value: customerTicketQuantities.value[ticket.ulid] ?? 0, disabled: customerBookingLoading.value || customerBookingResult.value !== null, 'aria-label': `Quantità ${ticket.name}`, onInput: (inputEvent: Event) => { customerTicketQuantities.value[ticket.ulid] = Math.min(purchasableTickets(event, ticket), Math.max(0, Number((inputEvent.target as HTMLInputElement).value) || 0)); } })]))),
         renderBookingSummary(event, customerTicketQuantities.value),
         h('label', { class: 'auth-field' }, [h('span', 'Telefono obbligatorio'), h('input', { type: 'tel', required: true, autocomplete: 'tel', value: customerBookingPhone.value, disabled: customerBookingLoading.value || customerBookingResult.value !== null, 'aria-invalid': customerBookingFieldErrors.value.phone ? 'true' : 'false', onInput: (inputEvent: Event) => { customerBookingPhone.value = (inputEvent.target as HTMLInputElement).value; delete customerBookingFieldErrors.value.phone; } }), customerBookingFieldErrors.value.phone ? h('small', { class: 'api-error' }, customerBookingFieldErrors.value.phone[0]) : null]),
         h('label', { class: 'checkbox-field' }, [h('input', { type: 'checkbox', checked: customerBookingSavePhone.value, disabled: customerBookingResult.value !== null, onChange: (inputEvent: Event) => { customerBookingSavePhone.value = (inputEvent.target as HTMLInputElement).checked; } }), h('span', 'Salva questo numero nel mio profilo')]),
         h('label', { class: 'auth-field' }, [h('span', 'Note facoltative'), h('textarea', { maxlength: 1000, value: customerBookingNotes.value, disabled: customerBookingResult.value !== null, onInput: (inputEvent: Event) => { customerBookingNotes.value = (inputEvent.target as HTMLTextAreaElement).value; } })]),
         customerBookingError.value ? h('p', { class: 'api-error', role: 'alert' }, customerBookingError.value) : null,
-        customerBookingResult.value ? h('div', { class: 'booking-confirmation', role: 'status' }, [h('strong', 'Prenotazione confermata'), h('p', `Codice: ${customerBookingResult.value.booking_code}`), h('div', { class: 'booking-qr' }, customerBookingResult.value.qr_token)]) : event.available_total > 0 ? h('button', { type: 'button', disabled: customerBookingLoading.value || activeTickets.length === 0, onClick: openCustomerBookingConfirmation }, 'Continua') : customerWaitlist.value?.status === 'offered' ? h('div', { class: 'booking-confirmation', role: 'status' }, [h('strong', 'Posto disponibile'), h('p', `Offerta valida fino al ${new Date(customerWaitlist.value.reserved_until).toLocaleString('it-IT')}. La scadenza è determinata dal backend.`), h('button', { type: 'button', disabled: customerWaitlistLoading.value || !customerBookingPhone.value, onClick: () => { void acceptCustomerWaitlist(); } }, 'Conferma il posto')]) : ['waiting'].includes(customerWaitlist.value?.status) ? h('div', { class: 'booking-confirmation', role: 'status' }, [h('strong', 'Sei in lista d’attesa'), h('p', `Posizione: ${customerWaitlist.value.position ?? 'in aggiornamento'}`), h('button', { type: 'button', disabled: customerWaitlistLoading.value, onClick: () => { void leaveCustomerWaitlist(); } }, 'Esci dalla lista')]) : h('button', { type: 'button', disabled: customerWaitlistLoading.value || activeTickets.length === 0, onClick: () => { void joinCustomerWaitlist(); } }, customerWaitlistLoading.value ? 'Ingresso…' : 'Entra in lista d’attesa'),
+        customerBookingResult.value ? h('div', { class: 'booking-confirmation', role: 'status' }, [h('strong', 'Prenotazione confermata'), h('p', `Codice: ${customerBookingResult.value.booking_code}`), customerQrImages.value[customerBookingResult.value.ulid] ? h('img', { class: 'booking-qr', src: customerQrImages.value[customerBookingResult.value.ulid], alt: `QR prenotazione ${customerBookingResult.value.booking_code}` }) : null]) : bookable > 0 ? h('button', { type: 'button', disabled: customerBookingLoading.value || activeTickets.length === 0, onClick: openCustomerBookingConfirmation }, 'Continua') : event.available_total > 0 ? h('p', { class: 'section-message', role: 'status' }, 'I posti complessivi non sono attualmente associati a biglietti acquistabili.') : customerWaitlist.value?.status === 'offered' ? h('div', { class: 'booking-confirmation', role: 'status' }, [h('strong', 'Posto disponibile'), h('p', `Offerta valida fino al ${new Date(customerWaitlist.value.reserved_until).toLocaleString('it-IT')}. La scadenza è determinata dal backend.`), h('button', { type: 'button', disabled: customerWaitlistLoading.value || !customerBookingPhone.value, onClick: () => { void acceptCustomerWaitlist(); } }, 'Conferma il posto')]) : ['waiting'].includes(customerWaitlist.value?.status) ? h('div', { class: 'booking-confirmation', role: 'status' }, [h('strong', 'Sei in lista d’attesa'), h('p', `Posizione: ${customerWaitlist.value.position ?? 'in aggiornamento'}`), h('button', { type: 'button', disabled: customerWaitlistLoading.value, onClick: () => { void leaveCustomerWaitlist(); } }, 'Esci dalla lista')]) : h('button', { type: 'button', disabled: customerWaitlistLoading.value || activeTickets.length === 0, onClick: () => { void joinCustomerWaitlist(); } }, customerWaitlistLoading.value ? 'Ingresso…' : 'Entra in lista d’attesa'),
       ]), customerBookingConfirmOpen.value ? renderConfirmDialog('Conferma prenotazione', event, customerTicketQuantities.value, () => { customerBookingConfirmOpen.value = false; }, () => { void confirmCustomerBooking(); }) : null];
     };
     const renderSuccessfulEventCard = (event: any) => h('article', { class: 'experience-card success-card' }, [
@@ -2144,8 +2153,8 @@ export default defineComponent({
           h('div', [h('dt', 'Telefono'), h('dd', booking.contact_phone || 'Non indicato')]),
           h('div', [h('dt', 'Codice'), h('dd', booking.booking_code)]),
         ]),
-        h('div', { class: 'action-row' }, [h('button', { type: 'button', onClick: () => { void loadCustomerQrSafe(booking.ulid); } }, customerQrTokens.value[booking.ulid] ? 'Aggiorna QR' : 'Mostra QR'), booking.can_edit ? h('button', { type: 'button', onClick: () => { void openCustomerBookingEdit(booking); } }, 'Modifica prenotazione') : null, booking.can_cancel ? h('button', { type: 'button', class: 'danger-button', disabled: cancellingCustomerBooking.value !== null, onClick: () => { void cancelCustomerBooking(booking); } }, cancellingCustomerBooking.value === booking.ulid ? 'Annullamento…' : 'Annulla prenotazione') : null, h('button', { type: 'button', onClick: () => { void reviewBooking(booking); } }, 'Lascia recensione')]),
-        customerQrTokens.value[booking.ulid] ? h('div', { class: 'booking-qr', role: 'img', 'aria-label': 'Token QR della prenotazione' }, customerQrTokens.value[booking.ulid]) : null,
+        h('div', { class: 'action-row' }, [booking.can_edit ? h('button', { type: 'button', onClick: () => { void openCustomerBookingEdit(booking); } }, 'Modifica prenotazione') : null, booking.can_cancel ? h('button', { type: 'button', class: 'danger-button', disabled: cancellingCustomerBooking.value !== null, onClick: () => { void cancelCustomerBooking(booking); } }, cancellingCustomerBooking.value === booking.ulid ? 'Cancellazione…' : 'Cancella prenotazione') : null, h('button', { type: 'button', onClick: () => { void loadCustomerQrSafe(booking.ulid); } }, customerQrImages.value[booking.ulid] ? 'Aggiorna QR' : 'Visualizza QR'), booking.can_review ? h('button', { type: 'button', onClick: () => { void reviewBooking(booking); } }, 'Lascia recensione') : null]),
+        customerQrImages.value[booking.ulid] ? h('img', { class: 'booking-qr', src: customerQrImages.value[booking.ulid], alt: `QR prenotazione ${booking.booking_code}` }) : null,
       ]))),
       renderCustomerBookingEdit(),
     ];
@@ -2605,7 +2614,6 @@ export default defineComponent({
       h('section', { class: 'role-content' }, [
         apiError.value ? h('p', { class: 'api-error' }, apiError.value) : null,
         ...(route.value === '/organizer/activities' ? renderOrganizerActivities()
-          : route.value === '/organizer/profile' ? [renderOrganizerOnboarding()]
           : route.value === '/organizer/bookings'
           ? renderOrganizerBookings()
           : route.value.startsWith('/organizer/bookings/')
@@ -3096,6 +3104,7 @@ export default defineComponent({
       if (route.value === '/unauthorized') return Unauthorized();
       if (role.value === 'customer') return CustomerLayout();
       if (role.value === 'organizer' && route.value === '/organizer/onboarding') return renderOrganizerOnboarding();
+      if (role.value === 'organizer' && route.value === '/organizer/profile') return renderOrganizerOnboarding();
       if (role.value === 'organizer' && route.value === '/organizer/pending') return renderOrganizerPending();
       if (role.value === 'organizer' && route.value === '/organizer/rejected') return renderOrganizerBlocked();
       if (role.value === 'organizer' && route.value === '/organizer/suspended') return renderOrganizerBlocked(true);

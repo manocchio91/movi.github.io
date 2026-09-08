@@ -434,7 +434,7 @@ class CustomerApiEventDetailScreen extends ConsumerWidget {
           child: result.valueOrNull?.availableSeats == 0
               ? EventWaitlistPanel(event: result.valueOrNull)
               : FilledButton.icon(
-                  onPressed: result.valueOrNull == null
+                  onPressed: result.valueOrNull == null || result.valueOrNull!.bookableSeats == 0
                       ? null
                       : () => context.push('/customer/events/$id/book'),
                   icon: const Icon(Icons.confirmation_number_rounded),
@@ -451,7 +451,7 @@ class CustomerApiEventDetailScreen extends ConsumerWidget {
         data: (event) => ListView(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
             children: [
-              const NeutralEventImage(height: 240),
+              NeutralEventImage(height: 240, imageUrl: event.imageUrl, semanticsLabel: 'Immagine ${event.title}'),
               const SizedBox(height: 18),
               Text(event.title,
                   style: Theme.of(context)
@@ -511,8 +511,10 @@ class CustomerApiEventDetailScreen extends ConsumerWidget {
                         .toList())
               ],
               const SectionTitle('Disponibilità'),
-              Text(event.availableSeats > 0
-                  ? '${event.availableSeats} posti disponibili su ${event.capacity}'
+              Text(event.bookableSeats > 0
+                  ? '${event.bookableSeats} posti prenotabili su ${event.capacity}'
+                  : event.availableSeats > 0
+                      ? '${event.availableSeats} posti complessivi · biglietti esauriti'
                   : 'Posti non disponibili'),
               if (event.importantInformation.isNotEmpty) ...[
                 const SectionTitle('Informazioni utili'),
@@ -741,7 +743,7 @@ class ApiEventCard extends StatelessWidget {
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Stack(children: [
-                const NeutralEventImage(),
+                NeutralEventImage(imageUrl: event.imageUrl, semanticsLabel: 'Immagine ${event.title}'),
                 if (badge != null)
                   Positioned(
                       left: 10,
@@ -784,20 +786,25 @@ class ApiEventCard extends StatelessWidget {
                         .titleMedium
                         ?.copyWith(fontWeight: FontWeight.w900)),
                 const Spacer(),
-                if (event.availableSeats > 0)
-                  Text('${event.availableSeats} posti')
+                if (event.bookableSeats > 0)
+                  Text('${event.bookableSeats} posti')
               ]),
             ])),
       ));
 }
 
 class NeutralEventImage extends StatelessWidget {
-  const NeutralEventImage({super.key, this.height = 168});
+  const NeutralEventImage({super.key, this.height = 168, this.imageUrl = '', this.semanticsLabel});
   final double height;
+  final String imageUrl;
+  final String? semanticsLabel;
   @override
   Widget build(BuildContext context) => ClipRRect(
       borderRadius: BorderRadius.circular(22),
-      child: Container(
+      child: imageUrl.isNotEmpty ? Image.network(imageUrl, height: height, width: double.infinity, fit: BoxFit.contain, semanticLabel: semanticsLabel, errorBuilder: (_, __, ___) => _neutralFallback(height)) : _neutralFallback(height));
+}
+
+Widget _neutralFallback(double height) => Container(
           height: height,
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -815,8 +822,7 @@ class NeutralEventImage extends StatelessWidget {
                     size: 140, color: Colors.white.withValues(alpha: .08))),
             const Icon(Icons.auto_awesome_rounded,
                 size: 48, color: Colors.white),
-          ])));
-}
+          ]));
 
 class _RetryState extends StatelessWidget {
   const _RetryState({required this.message, required this.onRetry});

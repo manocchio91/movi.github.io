@@ -53,10 +53,10 @@ class _BookingForm extends ConsumerWidget {
     final activeTickets =
         event.ticketTypes.where((ticket) => ticket.isActive).toList();
     final estimate = state.estimateTotal(event.ticketTypes);
-    final soldOut = event.availableSeats <= 0;
+    final soldOut = event.bookableSeats <= 0;
 
     return ScreenScaffold(title: 'Prenota', children: [
-      const NeutralEventImage(height: 150),
+      NeutralEventImage(height: 150, imageUrl: event.imageUrl, semanticsLabel: 'Immagine ${event.title}'),
       const SizedBox(height: 12),
       Text(event.title,
           style: Theme.of(context)
@@ -64,7 +64,7 @@ class _BookingForm extends ConsumerWidget {
               .titleLarge
               ?.copyWith(fontWeight: FontWeight.w800)),
       const SizedBox(height: 6),
-      Text('${event.availableSeats} posti disponibili su ${event.capacity}'),
+      Text(event.bookableSeats > 0 ? '${event.bookableSeats} posti prenotabili su ${event.capacity}' : event.availableSeats > 0 ? '${event.availableSeats} posti complessivi · biglietti esauriti' : 'Evento esaurito'),
       const SectionTitle('Contatti'),
       TextFormField(
         key: const Key('contact-phone'),

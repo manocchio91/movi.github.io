@@ -12,6 +12,7 @@ use App\Models\Municipality;
 use App\Models\OrganizerProfile;
 use App\Models\Province;
 use App\Models\Region;
+use App\Models\Review;
 use App\Models\TicketType;
 use App\Models\User;
 use Closure;
@@ -141,6 +142,22 @@ class BookingQrTest extends TestCase
 
         $this->postJson('/api/v1/me/bookings/'.$created->json('data.ulid').'/cancel')->assertOk();
         $this->getJson('/api/v1/me/bookings')->assertJsonPath('data.0.can_cancel', false);
+    }
+
+    public function test_booking_history_exposes_review_action_only_when_eligible(): void
+    {
+        [$customer, $event, $ticket] = $this->domain();
+        $bookingUlid = $this->actingAs($customer, 'sanctum')
+            ->withHeader('Idempotency-Key', 'review-eligibility')
+            ->postJson('/api/v1/events/'.$event->ulid.'/bookings', $this->payload($ticket))
+            ->assertCreated()->json('data.ulid');
+        $event->forceFill(['starts_at' => now()->subHour(), 'ends_at' => now()->subMinutes(30)])->save();
+
+        $this->getJson('/api/v1/me/bookings')->assertOk()->assertJsonPath('data.0.can_review', true);
+        $booking = Booking::query()->where('ulid', $bookingUlid)->firstOrFail();
+        Review::query()->create(['ulid' => (string) Str::ulid(), 'event_id' => $event->id, 'organizer_profile_id' => $event->organizer_profile_id, 'user_id' => $customer->id, 'booking_id' => $booking->id, 'rating' => 5, 'status' => 'approved', 'reviewed_at' => now()]);
+
+        $this->getJson('/api/v1/me/bookings')->assertJsonPath('data.0.can_review', false);
     }
 
     public function test_idempotent_retry_returns_same_booking_and_token_without_double_decrement(): void

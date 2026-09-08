@@ -301,7 +301,7 @@ void main() {
         price: 3500,
       ),
     );
-    expect(find.text('25 posti disponibili su 35'), findsOneWidget);
+    expect(find.text('8 posti prenotabili su 35'), findsOneWidget);
     expect(find.text('€35,00'), findsOneWidget);
     expect(find.text('8 biglietti disponibili'), findsOneWidget);
     expect(

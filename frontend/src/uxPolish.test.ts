@@ -108,11 +108,23 @@ test('release closure provides real menu management and multipiatto forms', () =
   assert.doesNotMatch(app, /window\.prompt\(`Quantità \$\{item\.name\}/);
 });
 
-test('organizer profile approval keeps the dashboard shell and removes activity creation UX', () => {
+test('organizer profile approval uses standalone profile actions and removes activity creation UX', () => {
   assert.match(app, /Invia modifiche per approvazione/);
   assert.match(app, /Modifiche in attesa di approvazione/);
-  assert.match(app, /route\.value === '\/organizer\/profile' \? \[renderOrganizerOnboarding\(\)\]/);
+  assert.match(app, /route\.value === '\/organizer\/profile'\) return renderOrganizerOnboarding\(\)/);
+  assert.match(app, /profile-exit-button/);
   assert.match(app, /profile-changes\/\$\{decision\}/);
   assert.doesNotMatch(app, /Nuovo ristorante/);
   assert.doesNotMatch(app, /Crea attività/);
+});
+
+test('customer regressions restore sidebar, bookable availability and real QR actions', () => {
+  assert.match(styles, /\.customer-layout \{ display: grid; grid-template-columns: 304px/);
+  assert.match(app, /'aria-current': route\.value === target \? 'page'/);
+  assert.match(app, /event\.image_url \?\? event\.organizer_profile\?\.logo_url/);
+  assert.match(app, /bookable_available_total/);
+  assert.match(app, /Cancella prenotazione/);
+  assert.match(app, /booking\.can_review \?/);
+  assert.match(app, /QRCode\.toDataURL/);
+  assert.doesNotMatch(app, /class: 'booking-qr' \}, customerQrTokens/);
 });

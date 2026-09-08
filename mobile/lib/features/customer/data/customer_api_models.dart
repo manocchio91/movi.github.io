@@ -33,6 +33,8 @@ class ApiEvent {
     required this.cancellationPolicy,
     required this.ticketTypes,
     required this.canonicalUrl,
+    this.bookableSeats = 0,
+    this.imageUrl = '',
     this.rating,
   });
 
@@ -48,6 +50,11 @@ class ApiEvent {
     final municipality = _map(json['municipality']);
     final province = _map(municipality?['province']);
     final organizer = _map(json['organizer_profile']);
+    final eventAvailable = _int(json['available_total']);
+    final ticketAvailable = tickets.where((item) => item['is_active'] != false).fold<int>(0, (total, item) {
+      final maximum = item['max_quantity'];
+      return total + (maximum == null ? eventAvailable : (_int(maximum) - _int(item['booked_quantity'])).clamp(0, eventAvailable));
+    });
 
     return ApiEvent(
       id: _string(json['ulid']),
@@ -61,7 +68,7 @@ class ApiEvent {
       province: _string(province?['name']),
       startsAt: DateTime.tryParse(_string(json['starts_at']))?.toLocal(),
       capacity: _int(json['capacity_total']),
-      availableSeats: _int(json['available_total']),
+      availableSeats: eventAvailable,
       isFree: json['is_free'] == true,
       minimumPriceCents: prices.isEmpty
           ? null
@@ -74,6 +81,10 @@ class ApiEvent {
       cancellationPolicy: _string(json['cancellation_policy']),
       ticketTypes: tickets.map(TicketType.fromJson).toList(growable: false),
       canonicalUrl: _string(json['canonical_url']),
+      bookableSeats: json.containsKey('bookable_available_total') ? _int(json['bookable_available_total']) : ticketAvailable.clamp(0, eventAvailable),
+      imageUrl: _string(json['image_url']).isNotEmpty
+          ? _string(json['image_url'])
+          : _string(organizer?['logo_url']),
       rating: _doubleOrNull(json['average_rating']),
     );
   }
@@ -99,6 +110,8 @@ class ApiEvent {
   final String cancellationPolicy;
   final List<TicketType> ticketTypes;
   final String canonicalUrl;
+  final int bookableSeats;
+  final String imageUrl;
   final double? rating;
 
   String get category => categories.isEmpty ? '' : categories.first.name;

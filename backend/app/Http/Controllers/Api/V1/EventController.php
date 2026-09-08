@@ -66,6 +66,8 @@ class EventController extends Controller
             $event->organizerProfile->setAttribute('cover_url', $event->organizerProfile->cover_path ? asset('storage/'.$event->organizerProfile->cover_path) : null);
         }
         $event->setAttribute('canonical_url', config('frontend.url').'/customer/events/'.$event->ulid);
+        $ticketAvailability = $event->ticketTypes->where('is_active', true)->sum(fn ($ticket) => $ticket->max_quantity === null ? $event->available_total : max(0, $ticket->max_quantity - $ticket->booked_quantity));
+        $event->setAttribute('bookable_available_total', min($event->available_total, $ticketAvailability));
 
         return $event;
     }

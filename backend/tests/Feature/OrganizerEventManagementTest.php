@@ -198,6 +198,33 @@ class OrganizerEventManagementTest extends TestCase
         $this->assertDatabaseCount('ticket_types', 2);
     }
 
+    public function test_owner_updates_published_event_with_web_contract_and_preserves_booking(): void
+    {
+        [$organizer, $profile, $municipality, $category] = $this->domain();
+        $event = $this->event($profile, $municipality, $category, EventStatus::Published);
+        $ticket = TicketType::query()->create([
+            'event_id' => $event->id, 'name' => 'Ingresso', 'audience' => 'generic',
+            'max_quantity' => 40, 'booked_quantity' => 2, 'price_cents' => 1200, 'is_active' => true,
+        ]);
+        $booking = $this->booking($event, 2);
+        $event->forceFill(['capacity_total' => 40, 'available_total' => 38])->save();
+        $payload = $this->payload($municipality, $category);
+        $payload['title'] = 'Evento pubblicato aggiornato';
+        $payload['capacity_total'] = 42;
+        $payload['ticket_types'] = [[
+            'ulid' => $ticket->ulid, 'name' => 'Ingresso', 'audience' => 'generic',
+            'price_cents' => 1200, 'max_quantity' => 40, 'is_active' => true,
+        ]];
+
+        $this->actingAs($organizer, 'sanctum')->putJson('/api/v1/organizer/events/'.$event->ulid, $payload)
+            ->assertOk()->assertJsonPath('data.status', 'published')
+            ->assertJsonPath('data.title', 'Evento pubblicato aggiornato')
+            ->assertJsonPath('data.available_total', 40);
+
+        $this->assertDatabaseHas('bookings', ['id' => $booking->id, 'status' => 'confirmed', 'total_people' => 2]);
+        $this->assertDatabaseHas('ticket_types', ['id' => $ticket->id, 'booked_quantity' => 2]);
+    }
+
     public function test_capacity_uses_only_valid_bookings_and_rejects_values_below_them(): void
     {
         [$organizer, $profile, $municipality, $category] = $this->domain();

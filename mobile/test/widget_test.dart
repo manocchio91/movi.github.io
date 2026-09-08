@@ -26,6 +26,18 @@ void main() {
     expect(event.availableSeats, 32);
   });
 
+  test('event media falls back to organizer logo and ticket availability is authoritative', () {
+    final json = Map<String, dynamic>.from(_TestApiClient().event)
+      ..['available_total'] = 16
+      ..['bookable_available_total'] = 0
+      ..['organizer_profile'] = {'ulid': 'org-1', 'name': 'Organizer', 'logo_url': 'https://example.test/logo.png'};
+    final event = ApiEvent.fromJson(json);
+
+    expect(event.imageUrl, 'https://example.test/logo.png');
+    expect(event.availableSeats, 16);
+    expect(event.bookableSeats, 0);
+  });
+
   test('fresh organizer summary replaces a stale event snapshot', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
@@ -107,7 +119,7 @@ void main() {
     expect(find.text('32 posti'), findsOneWidget);
     await tester.tap(find.text('Evento Sync QA'));
     await tester.pumpAndSettle();
-    expect(find.text('32 posti disponibili su 50'), findsOneWidget);
+    expect(find.text('32 posti prenotabili su 50'), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
     await tester.tap(find.descendant(
@@ -245,10 +257,10 @@ void main() {
     expect(find.text('11 posti'), findsOneWidget);
     await tester.tap(find.text('Evento Sync QA'));
     await tester.pumpAndSettle();
-    expect(find.text('11 posti disponibili su 29'), findsOneWidget);
+    expect(find.text('11 posti prenotabili su 29'), findsOneWidget);
     await tester.tap(find.widgetWithText(FilledButton, 'Prenota'));
     await tester.pumpAndSettle();
-    expect(find.text('11 posti disponibili su 29'), findsOneWidget);
+    expect(find.text('11 posti prenotabili su 29'), findsOneWidget);
   });
   testWidgets('real admin login opens admin shell', (tester) async {
     await _pumpApp(tester);

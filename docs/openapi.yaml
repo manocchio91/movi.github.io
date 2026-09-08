@@ -98,7 +98,7 @@ paths:
         - { name: free, in: query, schema: { type: boolean } }
         - { name: available, in: query, schema: { type: boolean } }
       responses:
-        "200": { description: Lista paginata }
+        "200": { description: Lista paginata; ogni evento include bookable_available_total derivato dalla capienza globale e dai ticket attivi }
         "400": { $ref: "#/components/responses/BadRequest" }
         "500": { $ref: "#/components/responses/InternalServerError" }
   /events/{event}:
@@ -109,7 +109,7 @@ paths:
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
-        "200": { description: Evento con canonical_url stabile per condivisione }
+        "200": { description: Evento con canonical_url stabile e bookable_available_total; logo_url Organizer disponibile come fallback media }
         "400": { $ref: "#/components/responses/BadRequest" }
         "500": { $ref: "#/components/responses/InternalServerError" }
   /events/{event}/reviews:
@@ -457,7 +457,7 @@ paths:
     get:
       operationId: get_me_bookings
       security: [{ bearerAuth: [] }]
-      summary: Prenotazioni del cliente, incluso il telefono storico del proprietario autenticato
+      summary: Prenotazioni del cliente con telefono storico e flag can_edit, can_cancel, can_review calcolati dal backend
       responses:
         "200": { description: Lista prenotazioni }
         "400": { $ref: "#/components/responses/BadRequest" }

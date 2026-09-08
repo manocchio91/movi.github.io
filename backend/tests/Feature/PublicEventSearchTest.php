@@ -10,6 +10,7 @@ use App\Models\Municipality;
 use App\Models\OrganizerProfile;
 use App\Models\Province;
 use App\Models\Region;
+use App\Models\TicketType;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -74,6 +75,23 @@ class PublicEventSearchTest extends TestCase
 
         $this->assertSame(2, $withoutSearch['total']);
         $this->assertSame($withoutSearch['data'], $blankSearch['data']);
+    }
+
+    public function test_public_contract_distinguishes_global_capacity_from_ticket_availability(): void
+    {
+        [$category] = $this->fixtures();
+        $ticketsSoldOut = $this->event('Ticket esauriti', 'Posti globali residui', $category);
+        TicketType::query()->create(['event_id' => $ticketsSoldOut->id, 'name' => 'Ingresso', 'audience' => 'generic', 'max_quantity' => 4, 'booked_quantity' => 4, 'price_cents' => 1000, 'is_active' => true]);
+
+        $globalSoldOut = $this->event('Capienza esaurita', 'Ticket residui', $category, false);
+        TicketType::query()->create(['event_id' => $globalSoldOut->id, 'name' => 'Ingresso', 'audience' => 'generic', 'max_quantity' => 20, 'booked_quantity' => 2, 'price_cents' => 1000, 'is_active' => true]);
+
+        $this->getJson('/api/v1/events/'.$ticketsSoldOut->ulid)->assertOk()
+            ->assertJsonPath('data.available_total', 10)
+            ->assertJsonPath('data.bookable_available_total', 0);
+        $this->getJson('/api/v1/events/'.$globalSoldOut->ulid)->assertOk()
+            ->assertJsonPath('data.available_total', 0)
+            ->assertJsonPath('data.bookable_available_total', 0);
     }
 
     /** @return array{Category, Category} */

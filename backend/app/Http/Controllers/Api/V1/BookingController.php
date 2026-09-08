@@ -11,6 +11,7 @@ use App\Http\Requests\StoreBookingRequest;
 use App\Http\Requests\UpdateBookingRequest;
 use App\Models\Booking;
 use App\Models\Event;
+use App\Models\Review;
 use App\Services\OperationalEmailService;
 use Illuminate\Http\JsonResponse;
 
@@ -38,6 +39,10 @@ class BookingController extends Controller
             $booking->makeVisible('contact_phone');
             $booking->setAttribute('can_cancel', $booking->status === 'confirmed' && $booking->event->starts_at->isFuture());
             $booking->setAttribute('can_edit', $booking->status === 'confirmed' && $booking->event->starts_at->isFuture());
+            $concludedAt = $booking->event->ends_at ?? $booking->event->starts_at;
+            $booking->setAttribute('can_review', in_array($booking->status, ['confirmed', 'checked_in', 'completed'], true)
+                && $concludedAt->isPast()
+                && ! Review::query()->where('booking_id', $booking->id)->exists());
         });
 
         return response()->json([
