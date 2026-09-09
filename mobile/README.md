@@ -22,6 +22,38 @@ flutter test
 flutter run
 ```
 
+## Test automatici su device
+
+I test in `integration_test/` usano le API Laravel reali e un database Docker
+ripristinato con i seed di sviluppo. Su Windows, con un emulatore Android già
+avviato:
+
+```powershell
+.\scripts\test-mobile-integration.ps1
+```
+
+Il comando usa lo stack Docker isolato `movi-e2e`, ricrea esclusivamente il suo
+volume temporaneo e lo rimuove al termine. Il database locale principale non
+viene modificato.
+
+È possibile indicare il device: `-Device emulator-5554`.
+Il ripristino riguarda esclusivamente il database del compose locale del
+progetto. Il comando Flutter equivalente, a backend già predisposto, è:
+
+```bash
+cd mobile
+flutter test integration_test -d emulator-5554 \
+  --dart-define=API_BASE_URL=http://10.0.2.2:18081/api/v1
+```
+
+Su iOS la stessa suite è compatibile con Simulator usando
+`-d <simulator-id>` e `API_BASE_URL=http://localhost:18081/api/v1`. Serve un
+host macOS con Xcode/CocoaPods; il Simulator non richiede signing. Device reale,
+TestFlight e Play Internal Testing richiederanno in seguito bundle/application
+ID definitivi, team Apple/provisioning e account store, che non vengono creati
+da questo progetto. La suite produce un APK testabile anche su Firebase Test
+Lab senza dipenderne in CI.
+
 Se la cartella viene aperta su una macchina dove Flutter non ha ancora generato le piattaforme native, eseguire una volta:
 
 ```bash
