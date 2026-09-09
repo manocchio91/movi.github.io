@@ -1,0 +1,54 @@
+name: Build and deploy staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: Deploy after publishing images
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with: { registry: ghcr.io, username: "${{ github.actor }}", password: "${{ secrets.GITHUB_TOKEN }}" }
+      - uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/Dockerfile.production
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/movi-backend:${{ github.sha }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: frontend/Dockerfile.production
+          push: true
+          build-args: VITE_API_BASE_URL=${{ vars.STAGING_API_URL }}/api/v1
+          tags: ghcr.io/${{ github.repository_owner }}/movi-frontend:${{ github.sha }}
+  deploy:
+    if: inputs.deploy
+    needs: images
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          install -m 600 /dev/null "$RUNNER_TEMP/movi-key.pem"
+          printf '%s' "$SSH_PRIVATE_KEY" > "$RUNNER_TEMP/movi-key.pem"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$RUNNER_TEMP/movi-known-hosts"
+          tar czf "$RUNNER_TEMP/movi-release.tgz" --exclude=.git --exclude='.env*' --exclude='*.pem' .
+          scp -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$RUNNER_TEMP/movi-known-hosts" -i "$RUNNER_TEMP/movi-key.pem" "$RUNNER_TEMP/movi-release.tgz" "$SSH_USER@$SSH_HOST:/tmp/movi-release.tgz"
+          ssh -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$RUNNER_TEMP/movi-known-hosts" -i "$RUNNER_TEMP/movi-key.pem" "$SSH_USER@$SSH_HOST" "mkdir -p /opt/movi && tar xzf /tmp/movi-release.tgz -C /opt/movi && cd /opt/movi && BACKEND_IMAGE=ghcr.io/${{ github.repository_owner }}/movi-backend:${{ github.sha }} FRONTEND_IMAGE=ghcr.io/${{ github.repository_owner }}/movi-frontend:${{ github.sha }} DEPLOY_ENV=staging sh scripts/aws/deploy.sh"
+        env:
+          SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
+          SSH_USER: ${{ secrets.STAGING_SSH_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.STAGING_SSH_KNOWN_HOSTS }}

@@ -1,5 +1,6 @@
 services:
   app:
+    image: ${BACKEND_IMAGE:-movi-backend:local}
     build: { context: ./backend, dockerfile: Dockerfile.production }
     env_file: ${APP_ENV_FILE:-.env.production}
     restart: unless-stopped
@@ -11,16 +12,18 @@ services:
   nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped
-    ports: ["${BACKEND_PORT:-8080}:80"]
+    ports: ["${BIND_ADDRESS:-0.0.0.0}:${BACKEND_PORT:-8080}:80"]
     volumes: [./infra/nginx/production.conf:/etc/nginx/conf.d/default.conf:ro, ./backend/public:/var/www/html/public:ro, app-storage:/var/www/html/storage:ro]
     depends_on:
       app: { condition: service_healthy }
   frontend:
+    image: ${FRONTEND_IMAGE:-movi-frontend:local}
     build: { context: ., dockerfile: frontend/Dockerfile.production, args: { VITE_API_BASE_URL: "${VITE_API_BASE_URL:?Set VITE_API_BASE_URL in the production environment}" } }
     restart: unless-stopped
-    ports: ["${FRONTEND_PORT:-8081}:80"]
+    ports: ["${BIND_ADDRESS:-0.0.0.0}:${FRONTEND_PORT:-8081}:80"]
     healthcheck: { test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/"], interval: 30s, timeout: 5s, retries: 3 }
   queue:
+    image: ${BACKEND_IMAGE:-movi-backend:local}
     build: { context: ./backend, dockerfile: Dockerfile.production }
     env_file: ${APP_ENV_FILE:-.env.production}
     command: php artisan queue:work --sleep=3 --tries=3 --backoff=10 --timeout=90 --max-time=3600
@@ -31,6 +34,7 @@ services:
       app: { condition: service_healthy }
       redis: { condition: service_healthy }
   scheduler:
+    image: ${BACKEND_IMAGE:-movi-backend:local}
     build: { context: ./backend, dockerfile: Dockerfile.production }
     env_file: ${APP_ENV_FILE:-.env.production}
     command: php artisan schedule:work

@@ -1,5 +1,7 @@
 # Deploy staging/production
 
+Per il pilot AWS usare [aws-pilot.md](aws-pilot.md), `docker-compose.aws.yml` e gli script in `scripts/aws/`. Questo documento resta valido per installazioni Docker generiche con database locale.
+
 ## Prerequisiti
 
 Copiare `.env.production.example` in `.env.production` fuori dal versionamento, sostituire ogni placeholder e generare `APP_KEY` in modo sicuro. In produzione sono obbligatori `APP_ENV=production`, `APP_DEBUG=false`, URL HTTPS espliciti, SMTP reale, password PostgreSQL/Redis non predefinite e proxy fidati limitati.

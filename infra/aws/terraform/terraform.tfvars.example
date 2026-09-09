@@ -1,0 +1,6 @@
+environment        = "staging"
+admin_cidr         = "203.0.113.10/32"
+ssh_key_name       = "movi-staging"
+db_name            = "eventi_staging"
+db_username        = "eventi_staging"
+db_password        = "SET_OUTSIDE_GIT"

@@ -27,6 +27,11 @@ dist/
 .flutter-plugins
 .flutter-plugins-dependencies
 *.tsbuildinfo
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
 
 # Laravel runtime data
 storage/logs/
