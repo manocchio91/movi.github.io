@@ -2020,7 +2020,7 @@ components:
                   available_total: { type: integer, minimum: 0 }
               summary:
                 type: object
-                required: [ulid, title, status, visual_status, starts_at, capacity_total, booked_people, available_total, checked_in_people, no_show]
+                required: [ulid, title, status, visual_status, starts_at, capacity_total, booked_people, available_total, capacity_available_total, checked_in_people, no_show]
                 additionalProperties: true
                 properties:
                   ulid: { type: string }
@@ -2030,7 +2030,8 @@ components:
                   starts_at: { type: string, format: date-time }
                   capacity_total: { type: integer, minimum: 0 }
                   booked_people: { type: integer, minimum: 0 }
-                  available_total: { type: integer, minimum: 0 }
+                  available_total: { type: integer, minimum: 0, description: Posti realmente prenotabili limitati dai ticket attivi e dalla capienza globale }
+                  capacity_available_total: { type: integer, minimum: 0, description: Residuo della sola capienza globale }
                   checked_in_people: { type: integer, minimum: 0 }
                   no_show: { type: integer, minimum: 0 }
         meta:

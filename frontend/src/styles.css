@@ -1886,8 +1886,19 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand-600); box-
 .customer-layout .booking-facts dd { color: #fff; }
 .customer-layout form.wide-panel { background: #111522; border-color: var(--premium-line); }
 .preference-form { display: grid; gap: 24px; }
-.preference-form fieldset { border: 1px solid var(--premium-line); border-radius: 14px; display: grid; gap: 12px; padding: 18px; }
-.preference-options { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); }
+.preference-form fieldset { border: 1px solid var(--premium-line); border-radius: 14px; display: grid; gap: 14px; margin: 0; padding: 20px; }
+.preference-form legend { color: var(--premium-text); font-weight: 800; padding: 0 8px; }
+.preference-options { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit,minmax(190px,1fr)); }
+.preference-form .checkbox-field { align-items: center; display: grid; gap: 10px; grid-template-columns: 20px minmax(0,1fr); margin: 0; }
+.preference-form .checkbox-field input { height: 18px; margin: 0; width: 18px; }
+.preference-form .checkbox-field span { line-height: 1.35; }
+.preference-form .auth-field { align-items: center; display: grid; gap: 12px; grid-template-columns: minmax(150px,.4fr) minmax(180px,1fr); margin-top: 4px; }
+.preference-form .auth-field select { margin: 0; width: 100%; }
+@media (max-width: 600px) {
+  .preference-form { gap: 16px; }
+  .preference-form fieldset { padding: 16px; }
+  .preference-options, .preference-form .auth-field { grid-template-columns: 1fr; }
+}
 .event-cover-editor { align-items: start; border: 1px solid var(--premium-line); border-radius: 14px; display: grid; gap: 14px; padding: 18px; }
 .event-cover-editor img { border-radius: 12px; height: 180px; object-fit: contain; width: min(100%,420px); }
 

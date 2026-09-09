@@ -117,6 +117,29 @@ class OrganizerEventListTest extends TestCase
         $this->assertSummary($organizer, 30, 0, 30);
     }
 
+    public function test_event_summary_uses_real_ticket_availability_below_global_capacity(): void
+    {
+        [$organizer, $profile, $municipality] = $this->organizerFixture();
+        $event = $this->eventFixture($profile, $municipality, EventStatus::Published, 'Disponibilità ticket', now()->addWeek());
+        $event->forceFill(['capacity_total' => 50, 'available_total' => 50])->save();
+        TicketType::query()->create([
+            'event_id' => $event->id,
+            'name' => 'Ingresso',
+            'audience' => 'generic',
+            'max_quantity' => 40,
+            'booked_quantity' => 0,
+            'price_cents' => 1000,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($organizer, 'sanctum')
+            ->getJson('/api/v1/organizer/events?filter=future&per_page=50')
+            ->assertOk()
+            ->assertJsonPath('data.0.summary.capacity_total', 50)
+            ->assertJsonPath('data.0.summary.capacity_available_total', 50)
+            ->assertJsonPath('data.0.summary.available_total', 40);
+    }
+
     public function test_invalid_filter_and_pagination_values_are_rejected(): void
     {
         [$organizer] = $this->organizerFixture();

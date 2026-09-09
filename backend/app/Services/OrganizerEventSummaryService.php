@@ -26,6 +26,14 @@ class OrganizerEventSummaryService
         $attendanceRate = $bookedPeople > 0 ? round(($checkedInPeople / $bookedPeople) * 100, 2) : 0;
         $reviewStats = $event->reviewStatistic;
         $visualStatus = $this->visualStatus($event);
+        $globalAvailable = (int) $event->getAttribute('available_total');
+        $activeTickets = $event->ticketTypes->where('is_active', true);
+        $ticketAvailable = $activeTickets->isEmpty()
+            ? $globalAvailable
+            : (int) $activeTickets->sum(fn ($ticket) => $ticket->getAttribute('max_quantity') === null
+                ? $globalAvailable
+                : max(0, (int) $ticket->getAttribute('max_quantity') - (int) $ticket->getAttribute('booked_quantity')));
+        $bookableAvailable = min($globalAvailable, $ticketAvailable);
 
         return [
             'ulid' => $event->ulid,
@@ -40,7 +48,8 @@ class OrganizerEventSummaryService
             'price_from_cents' => (int) $event->ticketTypes->min('price_cents'),
             'capacity_total' => $event->capacity_total,
             'booked_people' => $bookedPeople,
-            'available_total' => $event->available_total,
+            'available_total' => $bookableAvailable,
+            'capacity_available_total' => $globalAvailable,
             'fill_rate' => $fillRate,
             'checked_in_people' => $checkedInPeople,
             'no_show' => $noShow,

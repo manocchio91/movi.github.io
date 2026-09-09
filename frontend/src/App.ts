@@ -145,7 +145,7 @@ type OrganizerDashboardResponse = {
 };
 
 type OrganizerEventStatus = 'draft' | 'pending_review' | 'published' | 'sold_out' | 'cancelled' | 'completed' | 'rejected' | 'suspended' | 'archived';
-type OrganizerEventFilter = 'future' | 'completed' | 'unpublished';
+type OrganizerEventFilter = 'all' | 'future' | 'completed' | 'unpublished';
 
 type OrganizerEvent = {
   ulid: string;
@@ -353,8 +353,6 @@ const customerMenu = [
   ['Eventi di Successo', '/customer/successful-events'],
   ['Le mie prenotazioni', '/customer/bookings'],
   ['Organizzatori seguiti', '/customer/following'],
-  ['Attività', '/customer/activities'],
-  ['Prenotazioni locali', '/customer/reservations'],
   ['Organizza con MòVi', '/customer/plan'],
   ['Preferenze', '/customer/preferences'],
   ['Profilo', '/customer/profile'],
@@ -364,7 +362,6 @@ const organizerMenu = [
   ['Dashboard', '/organizer/dashboard'],
   ['I miei eventi', '/organizer/events'],
   ['Prenotazioni', '/organizer/bookings'],
-  ['MòVi Manager', '/organizer/activities'],
   ['Profilo', '/organizer/profile'],
   ['Crea evento', '/organizer/create-event'],
   ['Recensioni', '/organizer/reviews'],
@@ -442,7 +439,7 @@ export default defineComponent({
     const organizerEventsForbidden = ref(false);
     const organizerEventsPage = ref(1);
     const organizerEventsMeta = ref<OrganizerEventPaginationMeta | null>(null);
-    const organizerEventsFilter = ref<OrganizerEventFilter>('future');
+    const organizerEventsFilter = ref<OrganizerEventFilter>('all');
     const cancellingOrganizerEvent = ref<string | null>(null);
     const organizerEventsLoadedKey = ref('');
     const organizerBookings = ref<OrganizerBooking[]>([]);
@@ -1560,7 +1557,13 @@ export default defineComponent({
     const configureActivityClosure = async (event: Event, activity: any, service: any) => { event.preventDefault(); const form = new FormData(event.target as HTMLFormElement); await api(`/organizer/activities/${activity.ulid}/services/${service.ulid}/availability`, { method: 'PUT', body: JSON.stringify({ exceptions: [{ date: form.get('date'), is_closed: true, note: form.get('note') }] }) }); await loadOrganizerActivities(); };
 
     const go = async (nextRoute: AppRoute) => {
-      route.value = canAccess(role.value, nextRoute) ? nextRoute : '/unauthorized';
+      const hiddenEntryPoints: Partial<Record<Role, AppRoute[]>> = {
+        customer: ['/customer/activities', '/customer/reservations'],
+        organizer: ['/organizer/activities'],
+      };
+      const fallbackRoute: AppRoute = role.value === 'organizer' ? '/organizer/dashboard' : '/customer/dashboard';
+      const targetRoute = hiddenEntryPoints[role.value]?.some((entry) => nextRoute === entry || nextRoute.startsWith(entry + '/')) ? fallbackRoute : nextRoute;
+      route.value = canAccess(role.value, targetRoute) ? targetRoute : '/unauthorized';
       if (route.value === '/organizer/onboarding') await loadOrganizerProfile();
       else if (route.value === '/organizer/profile') await loadOrganizerProfile();
       else if (route.value === '/organizer/dashboard') await loadOrganizerDashboard();
@@ -2333,11 +2336,13 @@ export default defineComponent({
 
     const renderOrganizerEvents = () => {
       const filterLabels: Record<OrganizerEventFilter, string> = {
+        all: 'Tutti',
         future: 'Futuri',
         completed: 'Conclusi',
         unpublished: 'Non pubblicati',
       };
       const emptyMessages: Record<OrganizerEventFilter, string> = {
+        all: 'Nessun evento.',
         future: 'Nessun evento futuro.',
         completed: 'Nessun evento concluso.',
         unpublished: 'Nessun evento non pubblicato.',

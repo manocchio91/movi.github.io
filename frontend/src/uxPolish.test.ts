@@ -87,7 +87,10 @@ test('activity reservations use real capacity APIs without table mode', () => {
   assert.ok(app.includes('/availability?date='));
   assert.ok(app.includes("'Idempotency-Key': crypto.randomUUID()"));
   assert.ok(app.includes("api<any>('/me/reservations')"));
-  assert.ok(app.includes('MòVi Manager · Attività'));
+  assert.doesNotMatch(app, /\['MòVi Manager', '\/organizer\/activities'\]/);
+  assert.doesNotMatch(app, /\['Attività', '\/customer\/activities'\]/);
+  assert.doesNotMatch(app, /\['Prenotazioni locali', '\/customer\/reservations'\]/);
+  assert.match(app, /hiddenEntryPoints/);
   assert.ok(!app.includes('floor-plan editor'));
 });
 
