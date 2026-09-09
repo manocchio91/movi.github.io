@@ -49,6 +49,8 @@ jobs:
       - run: cd frontend && npm run lint
       - run: cd frontend && npm run build
       - run: cd frontend && npm test
+      - run: cd frontend && npx playwright install --with-deps chromium
+      - run: cd frontend && npm run test:e2e
 
   mobile:
     runs-on: ubuntu-latest

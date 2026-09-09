@@ -1,9 +1,6 @@
-.git
 .env
-.env.*
-vendor/
-storage/logs/
-storage/framework/testing/
-.phpunit.cache/
+.phpunit.cache
 .phpunit.result.cache
-tests/
+storage/logs/*
+storage/framework/testing/*
+vendor

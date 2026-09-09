@@ -59,14 +59,15 @@ class OrganizerEventController extends Controller
         ]);
     }
 
-    public function store(StoreEventRequest $request, CreateEvent $createEvent): JsonResponse
+    public function store(StoreEventRequest $request, CreateEvent $createEvent, OrganizerEventSummaryService $summary): JsonResponse
     {
         $profile = $request->user()->organizerProfile;
         abort_unless($profile !== null, 403);
 
         $event = $createEvent->handle($profile, $request->validated());
+        $event->load(['categories', 'ticketTypes', 'municipality']);
 
-        return response()->json(['data' => $event], 201);
+        return response()->json(['data' => $this->eventData($event, $summary)], 201);
     }
 
     public function show(Event $event, OrganizerEventSummaryService $summary): JsonResponse
