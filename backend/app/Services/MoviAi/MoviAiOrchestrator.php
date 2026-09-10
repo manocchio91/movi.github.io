@@ -51,6 +51,7 @@ final class MoviAiOrchestrator
         $request = array_filter(['date' => $intent['date'], 'start_time' => $intent['time_window']['start'], 'end_time' => $intent['time_window']['end'],
             'latitude' => $intent['location']['latitude'], 'longitude' => $intent['location']['longitude'], 'radius_km' => $intent['location']['radius_km'],
             'budget_cents' => $intent['budget']['total_cents'], 'with' => $intent['party']['intent'], 'intent' => $intent['plan_type'], 'max_steps' => $intent['max_steps']], fn ($value) => $value !== null);
+        $request['party_size'] = max(1, (int) ($intent['party']['adults'] ?? 1) + (int) ($intent['party']['children'] ?? 0));
         if ($intent['location']['city']) {
             $municipality = Municipality::query()->whereRaw('LOWER(name) = ?', [mb_strtolower($intent['location']['city'])])->first();
             if ($municipality) {

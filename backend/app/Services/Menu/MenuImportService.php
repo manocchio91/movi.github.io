@@ -18,6 +18,14 @@ class MenuImportService
 
     public function import(Activity $activity, UploadedFile $file, ?string $name = null): array
     {
+        $preview = $this->preview($file);
+
+        return $this->confirm($activity, $preview['sections'], $name, 'add');
+    }
+
+    /** @return array{sections: array<int, array{name:string,items:array<int, array<string, mixed>>}>, report: array<string, mixed>} */
+    public function preview(UploadedFile $file): array
+    {
         $zip = new ZipArchive;
         if ($zip->open($file->getRealPath()) !== true || $zip->numFiles > config('menu.max_archive_entries')) {
             throw ValidationException::withMessages(['file' => ['Archivio non valido o troppo complesso.']]);
@@ -43,35 +51,63 @@ class MenuImportService
             throw ValidationException::withMessages(['file' => ['Nessuna riga menu riconoscibile.']]);
         }
 
-        return DB::transaction(function () use ($activity, $rows, $name): array {
-            $menu = Menu::query()->create(['ulid' => (string) Str::ulid(), 'activity_id' => $activity->id, 'name' => $name ?: 'Menu importato', 'status' => 'draft', 'active' => true]);
-            $sections = [];
-            $warnings = [];
-            $imported = 0;
-            foreach ($rows as $index => $row) {
-                $sectionName = trim((string) ($row['section'] ?? 'Altro')) ?: 'Altro';
-                $itemName = trim((string) ($row['name'] ?? ''));
-                if ($itemName === '') {
-                    $warnings[] = 'Riga '.($index + 1).' senza nome, ignorata.';
+        $sections = [];
+        $warnings = [];
+        $imported = 0;
+        foreach ($rows as $index => $row) {
+            $sectionName = trim((string) ($row['section'] ?? 'Altro')) ?: 'Altro';
+            $itemName = trim((string) ($row['name'] ?? ''));
+            if ($itemName === '') {
+                $warnings[] = 'Riga '.($index + 1).' senza nome, ignorata.';
 
-                    continue;
-                }
-                $section = $sections[$sectionName] ??= $menu->sections()->create(['ulid' => (string) Str::ulid(), 'name' => $sectionName, 'sort_order' => count($sections)]);
+                continue;
+            }
+            $price = $this->price($row['price'] ?? null);
+            if ($price === null) {
+                $warnings[] = 'Prezzo mancante o ambiguo per '.$itemName.'.';
+            }
+            $allergens = array_values(array_filter(array_map('trim', preg_split('/[,;]/', (string) ($row['allergens'] ?? '')) ?: [])));
+            $sections[$sectionName] ??= ['name' => $sectionName, 'items' => []];
+            $sections[$sectionName]['items'][] = ['name' => $itemName, 'description' => trim((string) ($row['description'] ?? '')) ?: null, 'price_cents' => $price,
+                'available' => ! in_array(mb_strtolower(trim((string) ($row['available'] ?? ''))), ['no', 'false', '0', 'non disponibile'], true), 'allergens' => $allergens ?: null];
+            $imported++;
+        }
+        if ($imported === 0) {
+            throw ValidationException::withMessages(['file' => ['Nessun piatto riconosciuto.']]);
+        }
+
+        return ['sections' => array_values($sections), 'report' => ['rows_imported' => $imported, 'warnings' => $warnings, 'unrecognized_rows' => count($rows) - $imported, 'requires_review' => true]];
+    }
+
+    public function confirm(Activity $activity, array $sections, ?string $name, string $mode): array
+    {
+        return DB::transaction(function () use ($activity, $sections, $name, $mode): array {
+            if ($mode === 'replace') {
+                $activity->menus()->where('status', 'draft')->delete();
+            }
+            $menu = Menu::query()->create(['ulid' => (string) Str::ulid(), 'activity_id' => $activity->id, 'name' => $name ?: 'Menu importato', 'status' => 'draft', 'active' => true]);
+            $seen = [];
+            $imported = 0;
+            foreach ($sections as $sectionIndex => $sectionData) {
+                $section = $menu->sections()->create(['ulid' => (string) Str::ulid(), 'name' => trim((string) $sectionData['name']), 'sort_order' => $sectionIndex]);
                 assert($section instanceof MenuSection);
-                $price = $this->price($row['price'] ?? null);
-                if ($price === null) {
-                    $warnings[] = 'Prezzo mancante o ambiguo per '.$itemName.'.';
+                foreach ($sectionData['items'] as $itemIndex => $item) {
+                    $key = Str::lower(Str::slug((string) $sectionData['name']).'|'.Str::slug((string) $item['name']));
+                    if (isset($seen[$key])) {
+                        continue;
+                    }
+                    $seen[$key] = true;
+                    $section->items()->create(['ulid' => (string) Str::ulid(), 'name' => trim((string) $item['name']), 'description' => filled($item['description'] ?? null) ? trim((string) $item['description']) : null,
+                        'price_cents' => $item['price_cents'] ?? null, 'available' => $item['available'] ?? true, 'active' => true, 'sort_order' => $itemIndex,
+                        'allergens' => $item['allergens'] ?? null, 'allergen_information_verified' => false]);
+                    $imported++;
                 }
-                $allergens = array_values(array_filter(array_map('trim', preg_split('/[,;]/', (string) ($row['allergens'] ?? '')) ?: [])));
-                $section->items()->create(['ulid' => (string) Str::ulid(), 'name' => $itemName, 'description' => trim((string) ($row['description'] ?? '')) ?: null, 'price_cents' => $price,
-                    'available' => ! in_array(mb_strtolower(trim((string) ($row['available'] ?? ''))), ['no', 'false', '0', 'non disponibile'], true), 'sort_order' => $imported, 'allergens' => $allergens ?: null, 'allergen_information_verified' => false]);
-                $imported++;
             }
             if ($imported === 0) {
-                throw ValidationException::withMessages(['file' => ['Nessun piatto riconosciuto.']]);
+                throw ValidationException::withMessages(['sections' => ['Nessun piatto valido da importare.']]);
             }
 
-            return ['menu' => $menu->load('sections.items'), 'report' => ['rows_imported' => $imported, 'warnings' => $warnings, 'unrecognized_rows' => count($rows) - $imported, 'requires_review' => true]];
+            return ['menu' => $menu->load('sections.items'), 'report' => ['rows_imported' => $imported, 'requires_review' => false]];
         });
     }
 

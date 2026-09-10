@@ -38,7 +38,10 @@ class OrganizerActivityServiceController extends Controller
         abort_unless($service->activity_id === $activity->id, 404);
         DB::transaction(function () use ($request, $service): void {
             foreach ($request->validated('rules', []) as $rule) {
-                $service->availabilityRules()->updateOrCreate(['weekday' => $rule['weekday'], 'start_time' => $rule['start_time']], ['capacity' => $rule['capacity'], 'active' => $rule['active'] ?? true]);
+                $service->availabilityRules()->updateOrCreate([
+                    'weekday' => $rule['weekday'], 'start_time' => $rule['start_time'],
+                    'effective_from' => $rule['effective_from'] ?? null, 'effective_to' => $rule['effective_to'] ?? null,
+                ], ['capacity' => $rule['capacity'], 'active' => $rule['active'] ?? true]);
             }
             foreach ($request->validated('exceptions', []) as $exception) {
                 $service->availabilityExceptions()->updateOrCreate(['date' => $exception['date']], ['is_closed' => $exception['is_closed'], 'slots' => $exception['slots'] ?? null, 'note' => $exception['note'] ?? null]);

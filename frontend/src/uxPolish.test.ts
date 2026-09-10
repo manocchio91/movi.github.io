@@ -12,7 +12,7 @@ test('customer discovery renders only real unified API results', () => {
 });
 
 test('MòVi Plan uses structured inputs and backend-generated steps', () => {
-  assert.match(app, /Chiedi a MòVi/);
+  assert.match(app, /CHIEDI A MÒVI/);
   assert.match(app, /api<any>\('\/ai\/plan'/);
   assert.match(app, /moviAiResponse\.value\?\.plans/);
   assert.doesNotMatch(app, /OpenAI API/);
@@ -103,12 +103,21 @@ test('restaurant menu and manager preorder summary use real APIs', () => {
 
 test('release closure provides real menu management and multipiatto forms', () => {
   assert.match(app, /Menu Manager/);
-  assert.match(app, /CARICA MENU/);
-  assert.match(app, /Import completato: revisiona la bozza/);
+  assert.match(app, /GENERA ANTEPRIMA/);
+  assert.match(app, /CONFERMA IMPORT/);
   assert.match(app, /preorder_edit_deadline_minutes/);
   assert.match(app, /changePreorderQuantity/);
   assert.match(app, /Cancella pre-order/);
   assert.doesNotMatch(app, /window\.prompt\(`Quantità \$\{item\.name\}/);
+});
+
+test('MòVi Manager exposes calendar reservations menu and readable real plan cards', () => {
+  assert.match(app, /\['Calendario', '\/organizer\/calendar-manager'\]/);
+  assert.match(app, /\['Prenotazioni', '\/organizer\/reservations'\]/);
+  assert.match(app, /\['Menu', '\/organizer\/menu'\]/);
+  assert.match(app, /movi-plan-card/);
+  assert.match(styles, /\.movi-plan-card h2/);
+  assert.match(app, /posti disponibili/);
 });
 
 test('organizer profile approval uses standalone profile actions and removes activity creation UX', () => {

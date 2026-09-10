@@ -39,7 +39,10 @@ class AvailabilityService
     /** @return Collection<int, array{start_time:string,capacity:int}> */
     private function weeklySlots(ActivityService $service, CarbonImmutable $date, bool $lock): Collection
     {
-        $query = $service->availabilityRules()->where('weekday', $date->dayOfWeekIso)->where('active', true)->orderBy('start_time');
+        $query = $service->availabilityRules()->where('weekday', $date->dayOfWeekIso)->where('active', true)
+            ->where(fn ($rules) => $rules->whereNull('effective_from')->orWhereDate('effective_from', '<=', $date))
+            ->where(fn ($rules) => $rules->whereNull('effective_to')->orWhereDate('effective_to', '>=', $date))
+            ->orderBy('start_time');
 
         return ($lock ? $query->lockForUpdate() : $query)->get()->map(fn ($rule): array => [
             'start_time' => substr((string) $rule->start_time, 0, 5),

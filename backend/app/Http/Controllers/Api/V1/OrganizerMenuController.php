@@ -133,8 +133,24 @@ class OrganizerMenuController extends Controller
     public function import(ImportMenuRequest $request, Activity $activity, MenuImportService $importer, AnalyticsRecorder $analytics): JsonResponse
     {
         $this->own($activity);
-        $result = $importer->import($activity, $request->file('file'), $request->validated('name'));
-        $analytics->recordActivity('menu_imported', $activity, $request->user());
+        $result = $importer->preview($request->file('file'));
+        $analytics->recordActivity('menu_import_previewed', $activity, $request->user());
+
+        return response()->json(['data' => $result]);
+    }
+
+    public function confirmImport(Activity $activity, MenuImportService $importer, AnalyticsRecorder $analytics): JsonResponse
+    {
+        $this->own($activity);
+        $data = request()->validate([
+            'name' => ['nullable', 'string', 'max:120'], 'mode' => ['required', 'in:add,replace'],
+            'sections' => ['required', 'array', 'min:1', 'max:100'], 'sections.*.name' => ['required', 'string', 'max:120'],
+            'sections.*.items' => ['required', 'array', 'min:1', 'max:500'], 'sections.*.items.*.name' => ['required', 'string', 'max:160'],
+            'sections.*.items.*.description' => ['nullable', 'string', 'max:1000'], 'sections.*.items.*.price_cents' => ['nullable', 'integer', 'min:0'],
+            'sections.*.items.*.available' => ['required', 'boolean'], 'sections.*.items.*.allergens' => ['nullable', 'array'],
+        ]);
+        $result = $importer->confirm($activity, $data['sections'], $data['name'] ?? null, $data['mode']);
+        $analytics->recordActivity('menu_imported', $activity, request()->user());
 
         return response()->json(['data' => ['menu' => MenuResource::make($result['menu']), 'report' => $result['report']]], 201);
     }

@@ -23,7 +23,7 @@ class PlanningEngine
             $filters['to'] = $input['date'];
             unset($filters['when']);
         }
-        foreach (['category_id', 'municipality_id', 'latitude', 'longitude', 'radius_km'] as $key) {
+        foreach (['category_id', 'municipality_id', 'latitude', 'longitude', 'radius_km', 'party_size'] as $key) {
             if (isset($input[$key])) {
                 $filters[$key] = $input[$key];
             }

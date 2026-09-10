@@ -71,10 +71,18 @@ class MenuPreOrderTest extends TestCase
     {
         [, , $activity] = $this->domain();
         $path = $this->archive(['word/document.xml' => '<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>PRIMI</w:t></w:r></w:p><w:p><w:r><w:t>Carbonara .... 12 €</w:t></w:r></w:p></w:body></w:document>']);
-        $result = app(MenuImportService::class)->import($activity, new UploadedFile($path, 'menu.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', null, true));
+        $importer = app(MenuImportService::class);
+        $preview = $importer->preview(new UploadedFile($path, 'menu.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', null, true));
+        $this->assertSame(1, $preview['report']['rows_imported']);
+        $this->assertSame(1, $activity->menus()->count(), 'La preview non deve salvare dati.');
+        $preview['sections'][0]['items'][] = $preview['sections'][0]['items'][0];
+        $result = $importer->confirm($activity, $preview['sections'], 'Import revisionato', 'add');
         $this->assertSame('draft', $result['menu']->status);
         $this->assertSame(1, $result['report']['rows_imported']);
         $this->assertNull($result['menu']->sections->first()->items->first()->allergens);
+        $replacement = $importer->confirm($activity, $preview['sections'], 'Sostituzione', 'replace');
+        $this->assertSame(1, $activity->menus()->count());
+        $this->assertSame('Sostituzione', $replacement['menu']->name);
     }
 
     public function test_xlsx_common_headers_missing_price_and_malformed_archives_are_reported(): void
@@ -83,13 +91,13 @@ class MenuPreOrderTest extends TestCase
         $shared = '<?xml version="1.0"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><si><t>Categoria</t></si><si><t>Piatto</t></si><si><t>Prezzo</t></si><si><t>Antipasti</t></si><si><t>Bruschetta</t></si></sst>';
         $sheet = '<?xml version="1.0"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row><c t="s"><v>0</v></c><c t="s"><v>1</v></c><c t="s"><v>2</v></c></row><row><c t="s"><v>3</v></c><c t="s"><v>4</v></c><c><v></v></c></row></sheetData></worksheet>';
         $path = $this->archive(['xl/sharedStrings.xml' => $shared, 'xl/worksheets/sheet1.xml' => $sheet]);
-        $result = app(MenuImportService::class)->import($activity, new UploadedFile($path, 'menu.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true));
+        $result = app(MenuImportService::class)->preview(new UploadedFile($path, 'menu.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true));
         $this->assertSame(1, $result['report']['rows_imported']);
         $this->assertNotEmpty($result['report']['warnings']);
         $invalid = tempnam(sys_get_temp_dir(), 'bad-menu');
         file_put_contents($invalid, 'not-a-zip');
         $this->expectException(ValidationException::class);
-        app(MenuImportService::class)->import($activity, new UploadedFile($invalid, 'bad.xlsx', null, null, true));
+        app(MenuImportService::class)->preview(new UploadedFile($invalid, 'bad.xlsx', null, null, true));
     }
 
     private function archive(array $entries): string

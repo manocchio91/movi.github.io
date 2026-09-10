@@ -63,8 +63,18 @@ final class MoviAiIntentParser
             $data['preferences']['family'] = true;
         } elseif (preg_match('/\b(moglie|marito|compagna|compagno|coppia)\b/u', $text)) {
             $data['party']['intent'] = 'couple';
+            $data['party']['adults'] = 2;
         } elseif (preg_match('/\b(amici|amiche)\b/u', $text)) {
             $data['party']['intent'] = 'friends';
+        }
+        if (preg_match('/\b(?:in|per|siamo)\s+(\d{1,2})\s+(?:persone|adulti|coperti)\b/u', $text, $party)) {
+            $data['party']['adults'] = (int) $party[1];
+        }
+        if (str_contains($text, 'cena')) {
+            $data['time_window'] = ['start' => '18:00', 'end' => '23:59'];
+            $data['plan_type'] = 'evening';
+        } elseif (str_contains($text, 'pranzo')) {
+            $data['time_window'] = ['start' => '11:00', 'end' => '15:30'];
         }
         $categories = Category::query()->get(['slug', 'name']);
         $data['interests'] = $categories->filter(fn (Category $category) => str_contains($text, mb_strtolower($category->name)) || str_contains($text, mb_strtolower($category->slug)))

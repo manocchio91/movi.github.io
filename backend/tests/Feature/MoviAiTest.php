@@ -68,4 +68,20 @@ class MoviAiTest extends TestCase
         $this->assertStringNotContainsString('stasera', json_encode($event->metadata));
         $this->assertDatabaseHas('analytics_events', ['type' => 'ai_fallback_used']);
     }
+
+    public function test_fallback_extracts_date_dinner_and_real_party_size(): void
+    {
+        $this->app->instance(AiIntentProvider::class, new class implements AiIntentProvider
+        {
+            public function parse(string $message, array $schema): array
+            {
+                throw new RuntimeException('fallback');
+            }
+        });
+
+        $intent = $this->app->make(MoviAiIntentParser::class)->parse('Il 15/10/2026 vorrei andare a cena con mia moglie')['intent']->data;
+        $this->assertSame('2026-10-15', $intent['date']);
+        $this->assertSame(2, $intent['party']['adults']);
+        $this->assertSame(['start' => '18:00', 'end' => '23:59'], $intent['time_window']);
+    }
 }

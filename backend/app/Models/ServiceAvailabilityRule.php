@@ -13,16 +13,18 @@ use Illuminate\Support\Carbon;
  * @property string $start_time
  * @property int $capacity
  * @property bool $active
+ * @property Carbon|null $effective_from
+ * @property Carbon|null $effective_to
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
 class ServiceAvailabilityRule extends Model
 {
-    protected $fillable = ['service_id', 'weekday', 'start_time', 'capacity', 'active'];
+    protected $fillable = ['service_id', 'weekday', 'start_time', 'capacity', 'active', 'effective_from', 'effective_to'];
 
     protected function casts(): array
     {
-        return ['active' => 'boolean'];
+        return ['active' => 'boolean', 'effective_from' => 'date', 'effective_to' => 'date'];
     }
 
     /** @return BelongsTo<ActivityService, $this> */

@@ -12,6 +12,7 @@ use App\Models\ActivityService;
 use App\Models\AnalyticsEvent;
 use App\Models\Municipality;
 use App\Models\OrganizerProfile;
+use App\Models\PreOrder;
 use App\Models\Province;
 use App\Models\Region;
 use App\Models\Reservation;
@@ -44,11 +45,13 @@ class ActivityReservationEngineTest extends TestCase
     {
         [, $activity, $service] = $this->bookableDomain();
         $customer = User::factory()->create(['role' => UserRole::Customer, 'status' => 'active']);
-        Reservation::query()->create(['ulid' => (string) Str::ulid(), 'user_id' => $customer->id, 'activity_id' => $activity->id, 'service_id' => $service->id, 'starts_at' => now()->addHours(24), 'party_size' => 2, 'status' => ReservationStatus::Confirmed, 'contact_phone' => '+393331234567', 'idempotency_key' => 'reminder']);
+        $reservation = Reservation::query()->create(['ulid' => (string) Str::ulid(), 'user_id' => $customer->id, 'activity_id' => $activity->id, 'service_id' => $service->id, 'starts_at' => now()->addHours(24), 'party_size' => 2, 'status' => ReservationStatus::Confirmed, 'contact_phone' => '+393331234567', 'idempotency_key' => 'reminder']);
+        PreOrder::query()->create(['ulid' => (string) Str::ulid(), 'reservation_id' => $reservation->id, 'status' => 'confirmed', 'total_known_amount' => 1200]);
         $sender = app(SendReservationReminders::class);
         $this->assertSame(1, $sender->handle(24));
         $this->assertSame(0, $sender->handle(24));
         $this->assertDatabaseCount('notifications', 1);
+        $this->assertDatabaseHas('notifications', ['reservation_id' => $reservation->id, 'kind' => 'reservation_reminder', 'payload->has_preorder' => true]);
     }
 
     public function test_organizer_owns_activity_crud_service_and_capacity_configuration(): void
@@ -65,9 +68,11 @@ class ActivityReservationEngineTest extends TestCase
             ->assertCreated()->assertJsonPath('data.capacity_mode', 'covers');
         $serviceUlid = $service->json('data.ulid');
         $this->putJson("/api/v1/organizer/activities/{$ulid}/services/{$serviceUlid}/availability", [
-            'rules' => [['weekday' => 6, 'start_time' => '12:30', 'capacity' => 10]],
+            'rules' => [['weekday' => 6, 'start_time' => '12:30', 'capacity' => 10, 'effective_from' => '2030-06-01', 'effective_to' => '2030-06-30']],
             'exceptions' => [['date' => '2030-06-01', 'is_closed' => true, 'note' => 'Chiusura']],
-        ])->assertOk()->assertJsonPath('data.rules.0.capacity', 10)->assertJsonPath('data.exceptions.0.is_closed', true);
+        ])->assertOk()->assertJsonPath('data.rules.0.capacity', 10)->assertJsonPath('data.rules.0.effective_from', '2030-06-01T00:00:00.000000Z')->assertJsonPath('data.exceptions.0.is_closed', true);
+        $this->getJson("/api/v1/activities/{$ulid}/services/{$serviceUlid}/availability?date=2030-06-08")->assertOk()->assertJsonPath('data.0.capacity', 10);
+        $this->getJson("/api/v1/activities/{$ulid}/services/{$serviceUlid}/availability?date=2030-07-06")->assertOk()->assertJsonCount(0, 'data');
     }
 
     public function test_real_availability_reservation_idempotency_exhaustion_and_cancellation(): void

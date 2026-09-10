@@ -162,6 +162,7 @@ Route::prefix('v1')->group(function (): void {
                 Route::get('/organizer/activities/{activity:ulid}/menus', [OrganizerMenuController::class, 'index']);
                 Route::post('/organizer/activities/{activity:ulid}/menus', [OrganizerMenuController::class, 'store']);
                 Route::post('/organizer/activities/{activity:ulid}/menus/import', [OrganizerMenuController::class, 'import'])->middleware('throttle:sensitive');
+                Route::post('/organizer/activities/{activity:ulid}/menus/import/confirm', [OrganizerMenuController::class, 'confirmImport'])->middleware('throttle:sensitive');
                 Route::put('/organizer/activities/{activity:ulid}/menus/{menu:ulid}', [OrganizerMenuController::class, 'update']);
                 Route::delete('/organizer/activities/{activity:ulid}/menus/{menu:ulid}', [OrganizerMenuController::class, 'destroy']);
                 Route::post('/organizer/activities/{activity:ulid}/menus/{menu:ulid}/sections', [OrganizerMenuController::class, 'section']);

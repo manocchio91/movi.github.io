@@ -185,3 +185,9 @@ Classifiche admin:
 - `OrganizerProfilePolicy`: limita moderazione organizer agli admin e gestione profilo al proprietario.
 
 OpenAPI: `docs/openapi.yaml`.
+
+## MòVi Manager
+
+L'area Organizer espone Dashboard, Calendario coperti, Prenotazioni, Menu ed Eventi come flussi distinti. Le regole capacity-mode accettano giorni della settimana, slot, coperti MòVi e intervalli `effective_from`/`effective_to`; le eccezioni giornaliere possono chiudere una data o ridefinirne gli slot senza cancellare prenotazioni confermate.
+
+L'import menu DOCX/XLSX è in due fasi: `POST /organizer/activities/{activity}/menus/import` restituisce esclusivamente l'anteprima strutturata, mentre `POST /organizer/activities/{activity}/menus/import/confirm` salva la versione corretta scegliendo `add` o `replace`. MòVi Plan filtra Activity ed Event in base ai dati reali, inclusi data, fascia oraria e coperti richiesti; se nessuna disponibilità è compatibile restituisce un risultato vuoto esplicito.

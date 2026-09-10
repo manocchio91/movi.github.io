@@ -25,6 +25,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $cancelled_by_user_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property-read PreOrder|null $preorder
  */
 class Reservation extends Model
 {
@@ -66,6 +67,7 @@ class Reservation extends Model
         return $this->hasOne(ActivityReview::class);
     }
 
+    /** @return HasOne<PreOrder, $this> */
     public function preorder(): HasOne
     {
         return $this->hasOne(PreOrder::class);

@@ -38,7 +38,7 @@ class DiscoveryEngine
     private function events(array $filters, CarbonImmutable $from, CarbonImmutable $to, InterestProfile $profile): Collection
     {
         return Event::query()->with(['categories', 'municipality', 'organizerProfile', 'ticketTypes'])->whereIn('status', [EventStatus::Published, EventStatus::SoldOut])
-            ->whereBetween('starts_at', [$from, $to])->when(empty($filters['include_sold_out']) || ! empty($filters['available']), fn ($q) => $q->where('available_total', '>', 0))
+            ->whereBetween('starts_at', [$from, $to])->when(empty($filters['include_sold_out']) || ! empty($filters['available']), fn ($q) => $q->where('available_total', '>=', (int) ($filters['party_size'] ?? 1)))
             ->when($filters['category_id'] ?? null, fn ($q, $id) => $q->whereHas('categories', fn ($c) => $c->whereKey($id)))
             ->when($filters['municipality_id'] ?? null, fn ($q, $id) => $q->where('municipality_id', $id))->when($filters['family'] ?? false, fn ($q) => $q->where('family_friendly', true))
             ->limit(200)->get()->map(fn (Event $event) => $this->eventRow($event, $profile, $filters));
@@ -53,7 +53,7 @@ class DiscoveryEngine
                 $slots = collect();
                 for ($date = $from->startOfDay(); $date <= $to; $date = $date->addDay()) {
                     foreach ($activity->services as $service) {
-                        $slots = $slots->concat(collect($this->availability->forDate($service, $date))->filter(fn (array $slot) => $slot['available'] > 0 && (! $evening || CarbonImmutable::parse($slot['starts_at'])->hour >= 18))->map(fn (array $slot) => [...$slot, 'service_ulid' => $service->ulid, 'duration_minutes' => $service->indicative_duration_minutes]));
+                        $slots = $slots->concat(collect($this->availability->forDate($service, $date))->filter(fn (array $slot) => $slot['available'] >= (int) ($filters['party_size'] ?? 1) && (! $evening || CarbonImmutable::parse($slot['starts_at'])->hour >= 18))->map(fn (array $slot) => [...$slot, 'service_ulid' => $service->ulid, 'duration_minutes' => $service->indicative_duration_minutes]));
                     }
                 }
                 if (($filters['available'] ?? true) && $slots->isEmpty()) {

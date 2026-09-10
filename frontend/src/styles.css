@@ -1782,6 +1782,12 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand-600); box-
 
 @media (prefers-reduced-motion: reduce) { .skeleton-line { animation: none; } }
 .customer-discovery-hero { align-items: center; background: var(--brand-950); border-radius: 24px; color: #fff; display: grid; gap: clamp(24px,5vw,72px); grid-template-columns: minmax(0,1fr) auto; overflow: hidden; padding: clamp(28px,5vw,64px); position: relative; }
+.movi-plan-search, .movi-plan-summary, .movi-plan-card { background: #fff; color: #17202a; }
+.movi-plan-card { border: 1px solid #c9d8d5; display: grid; gap: 14px; }
+.movi-plan-card h2, .movi-plan-card strong { color: #102f2b; }
+.movi-plan-card p, .movi-plan-card span, .movi-plan-card small { color: #415b58; }
+.movi-plan-step { background: #f2f8f7; border-color: #b7d1cc; }
+.weekday-picker { display: flex; flex-wrap: wrap; gap: 8px; }
 .customer-discovery-hero::after { border: 36px solid rgba(20,184,166,.15); border-radius: 50%; content: ""; height: 240px; position: absolute; right: -90px; top: -100px; width: 240px; }
 .customer-discovery-hero > * { position: relative; z-index: 1; }
 .customer-discovery-hero .eyebrow { color: #7ddfd3; display: block; font-size: .76rem; font-weight: 900; letter-spacing: .11em; margin-bottom: 12px; text-transform: uppercase; }

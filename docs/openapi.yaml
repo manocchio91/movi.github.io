@@ -1710,7 +1710,7 @@ paths:
     parameters: [ { name: activity, in: path, required: true, schema: { type: string } }, { name: service, in: path, required: true, schema: { type: string } } ]
     put:
       operationId: put_organizer_activity_availability
-      summary: Configura regole, eccezioni e chiusure
+      summary: Configura regole capacity-mode con intervalli, eccezioni e chiusure
       responses: { "200": { description: DisponibilitÃ  configurata }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
   /organizer/activities/{activity}/reservations:
     parameters: [ { name: activity, in: path, required: true, schema: { type: string } } ]
@@ -1817,9 +1817,15 @@ paths:
   /organizer/activities/{activity}/menus/import:
     post:
       operationId: post_organizer_menu_import
-      summary: Importa XLSX o DOCX in una bozza da revisionare
+      summary: Analizza XLSX o DOCX e restituisce una anteprima senza salvare
       parameters: [{ name: activity, in: path, required: true, schema: { type: string } }]
-      responses: { "201": { description: Bozza e report import }, "403": { description: Activity non posseduta }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
+      responses: { "200": { description: Anteprima strutturata e report }, "403": { description: Activity non posseduta }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
+  /organizer/activities/{activity}/menus/import/confirm:
+    post:
+      operationId: post_organizer_menu_import_confirm
+      summary: Conferma una anteprima corretta in modalità add o replace
+      parameters: [{ name: activity, in: path, required: true, schema: { type: string } }]
+      responses: { "201": { description: Menu in bozza salvato }, "403": { description: Activity non posseduta }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
   /organizer/activities/{activity}/menus:
     parameters: [{ name: activity, in: path, required: true, schema: { type: string } }]
     get:
