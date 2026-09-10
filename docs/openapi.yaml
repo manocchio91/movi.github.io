@@ -1125,7 +1125,8 @@ paths:
       parameters:
         - { name: event, in: path, required: true, schema: { type: string } }
       responses:
-        "200": { description: "Evento con prenotazioni, recensioni, ranking e annullamento" }
+        "200": { description: "Evento, proprietario, capienza, ticket e dati essenziali dei clienti con prenotazione valida" }
+        "403": { description: Solo admin }
         "400": { $ref: "#/components/responses/BadRequest" }
         "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/events/{event}/suspend:
@@ -1150,6 +1151,24 @@ paths:
         "200": { description: Evento archiviato }
         "400": { $ref: "#/components/responses/BadRequest" }
         "500": { $ref: "#/components/responses/InternalServerError" }
+  /admin/categories:
+    post:
+      operationId: post_admin_categories
+      security: [{ bearerAuth: [] }]
+      summary: Crea una categoria attiva con nome e slug normalizzati
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 255 }
+      responses:
+        "201": { description: Categoria creata e subito disponibile }
+        "403": { description: Solo admin }
+        "422": { description: Nome mancante, non valido o duplicato }
   /admin/organizers:
     get:
       operationId: get_admin_organizers
@@ -1171,7 +1190,7 @@ paths:
       parameters:
         - { name: organizer, in: path, required: true, schema: { type: string } }
       responses:
-        "200": { description: Organizzatore approvato }
+        "200": { description: Organizzatore approvato ed email operativa accodata }
         "409": { description: Richiesta non in revisione }
         "500": { $ref: "#/components/responses/InternalServerError" }
   /admin/organizers/{organizer}/request-changes:

@@ -146,7 +146,7 @@ type OrganizerDashboardResponse = {
 };
 
 type OrganizerEventStatus = 'draft' | 'pending_review' | 'published' | 'sold_out' | 'cancelled' | 'completed' | 'rejected' | 'suspended' | 'archived';
-type OrganizerEventFilter = 'all' | 'future' | 'completed' | 'unpublished';
+type OrganizerEventFilter = 'all' | 'future' | 'completed' | 'unpublished' | 'cancelled';
 
 type OrganizerEvent = {
   ulid: string;
@@ -552,6 +552,8 @@ export default defineComponent({
     const adminOverview = ref<any>(null);
     const adminEvents = ref<any[]>([]);
     const adminEventStats = ref<any>(null);
+    const selectedAdminEvent = ref<any | null>(null);
+    const adminCategoryMessage = ref('');
     const adminOrganizers = ref<any[]>([]);
     const adminOrganizerFilter = ref<OrganizerVerificationStatus | ''>('pending');
     const adminOrganizerSearch = ref('');
@@ -1655,6 +1657,22 @@ export default defineComponent({
       await loadAdminData();
     };
 
+    const selectAdminEvent = async (event: any) => {
+      selectedAdminEvent.value = (await api<any>(`/admin/events/${event.ulid}`))?.data ?? null;
+    };
+
+    const createAdminCategory = async (event: Event) => {
+      event.preventDefault();
+      const form = event.currentTarget as HTMLFormElement;
+      adminCategoryMessage.value = '';
+      try {
+        await api('/admin/categories', { method: 'POST', body: JSON.stringify({ name: new FormData(form).get('name') }) });
+        form.reset();
+        adminCategoryMessage.value = 'Categoria creata.';
+        await loadAdminData();
+      } catch (error) { adminCategoryMessage.value = userMessage(error, 'Categoria non creata.'); }
+    };
+
     const completeAuth = async (payload: AuthResponse | SessionResponse, nextToken: string) => {
       clearSession();
       token.value = nextToken;
@@ -2343,12 +2361,14 @@ export default defineComponent({
         future: 'Futuri',
         completed: 'Conclusi',
         unpublished: 'Non pubblicati',
+        cancelled: 'Annullati',
       };
       const emptyMessages: Record<OrganizerEventFilter, string> = {
         all: 'Nessun evento.',
         future: 'Nessun evento futuro.',
         completed: 'Nessun evento concluso.',
         unpublished: 'Nessun evento non pubblicato.',
+        cancelled: 'Nessun evento annullato.',
       };
       const filters = (Object.keys(filterLabels) as OrganizerEventFilter[]).map((filter) => h('button', {
         type: 'button',
@@ -2727,7 +2747,7 @@ export default defineComponent({
     const chart = (key: string) => overview().charts?.[key] ?? [];
     const maxValue = (items: any[]) => Math.max(1, ...items.map((item) => Number(item.value ?? 0)));
 
-    const adminKpi = (label: string, value: any, note: string, tone = 'neutral') => h('article', { class: ['admin-kpi', tone] }, [
+    const adminKpi = (label: string, value: any, note: string, tone = 'neutral', onClick?: () => void) => h('article', { class: ['admin-kpi', tone, onClick ? 'clickable' : ''], tabindex: onClick ? 0 : undefined, role: onClick ? 'button' : undefined, onClick, onKeydown: onClick ? (event: KeyboardEvent) => { if (event.key === 'Enter' || event.key === ' ') onClick(); } : undefined }, [
       h('span', label),
       h('strong', number(value)),
       h('small', note),
@@ -2779,7 +2799,7 @@ export default defineComponent({
         ]),
       ]),
       h('section', { class: 'admin-kpi-grid' }, [
-        adminKpi('Organizzatori totali', adminDashboard.value?.organizers?.total, `${number(adminDashboard.value?.organizers?.approved)} approvati`, 'mint'),
+        adminKpi('Organizzatori totali', adminDashboard.value?.organizers?.total, `${number(adminDashboard.value?.organizers?.approved)} approvati`, 'mint', () => { adminOrganizerFilter.value = ''; void go('/admin/organizers'); }),
         adminKpi('Organizzatori in attesa', adminDashboard.value?.organizers?.pending, `${number(adminDashboard.value?.organizers?.suspended)} sospesi`, 'alert'),
         adminKpi('Clienti attivi', adminDashboard.value?.customers?.active, `${number(adminDashboard.value?.customers?.total)} totali`, 'blue'),
         adminKpi('Eventi pubblicati', adminDashboard.value?.events?.published, `${number(adminDashboard.value?.events?.draft)} bozze`, 'gold'),
@@ -2813,7 +2833,7 @@ export default defineComponent({
       ['Titolo', 'Organizzatore', 'Categoria', 'Comune', 'Data', 'Stato', 'Prenotati', 'Partecipanti', 'Media', ''],
       rows,
       (event) => [
-        h('td', h('strong', event.title)),
+        h('td', h('button', { class: 'link-button', onClick: () => { void selectAdminEvent(event); } }, event.title)),
         h('td', event.organizer ?? event.organizer_profile?.name ?? '-'),
         h('td', event.category ?? event.categories?.[0]?.name ?? '-'),
         h('td', event.municipality ?? event.municipality?.name ?? '-'),
@@ -2835,6 +2855,23 @@ export default defineComponent({
         adminKpi('Annullati', kpis().events_cancelled, 'attenzione'),
       ]),
       renderEventsTable(),
+      selectedAdminEvent.value ? h('section', { class: 'admin-panel booking-detail' }, [
+        h('div', { class: 'panel-heading' }, [h('h2', selectedAdminEvent.value.title), statusPill(selectedAdminEvent.value.status)]),
+        h('div', { class: 'admin-detail-grid' }, [
+          h('div', [h('small', 'Organizzatore'), h('strong', selectedAdminEvent.value.organizer_profile?.name ?? '-')]),
+          h('div', [h('small', 'Email account'), h('strong', selectedAdminEvent.value.organizer_profile?.owner?.email ?? '-')]),
+          h('div', [h('small', 'Data'), h('strong', new Date(selectedAdminEvent.value.starts_at).toLocaleString('it-IT'))]),
+          h('div', [h('small', 'Capienza'), h('strong', String(selectedAdminEvent.value.capacity_total))]),
+          h('div', [h('small', 'Disponibili'), h('strong', String(selectedAdminEvent.value.available_total))]),
+          h('div', [h('small', 'Prenotazioni'), h('strong', String(selectedAdminEvent.value.bookings?.length ?? 0))]),
+        ]),
+        h('h3', 'Ticket'),
+        ...(selectedAdminEvent.value.ticket_types ?? []).map((ticket: any) => h('p', `${ticket.name}: ${ticket.booked_quantity ?? 0}/${ticket.max_quantity ?? '—'}`)),
+        h('h3', 'Clienti prenotati'),
+        adminTable(['Cliente', 'Email', 'Codice', 'Persone', 'Stato'], selectedAdminEvent.value.bookings ?? [], (booking: any) => [
+          h('td', booking.user?.name ?? '-'), h('td', booking.user?.email ?? '-'), h('td', booking.booking_code), h('td', String(booking.total_people)), h('td', bookingStatusLabel(booking.status)),
+        ]),
+      ]) : null,
       h('section', { class: 'admin-detail-grid' }, [
         h('article', { class: 'admin-panel' }, [h('h3', 'Informazioni evento'), h('p', 'Descrizione, programma, luogo, data, prezzo e immagini sono disponibili dal dettaglio evento admin.')]),
         h('article', { class: 'admin-panel' }, [h('h3', 'Prenotazioni'), h('p', 'Prenotati, partecipanti effettivi, no-show e cancellazioni cliente sono tracciati nella tabella.')]),
@@ -3053,6 +3090,11 @@ export default defineComponent({
 
     const renderCategories = () => [
       h('div', { class: 'page-heading' }, [h('h1', 'Categorie'), h('p', 'Gestione editoriale delle categorie con impatto su eventi e organizzatori.')]),
+      h('form', { class: 'admin-panel booking-toolbar', onSubmit: createAdminCategory }, [
+        h('label', [h('span', 'Nome nuova categoria'), h('input', { name: 'name', required: true, maxlength: 255 })]),
+        h('button', { type: 'submit' }, 'Crea categoria'),
+        adminCategoryMessage.value ? h('span', { role: 'status' }, adminCategoryMessage.value) : null,
+      ]),
       adminTable(['Icona', 'Categoria', 'Colore', 'Eventi', 'Organizzatori'], overview().categories ?? [], (category) => [
         h('td', h('span', { class: 'logo-dot' }, category.icon ?? 'CA')),
         h('td', h('strong', category.name)),

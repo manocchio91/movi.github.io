@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Actions\Notifications\NotifyInterestedCustomers;
 use App\Enums\EventStatus;
 use App\Enums\UserRole;
+use App\Jobs\SendEventCancellationEmails;
+use App\Mail\OperationalMessage;
 use App\Models\Booking;
 use App\Models\Category;
 use App\Models\Event;
@@ -20,7 +22,9 @@ use App\Models\ReviewStatistic;
 use App\Models\SubscriptionPlan;
 use App\Models\TicketType;
 use App\Models\User;
+use App\Services\OperationalEmailService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -887,7 +891,11 @@ class EventPlatformTest extends TestCase
 
     public function test_organizer_cancels_future_event_and_notifies_booked_customers(): void
     {
+        Mail::fake();
         [$customer, $organizer, $event] = $this->setupDomain(12);
+        $secondCustomer = User::factory()->create(['role' => UserRole::Customer]);
+        $cancelledCustomer = User::factory()->create(['role' => UserRole::Customer]);
+        $notBookedCustomer = User::factory()->create(['role' => UserRole::Customer]);
         $ticket = TicketType::query()->create([
             'event_id' => $event->id,
             'name' => 'Ingresso',
@@ -909,6 +917,16 @@ class EventPlatformTest extends TestCase
             'event_terms_accepted' => true,
         ]);
         $booking->items()->create(['ticket_type_id' => $ticket->id, 'quantity' => 2]);
+        $secondBooking = Booking::query()->create([
+            'ulid' => (string) Str::ulid(), 'user_id' => $secondCustomer->id, 'event_id' => $event->id,
+            'status' => 'checked_in', 'total_people' => 1, 'adults_count' => 1, 'children_count' => 0,
+            'booking_code' => 'CANCEL-02', 'qr_token_hash' => 'cancel-hash-02', 'booked_at' => now(), 'event_terms_accepted' => true,
+        ]);
+        Booking::query()->create([
+            'ulid' => (string) Str::ulid(), 'user_id' => $cancelledCustomer->id, 'event_id' => $event->id,
+            'status' => 'cancelled_by_customer', 'total_people' => 1, 'adults_count' => 1, 'children_count' => 0,
+            'booking_code' => 'CANCEL-03', 'qr_token_hash' => 'cancel-hash-03', 'booked_at' => now(), 'event_terms_accepted' => true,
+        ]);
 
         $this->actingAs($organizer, 'sanctum')
             ->postJson("/api/v1/organizer/events/{$event->ulid}/cancel", [
@@ -919,9 +937,18 @@ class EventPlatformTest extends TestCase
             ->assertJsonPath('data.status', 'cancelled');
 
         $this->assertDatabaseHas('bookings', ['id' => $booking->id, 'status' => 'cancelled_by_organizer']);
-        $this->assertDatabaseHas('event_cancellations', ['event_id' => $event->id, 'bookings_affected' => 1, 'people_affected' => 2]);
+        $this->assertDatabaseHas('bookings', ['id' => $secondBooking->id, 'status' => 'cancelled_by_organizer']);
+        $this->assertDatabaseHas('event_cancellations', ['event_id' => $event->id, 'bookings_affected' => 2, 'people_affected' => 3]);
         $this->assertDatabaseHas('notifications', ['user_id' => $customer->id, 'event_id' => $event->id, 'kind' => 'event_cancelled']);
         $this->assertDatabaseHas('audit_logs', ['subject_id' => $event->id, 'action' => 'organizer.event.cancelled']);
+        app(SendEventCancellationEmails::class, ['eventId' => $event->id])->handle(app(OperationalEmailService::class));
+        Mail::assertQueued(OperationalMessage::class, fn (OperationalMessage $mail) => $mail->hasTo($customer->email));
+        Mail::assertQueued(OperationalMessage::class, fn (OperationalMessage $mail) => $mail->hasTo($secondCustomer->email));
+        Mail::assertNotQueued(OperationalMessage::class, fn (OperationalMessage $mail) => $mail->hasTo($cancelledCustomer->email) || $mail->hasTo($notBookedCustomer->email));
+        Mail::assertQueued(OperationalMessage::class, 2);
+
+        app(SendEventCancellationEmails::class, ['eventId' => $event->id])->handle(app(OperationalEmailService::class));
+        Mail::assertQueued(OperationalMessage::class, 2);
     }
 
     public function test_admin_events_and_rankings_are_available_without_event_approval(): void

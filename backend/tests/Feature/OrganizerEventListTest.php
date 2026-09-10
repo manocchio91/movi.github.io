@@ -80,6 +80,7 @@ class OrganizerEventListTest extends TestCase
             $this->eventFixture($profile, $municipality, EventStatus::Published, "Evento {$index}", now()->addDays($index));
         }
         $otherEvent = $this->eventFixture($otherProfile, $otherMunicipality, EventStatus::Published, 'Evento esterno', now()->addDay());
+        $otherCancelled = $this->eventFixture($otherProfile, $otherMunicipality, EventStatus::Cancelled, 'Annullato esterno', now()->addDays(2));
 
         $response = $this->actingAs($organizer, 'sanctum')
             ->getJson('/api/v1/organizer/events?filter=future&per_page=5&page=2&sort=asc');
@@ -93,10 +94,10 @@ class OrganizerEventListTest extends TestCase
             ->assertJsonMissing(['ulid' => $otherEvent->ulid]);
 
         $this->actingAs($otherOrganizer, 'sanctum')
-            ->getJson('/api/v1/organizer/events?per_page=50')
+            ->getJson('/api/v1/organizer/events?filter=cancelled&per_page=50')
             ->assertOk()
             ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.event.ulid', $otherEvent->ulid)
+            ->assertJsonPath('data.0.event.ulid', $otherCancelled->ulid)
             ->assertJsonMissing(['ulid' => $profile->events()->firstOrFail()->ulid]);
     }
 

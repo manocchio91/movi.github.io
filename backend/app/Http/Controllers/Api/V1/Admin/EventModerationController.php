@@ -40,18 +40,34 @@ class EventModerationController extends Controller
     {
         $this->authorize('moderate', Event::class);
 
+        $event->load([
+            'organizerProfile.owner:id,name,email',
+            'categories',
+            'ticketTypes',
+            'municipality',
+            'reviewStatistic',
+            'cancellation',
+            'ranking',
+        ]);
+        $bookings = $event->bookings()
+            ->whereIn('status', ['confirmed', 'checked_in', 'completed'])
+            ->with('user:id,name,email')
+            ->latest('booked_at')
+            ->get()
+            ->map(fn ($booking) => [
+                'ulid' => $booking->ulid,
+                'booking_code' => $booking->booking_code,
+                'total_people' => $booking->total_people,
+                'status' => $booking->status,
+                'booked_at' => $booking->booked_at,
+                'user' => $booking->user?->only(['name', 'email']),
+            ]);
+
         return response()->json([
-            'data' => $event->load([
-                'organizerProfile.owner',
-                'categories',
-                'ticketTypes',
-                'municipality',
-                'bookings.user',
-                'reviews.user',
-                'reviewStatistic',
-                'cancellation',
-                'ranking',
-            ]),
+            'data' => $event->toArray() + [
+                'bookings_count' => $bookings->count(),
+                'bookings' => $bookings,
+            ],
         ]);
     }
 

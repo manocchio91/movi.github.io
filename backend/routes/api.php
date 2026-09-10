@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\ActivityController;
 use App\Http\Controllers\Api\V1\ActivityFollowController;
 use App\Http\Controllers\Api\V1\ActivityReviewController;
+use App\Http\Controllers\Api\V1\Admin\AdminCategoryController;
 use App\Http\Controllers\Api\V1\Admin\AdminCommercialController;
 use App\Http\Controllers\Api\V1\Admin\AdminDashboardController;
 use App\Http\Controllers\Api\V1\Admin\AdminOrganizerInsightController;
@@ -220,6 +221,7 @@ Route::prefix('v1')->group(function (): void {
             Route::patch('/admin/plans/{plan:ulid}', [AdminCommercialController::class, 'updatePlan']);
             Route::put('/admin/organizers/{organizer:ulid}/plan', [AdminCommercialController::class, 'assign']);
             Route::get('/admin/overview', [AdminPlatformOverviewController::class, 'show']);
+            Route::post('/admin/categories', [AdminCategoryController::class, 'store']);
             Route::get('/admin/organizers', [OrganizerModerationController::class, 'index']);
             Route::get('/admin/events', [EventModerationController::class, 'index']);
             Route::get('/admin/events/{event:ulid}', [EventModerationController::class, 'show']);

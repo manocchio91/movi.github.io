@@ -3,12 +3,14 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
+use App\Mail\OperationalMessage;
 use App\Models\Municipality;
 use App\Models\OrganizerProfile;
 use App\Models\Province;
 use App\Models\Region;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -108,6 +110,7 @@ class OrganizerFiscalOnboardingTest extends TestCase
 
     public function test_admin_approval_and_rejection_require_valid_transitions_and_reason(): void
     {
+        Mail::fake();
         [$organizer, $profile] = $this->organizer('pending');
         $admin = User::factory()->create(['role' => UserRole::Admin]);
         Sanctum::actingAs($admin);
@@ -115,8 +118,12 @@ class OrganizerFiscalOnboardingTest extends TestCase
         $this->postJson("/api/v1/admin/organizers/{$profile->ulid}/reject", [])->assertUnprocessable();
         $this->postJson("/api/v1/admin/organizers/{$profile->ulid}/approve")->assertOk()
             ->assertJsonPath('data.verification_status', 'verified');
+        Mail::assertQueued(OperationalMessage::class, fn (OperationalMessage $mail) => $mail->hasTo($organizer->email)
+            && $mail->envelope()->subject === 'Profilo Organizer approvato'
+            && str_contains($mail->render(), 'funzionalità Organizzatore di MòVi'));
         $this->assertDatabaseCount('activities', 1);
         $this->postJson("/api/v1/admin/organizers/{$profile->ulid}/approve")->assertStatus(409);
+        Mail::assertQueued(OperationalMessage::class, 1);
 
         Sanctum::actingAs($organizer);
         $this->getJson('/api/v1/organizer/dashboard')->assertOk();
@@ -127,6 +134,20 @@ class OrganizerFiscalOnboardingTest extends TestCase
             ->assertOk()->assertJsonPath('data.review_notes', 'Dati non verificabili.');
         Sanctum::actingAs($rejected->owner);
         $this->getJson('/api/v1/organizer/dashboard')->assertForbidden();
+    }
+
+    public function test_email_provider_failure_does_not_rollback_organizer_approval(): void
+    {
+        [, $profile] = $this->organizer('pending');
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        Mail::shouldReceive('to')->once()->andThrow(new \RuntimeException('Provider unavailable'));
+
+        Sanctum::actingAs($admin);
+        $this->postJson("/api/v1/admin/organizers/{$profile->ulid}/approve")
+            ->assertOk()
+            ->assertJsonPath('data.verification_status', 'verified');
+
+        $this->assertSame('verified', $profile->refresh()->verification_status);
     }
 
     /** @return array{User, OrganizerProfile, Municipality} */

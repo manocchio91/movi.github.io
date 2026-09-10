@@ -123,11 +123,11 @@ Eventi simili:
 
 `GET/POST/PUT /organizer/profile` richiede `role:organizer`; le altre route organizzatore richiedono anche `organizer.approved`. Un organizzatore pending puo vedere/aggiornare lo stato del profilo, ma non puo creare, pubblicare o gestire eventi. Il flusso evento e `draft -> published`: un organizzatore verificato pubblica direttamente, senza approvazione preventiva admin.
 
-`GET /organizer/events` è sempre limitato al profilo dell'Organizer autenticato. Il KPI `bi.total_events` della dashboard usa la stessa relazione e corrisponde al totale non filtrato mostrato in `I miei eventi`; i KPI futuri, conclusi e non pubblicati restano sottoinsiemi distinti.
+`GET /organizer/events` è sempre limitato al profilo dell'Organizer autenticato. Il filtro `cancelled` conserva nello storico esclusivamente gli eventi annullati del proprietario, che non sono modificabili o ripubblicabili. Il KPI `bi.total_events` della dashboard usa la stessa relazione e corrisponde al totale non filtrato mostrato in `I miei eventi`; i KPI futuri, conclusi e non pubblicati restano sottoinsiemi distinti.
 
 `GET /organizer/bookings` offre ricerca per cliente, email, evento e codice, filtri di stato, ordinamento e paginazione server-side. Lista e dettaglio sono in sola lettura: l'Organizer vede esclusivamente prenotazioni dei propri eventi; l'Admin mantiene visibilita completa. Il QR viene restituito soltanto nel dettaglio autorizzato.
 
-`POST /organizer/events/{event}/cancel` richiede `reason_code` e `reason`. L'annullamento e transazionale: aggiorna evento, prenotazioni attive, notifiche cliente, audit log e `event_cancellations`.
+`POST /organizer/events/{event}/cancel` richiede `reason_code` e `reason`. L'annullamento e transazionale: aggiorna evento, prenotazioni valide, notifiche cliente, audit log e `event_cancellations`; dopo il commit accoda una sola email operativa per ogni prenotazione coinvolta.
 
 Calendario creazione evento:
 - `empty`/verde: nessun evento pubblico nello stesso territorio e giorno.
@@ -152,6 +152,7 @@ Job asincroni:
 - `GET /admin/organizers`
 - `GET /admin/events`
 - `GET /admin/events/{event}`
+- `POST /admin/categories`
 - `POST /admin/events/{event}/suspend`
 - `POST /admin/events/{event}/archive`
 - `GET /admin/organizers/pending`
@@ -169,7 +170,7 @@ Job asincroni:
 - `POST /admin/reviews/{review}/hide`
 - `DELETE /admin/reviews/{review}`
 
-Tutte le route admin sono protette da `auth:sanctum` + `role:admin`. L'admin non approva preventivamente gli eventi: interviene in post-moderazione con sospensione, archivio, segnalazioni, audit e sospensione organizer.
+Tutte le route admin sono protette da `auth:sanctum` + `role:admin`. Il dettaglio evento espone all'Admin proprietario, capienza, ticket e i soli dati essenziali dei clienti con prenotazione valida. La creazione categoria normalizza nome e slug e rifiuta duplicati. L'approvazione di un Organizer accoda una email operativa una sola volta. L'admin non approva preventivamente gli eventi: interviene in post-moderazione con sospensione, archivio, segnalazioni, audit e sospensione organizer.
 
 Classifiche admin:
 - eventi: `final_score = creativity_score*0.30 + participation_score*0.35 + review_score*0.35`;

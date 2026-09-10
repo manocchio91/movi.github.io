@@ -25,7 +25,7 @@ class CancelEvent
             abort_if(($locked->ends_at ?? $locked->starts_at)->isPast(), 422, 'Evento gia concluso.');
 
             $activeBookings = $locked->bookings()
-                ->whereIn('status', ['confirmed', 'checked_in'])
+                ->whereIn('status', ['confirmed', 'checked_in', 'completed'])
                 ->lockForUpdate()
                 ->get();
             $peopleAffected = (int) $activeBookings->sum('total_people');

@@ -586,6 +586,10 @@ button {
   padding: 18px;
 }
 
+.admin-kpi.clickable { cursor: pointer; }
+.admin-kpi.clickable:hover,
+.admin-kpi.clickable:focus-visible { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+
 .admin-kpi.mint {
   border-left-color: #0f766e;
 }
