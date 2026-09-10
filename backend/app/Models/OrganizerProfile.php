@@ -7,8 +7,52 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 
 /**
+ * @property int $id
+ * @property string $ulid
+ * @property int $owner_user_id
+ * @property string $name
+ * @property string $type
+ * @property string|null $description
+ * @property int|null $municipality_id
+ * @property string|null $address
+ * @property string $email
+ * @property string|null $phone
+ * @property string|null $website_url
+ * @property string $verification_status
+ * @property Carbon|null $verified_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property string|null $logo_path
+ * @property string|null $cover_path
+ * @property array<mixed>|null $social_links
+ * @property array<mixed>|null $gallery
+ * @property Carbon|null $suspended_at
+ * @property string|null $street_number
+ * @property string|null $postal_code
+ * @property string|null $province
+ * @property string $country
+ * @property string|null $vat_number
+ * @property string|null $pec
+ * @property string|null $sdi_code
+ * @property string|null $public_email
+ * @property string|null $instagram_url
+ * @property string|null $facebook_url
+ * @property string|null $tiktok_url
+ * @property Carbon|null $submitted_at
+ * @property int|null $reviewed_by
+ * @property Carbon|null $reviewed_at
+ * @property string|null $review_notes
+ * @property string|null $youtube_url
+ * @property string|null $profile_change_status
+ * @property array<mixed>|null $pending_changes
+ * @property string|null $profile_change_request_ulid
+ * @property Carbon|null $profile_change_submitted_at
+ * @property int|null $profile_change_reviewed_by
+ * @property Carbon|null $profile_change_reviewed_at
+ * @property string|null $profile_change_review_notes
  * @property-read int $followers_count
  * @property-read Municipality|null $municipality
  * @property-read ReviewStatistic|null $reviewStatistic

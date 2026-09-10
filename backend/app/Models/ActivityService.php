@@ -5,7 +5,27 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property string $ulid
+ * @property int $activity_id
+ * @property string $name
+ * @property string $type
+ * @property bool $active
+ * @property bool $booking_enabled
+ * @property int $min_party_size
+ * @property int $max_party_size
+ * @property int $minimum_advance_minutes
+ * @property int $indicative_duration_minutes
+ * @property string $capacity_mode
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property bool $preorder_enabled
+ * @property int $preorder_edit_deadline_minutes
+ * @property int|null $preorder_menu_id
+ */
 class ActivityService extends Model
 {
     protected $fillable = ['ulid', 'activity_id', 'name', 'type', 'active', 'booking_enabled', 'min_party_size', 'max_party_size', 'minimum_advance_minutes', 'indicative_duration_minutes', 'capacity_mode', 'preorder_enabled', 'preorder_edit_deadline_minutes', 'preorder_menu_id'];

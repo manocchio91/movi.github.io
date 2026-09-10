@@ -6,7 +6,26 @@ use App\Enums\ReservationStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property string $ulid
+ * @property int $user_id
+ * @property int $activity_id
+ * @property int $service_id
+ * @property Carbon $starts_at
+ * @property int $party_size
+ * @property ReservationStatus $status
+ * @property string $contact_phone
+ * @property string|null $notes
+ * @property string $idempotency_key
+ * @property Carbon|null $cancelled_at
+ * @property string|null $cancellation_reason
+ * @property int|null $cancelled_by_user_id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
 class Reservation extends Model
 {
     protected $fillable = ['ulid', 'user_id', 'activity_id', 'service_id', 'starts_at', 'party_size', 'status', 'contact_phone', 'notes', 'idempotency_key', 'cancelled_at', 'cancellation_reason', 'cancelled_by_user_id'];

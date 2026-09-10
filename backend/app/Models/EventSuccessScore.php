@@ -4,7 +4,23 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $event_id
+ * @property numeric-string $fill_rate
+ * @property numeric-string $attendance_rate
+ * @property numeric-string $no_show_rate
+ * @property numeric-string $average_rating
+ * @property int $review_count
+ * @property numeric-string $recommendation_rate
+ * @property int $favorite_count
+ * @property numeric-string $success_score
+ * @property Carbon $calculated_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
 class EventSuccessScore extends Model
 {
     protected $fillable = [

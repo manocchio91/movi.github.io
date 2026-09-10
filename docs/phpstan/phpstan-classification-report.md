@@ -422,3 +422,12 @@ Ogni gruppo deve modificare una sola categoria omogenea e fermarsi se test o ana
 - Test Laravel: **34 superati, 174 assertion**.
 - Pint: **verde su 141 file**; rimosso automaticamente un import `SubscriptionPlan` divenuto inutilizzato.
 - Risultato finale PHPStan: **verde, nessun errore su 119 file analizzati**.
+
+## Fase 1 - Metadata Eloquent dopo le estensioni applicative
+
+- Baseline corrente: **619 errori** su 87 file, di cui **597 `property.notFound`** e **22 `argument.unresolvableType`**.
+- Intervento: aggiunti PHPDoc di attributo a 30 Model Eloquent, verificati contro lo schema PostgreSQL runtime, la nullability e i cast dichiarati; corretto inoltre il docblock multilinea di `PreOrder` usato da `PreOrderResource`.
+- Tipi PostgreSQL `numeric`: documentati come `numeric-string`, coerentemente con il valore restituito dal driver e senza introdurre cast o modifiche runtime.
+- Relazioni, query, fillable, accessor e logica applicativa: invariati.
+- Risultato finale PHPStan level 5: **0 errori**; **0 `property.notFound`**, **0 errori Collection**, **0 `argument.unresolvableType`**.
+- Possibili bug reali emersi: **nessuno**.

@@ -8,7 +8,26 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property string $ulid
+ * @property int $organizer_profile_id
+ * @property int|null $municipality_id
+ * @property string $name
+ * @property string $slug
+ * @property ActivityType $type
+ * @property string|null $description
+ * @property string|null $address
+ * @property string|null $postal_code
+ * @property string|null $phone
+ * @property string|null $public_email
+ * @property ActivityStatus $status
+ * @property bool $booking_enabled
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
 class Activity extends Model
 {
     protected $fillable = ['ulid', 'organizer_profile_id', 'municipality_id', 'name', 'slug', 'type', 'description', 'address', 'postal_code', 'phone', 'public_email', 'status', 'booking_enabled'];

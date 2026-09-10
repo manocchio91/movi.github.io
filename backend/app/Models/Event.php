@@ -8,8 +8,54 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 
 /**
+ * @property int $id
+ * @property string $ulid
+ * @property int $organizer_profile_id
+ * @property int|null $venue_id
+ * @property int $municipality_id
+ * @property string $title
+ * @property string $slug
+ * @property string $summary
+ * @property string $description
+ * @property EventStatus $status
+ * @property Carbon $starts_at
+ * @property Carbon|null $ends_at
+ * @property Carbon|null $booking_closes_at
+ * @property int $capacity_total
+ * @property int $available_total
+ * @property bool $is_free
+ * @property string|null $price_notes
+ * @property bool $family_friendly
+ * @property string $indoor_outdoor
+ * @property int|null $minimum_child_age
+ * @property int|null $maximum_child_age
+ * @property Carbon|null $submitted_at
+ * @property Carbon|null $approved_at
+ * @property int|null $approved_by
+ * @property Carbon|null $published_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property string|null $program
+ * @property string|null $included
+ * @property string|null $not_included
+ * @property string|null $important_information
+ * @property string|null $requirements
+ * @property string|null $recommended_age_range
+ * @property string|null $equipment_notes
+ * @property string|null $allergy_notes
+ * @property string|null $cancellation_policy
+ * @property string|null $organizer_contact
+ * @property bool $show_in_inspiration_feed
+ * @property int|null $event_series_id
+ * @property Carbon|null $cancelled_at
+ * @property int|null $cancelled_by_user_id
+ * @property string|null $cancellation_reason
+ * @property string|null $cancellation_notes
+ * @property int|null $admin_creativity_rating
+ * @property string|null $image_path
  * @property-read int $participants_count
  * @property-read int $customer_cancellations_count
  * @property-read ReviewStatistic|null $reviewStatistic

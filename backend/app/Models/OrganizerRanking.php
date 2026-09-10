@@ -4,7 +4,24 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $organizer_profile_id
+ * @property int $events_created
+ * @property int $events_completed
+ * @property int $events_cancelled
+ * @property int $sold_out_events
+ * @property numeric-string $average_fill_rate
+ * @property numeric-string $average_rating
+ * @property int $total_participants
+ * @property int $follower_count
+ * @property string $ranking_period
+ * @property Carbon $calculated_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
 class OrganizerRanking extends Model
 {
     protected $fillable = [

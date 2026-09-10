@@ -4,8 +4,23 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
+ * @property int $id
+ * @property string $title
+ * @property int|null $category_id
+ * @property string|null $organizer_type
+ * @property int $month_from
+ * @property int $month_to
+ * @property string|null $holiday_code
+ * @property string|null $target
+ * @property string|null $suggested_description
+ * @property int $suggested_price_min
+ * @property int $suggested_price_max
+ * @property bool $active
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  * @property-read Category|null $category
  */
 class SeasonalEventTemplate extends Model

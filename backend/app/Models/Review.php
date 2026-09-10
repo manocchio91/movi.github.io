@@ -5,7 +5,31 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $event_id
+ * @property int $user_id
+ * @property int $rating
+ * @property string|null $comment
+ * @property string $status
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property string|null $ulid
+ * @property int|null $organizer_profile_id
+ * @property int|null $booking_id
+ * @property int $experience_quality_rating
+ * @property int $organization_rating
+ * @property int $location_rating
+ * @property int $value_rating
+ * @property int $schedule_respect_rating
+ * @property int $staff_rating
+ * @property bool|null $suitable_for_children
+ * @property bool $would_recommend
+ * @property Carbon|null $reviewed_at
+ * @property Carbon|null $hidden_at
+ */
 class Review extends Model
 {
     protected $fillable = [

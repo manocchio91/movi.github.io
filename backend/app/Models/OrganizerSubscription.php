@@ -5,7 +5,26 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property string $ulid
+ * @property int $organizer_profile_id
+ * @property int $subscription_plan_id
+ * @property string $status
+ * @property Carbon|null $trial_ends_at
+ * @property Carbon|null $current_period_starts_at
+ * @property Carbon|null $current_period_ends_at
+ * @property Carbon|null $cancelled_at
+ * @property string|null $external_subscription_id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $agreement_starts_at
+ * @property Carbon|null $agreement_ends_at
+ * @property string|null $agreement_notes
+ * @property int|null $booking_fee_cents
+ */
 class OrganizerSubscription extends Model
 {
     protected $fillable = [

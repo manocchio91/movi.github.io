@@ -5,8 +5,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
+ * @property int $id
+ * @property int $province_id
+ * @property string $name
+ * @property string $istat_code
+ * @property numeric-string|null $latitude
+ * @property numeric-string|null $longitude
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property string|null $postal_code
  * @property-read int $events_count
  */
 class Municipality extends Model

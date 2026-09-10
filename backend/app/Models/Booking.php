@@ -6,7 +6,35 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property string $ulid
+ * @property int $user_id
+ * @property int $event_id
+ * @property string $status
+ * @property int $total_people
+ * @property int $adults_count
+ * @property int $children_count
+ * @property int $total_price_cents
+ * @property array<mixed>|null $children_age_ranges
+ * @property string|null $dietary_needs
+ * @property string|null $accessibility_needs
+ * @property string|null $notes
+ * @property string $booking_code
+ * @property string $qr_token_hash
+ * @property Carbon $booked_at
+ * @property Carbon|null $cancelled_at
+ * @property string|null $idempotency_key
+ * @property bool $event_terms_accepted
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property string|null $cancellation_reason
+ * @property int|null $cancelled_by_user_id
+ * @property string|null $qr_token_encrypted
+ * @property string|null $contact_phone
+ */
 class Booking extends Model
 {
     protected $fillable = [

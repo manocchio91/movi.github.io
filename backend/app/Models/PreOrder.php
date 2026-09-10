@@ -5,8 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
-/** @property string $ulid @property \Illuminate\Support\Carbon|null $locked_at */
+/**
+ * @property int $id
+ * @property string $ulid
+ * @property int $reservation_id
+ * @property string $status
+ * @property int $total_known_amount
+ * @property string|null $notes
+ * @property Carbon|null $locked_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
 class PreOrder extends Model
 {
     protected $table = 'preorders';
