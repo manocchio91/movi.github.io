@@ -74,7 +74,7 @@ class OrganizerEventListTest extends TestCase
     public function test_pagination_metadata_and_organizer_isolation_are_real(): void
     {
         [$organizer, $profile, $municipality] = $this->organizerFixture();
-        [, $otherProfile, $otherMunicipality] = $this->organizerFixture();
+        [$otherOrganizer, $otherProfile, $otherMunicipality] = $this->organizerFixture();
 
         foreach (range(1, 13) as $index) {
             $this->eventFixture($profile, $municipality, EventStatus::Published, "Evento {$index}", now()->addDays($index));
@@ -91,6 +91,13 @@ class OrganizerEventListTest extends TestCase
             ->assertJsonPath('meta.per_page', 5)
             ->assertJsonPath('meta.total', 13)
             ->assertJsonMissing(['ulid' => $otherEvent->ulid]);
+
+        $this->actingAs($otherOrganizer, 'sanctum')
+            ->getJson('/api/v1/organizer/events?per_page=50')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.event.ulid', $otherEvent->ulid)
+            ->assertJsonMissing(['ulid' => $profile->events()->firstOrFail()->ulid]);
     }
 
     public function test_event_summary_tracks_booking_create_update_and_cancellation(): void

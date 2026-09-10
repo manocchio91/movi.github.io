@@ -42,6 +42,7 @@ class OrganizerDashboardTest extends TestCase
             ->assertJsonStructure([
                 'data' => [
                     'bi' => [
+                        'total_events',
                         'future_events',
                         'completed_events',
                         'unpublished_events',
@@ -87,6 +88,7 @@ class OrganizerDashboardTest extends TestCase
         $this->actingAs($organizer, 'sanctum')
             ->getJson('/api/v1/organizer/dashboard')
             ->assertOk()
+            ->assertJsonPath('data.bi.total_events', 10)
             ->assertJsonPath('data.bi.future_events', 2)
             ->assertJsonPath('data.bi.completed_events', 1)
             ->assertJsonPath('data.bi.unpublished_events', 5)

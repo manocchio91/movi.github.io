@@ -1020,6 +1020,7 @@ class EventPlatformTest extends TestCase
             'email_verified_at' => now(),
         ]);
         $region = Region::query()->create(['name' => 'Molise '.Str::random(4), 'code' => Str::upper(Str::random(3))]);
+        config(['territory.region_code' => $region->code]);
         $province = Province::query()->create(['region_id' => $region->id, 'name' => 'Campobasso', 'code' => Str::upper(Str::random(2))]);
         $municipality = Municipality::query()->create(['province_id' => $province->id, 'name' => 'Campobasso', 'istat_code' => Str::random(6)]);
         $categories = collect([

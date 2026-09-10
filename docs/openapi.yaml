@@ -614,7 +614,9 @@ paths:
       security: [{ bearerAuth: [] }]
       summary: Dashboard SaaS organizzatore protetta da role:organizer e organizer.approved
       description: >-
-        I KPI di prenotazioni e partecipanti considerano valide esclusivamente le booking
+        Tutti i conteggi evento sono limitati al profilo organizzatore autenticato;
+        total_events coincide con l'insieme mostrato in I miei eventi. I KPI di
+        prenotazioni e partecipanti considerano valide esclusivamente le booking
         confirmed, checked_in e completed. participants_total e la somma di total_people
         delle booking valide. future_events comprende eventi published o sold_out con
         starts_at maggiore o uguale all'istante corrente; completed_events comprende solo
@@ -1456,6 +1458,7 @@ paths:
       operationId: get_locations_search
       security: []
       summary: Cerca Comuni per nome
+      description: Restituisce esclusivamente i Comuni appartenenti alla regione configurata per il territorio pilota.
       parameters:
         - { name: q, in: query, schema: { type: string } }
       responses:
@@ -2156,8 +2159,12 @@ components:
         reviews: { type: integer, minimum: 0 }
     OrganizerDashboardBi:
       type: object
-      required: [published_events, future_events, completed_events, unpublished_events, cancelled_events, sold_out_events, available_places, occupied_places, bookings_received, participants_total, unique_participants, returning_participants, returning_rate, new_customers_rate, followers_total, new_followers, reviews, average_rating, review_analytics, views_total]
+      required: [total_events, published_events, future_events, completed_events, unpublished_events, cancelled_events, sold_out_events, available_places, occupied_places, bookings_received, participants_total, unique_participants, returning_participants, returning_rate, new_customers_rate, followers_total, new_followers, reviews, average_rating, review_analytics, views_total]
       properties:
+        total_events:
+          type: integer
+          minimum: 0
+          description: Tutti gli eventi appartenenti al profilo organizzatore autenticato.
         published_events: { type: integer, minimum: 0 }
         future_events:
           type: integer

@@ -29,7 +29,7 @@
 - `customer_event_format_interests`: preferenze cliente per ricevere notifiche su format simili.
 - `seasonal_event_templates`: template stagionali usati come fallback senza AI.
 - `event_opportunity_snapshots`: snapshot idempotenti del livello di affollamento date.
-- `regions`, `provinces`, `municipalities`: territorio italiano estendibile.
+- `regions`, `provinces`, `municipalities`: territorio italiano estendibile; la regione attiva è configurabile e il catalogo pilota include i 136 comuni molisani ISTAT, senza fixture QA esposte dalle API.
 - `categories`: macroaree gestite da database.
 - `user_event_preferences`: relazione molti-a-molti tra clienti e macroaree preferite.
 - `notification_preferences`: canali, consenso promozionale e frequenza.

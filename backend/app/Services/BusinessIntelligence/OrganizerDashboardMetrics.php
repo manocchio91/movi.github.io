@@ -59,6 +59,7 @@ class OrganizerDashboardMetrics
         $reviewsCount = DB::table('reviews')->whereIn('event_id', $eventIds)->where('status', 'approved')->whereNull('hidden_at')->count();
 
         return [
+            'total_events' => (clone $events)->count(),
             'published_events' => (clone $events)->where('status', EventStatus::Published->value)->count(),
             'future_events' => (clone $operationalFutureEvents)->count(),
             'completed_events' => (clone $events)->where('status', EventStatus::Completed->value)->count(),

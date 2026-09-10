@@ -5,12 +5,29 @@ namespace Tests\Feature;
 use App\Models\Municipality;
 use App\Models\Province;
 use App\Models\Region;
+use Database\Seeders\MoliseGeographySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class MunicipalityPostalCodeLookupTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_search_uses_the_complete_configured_region_without_duplicates(): void
+    {
+        config(['territory.region_code' => 'MOL']);
+        $this->seed(MoliseGeographySeeder::class);
+        $otherRegion = Region::query()->create(['name' => 'Fixture QA', 'code' => 'MQA']);
+        $otherProvince = Province::query()->create(['region_id' => $otherRegion->id, 'name' => 'Provincia QA', 'code' => 'CQ']);
+        Municipality::query()->create(['province_id' => $otherProvince->id, 'name' => 'Campobasso', 'istat_code' => 'QA0001']);
+
+        $response = $this->getJson('/api/v1/locations/search')->assertOk()->assertJsonCount(136, 'data');
+        $municipalities = collect($response->json('data'));
+
+        $this->assertSame(136, $municipalities->pluck('istat_code')->unique()->count());
+        $this->assertEqualsCanonicalizing(['CB', 'IS'], $municipalities->pluck('province.code')->unique()->values()->all());
+        $this->assertFalse($municipalities->contains(fn (array $municipality) => data_get($municipality, 'province.code') === 'CQ'));
+    }
 
     public function test_postal_code_with_one_municipality_returns_only_required_fields(): void
     {
@@ -51,6 +68,7 @@ class MunicipalityPostalCodeLookupTest extends TestCase
     private function municipality(string $name, string $provinceCode, string $postalCode): Municipality
     {
         $region = Region::query()->firstOrCreate(['code' => 'TST'], ['name' => 'Test']);
+        config(['territory.region_code' => $region->code]);
         $province = Province::query()->firstOrCreate(['code' => $provinceCode], ['region_id' => $region->id, 'name' => 'Provincia '.$provinceCode]);
 
         return Municipality::query()->create(['province_id' => $province->id, 'name' => $name, 'istat_code' => fake()->unique()->numerify('######'), 'postal_code' => $postalCode]);

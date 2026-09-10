@@ -118,6 +118,7 @@ type OrganizerReviewAnalytics = {
 };
 
 type OrganizerDashboardBi = {
+  total_events: number;
   future_events: number;
   completed_events: number;
   unpublished_events: number;
@@ -1189,7 +1190,8 @@ export default defineComponent({
         if (customerBookingSavePhone.value) customerProfile.value.phone = customerBookingPhone.value;
       } catch (error) {
         customerBookingConfirmOpen.value = false;
-        if (error instanceof ApiError && error.status === 422) { customerBookingFieldErrors.value = error.errors; customerBookingError.value = 'Correggi i campi evidenziati.'; }
+        if (error instanceof ApiError && error.status === 401) { clearSession('Sessione scaduta o non valida. Accedi di nuovo.'); }
+        else if (error instanceof ApiError && error.status === 422) { customerBookingFieldErrors.value = error.errors; customerBookingError.value = 'Correggi i campi evidenziati.'; }
         else customerBookingError.value = userMessage(error, 'Prenotazione non completata.');
       } finally { customerBookingLoading.value = false; }
     };
@@ -2308,6 +2310,7 @@ export default defineComponent({
           h('div', { class: 'command-actions' }, [h('button', { type: 'button', onClick: () => { void go('/organizer/create-event'); } }, '＋ Crea evento'), h('button', { type: 'button', onClick: () => { void go('/organizer/bookings'); } }, 'Gestisci prenotazioni')]),
         ]),
         h('div', { class: 'metric-grid organizer-kpis' }, [
+          card('Eventi totali', `${bi.total_events}`, 'coerenti con I miei eventi'),
           card('Eventi futuri', `${bi.future_events}`, 'pubblicati o sold out'),
           card('Eventi conclusi', `${bi.completed_events}`, 'stato completed'),
           card('Eventi non pubblicati', `${bi.unpublished_events}`, 'bozze e stati non pubblici'),

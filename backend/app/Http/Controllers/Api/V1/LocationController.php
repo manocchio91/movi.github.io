@@ -14,6 +14,7 @@ class LocationController extends Controller
     {
         $municipalities = Municipality::query()
             ->with('province:id,code')
+            ->whereHas('province.region', fn ($query) => $query->where('code', config('territory.region_code')))
             ->where('postal_code', $request->validated('postal_code'))
             ->orderBy('name')
             ->get()
@@ -33,8 +34,10 @@ class LocationController extends Controller
 
         $locations = Municipality::query()
             ->with('province')
+            ->whereHas('province.region', fn ($builder) => $builder->where('code', config('territory.region_code')))
             ->when($query !== '', fn ($builder) => $builder->where('name', 'ilike', "%{$query}%"))
-            ->limit(20)
+            ->orderBy('name')
+            ->limit(200)
             ->get();
 
         return response()->json(['data' => $locations]);

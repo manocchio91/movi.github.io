@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\ConfiguredMunicipality;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreEventRequest extends FormRequest
@@ -23,7 +24,7 @@ class StoreEventRequest extends FormRequest
             'cancellation_policy' => ['nullable', 'string', 'max:3000'],
             'organizer_contact' => ['nullable', 'string', 'max:255'],
             'show_in_inspiration_feed' => ['nullable', 'boolean'],
-            'municipality_id' => ['required', 'exists:municipalities,id'],
+            'municipality_id' => ['required', 'integer', new ConfiguredMunicipality],
             'category_ids' => ['required', 'array', 'min:1'],
             'category_ids.*' => ['integer', 'exists:categories,id'],
             'starts_at' => ['required', 'date', 'after:now'],

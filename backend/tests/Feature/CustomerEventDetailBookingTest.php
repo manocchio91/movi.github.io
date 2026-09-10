@@ -21,6 +21,27 @@ class CustomerEventDetailBookingTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_booking_requires_authentication_and_frontend_expires_a_stale_session(): void
+    {
+        [, $organizer, $municipality, $category] = $this->domain();
+        $created = $this->actingAs($organizer, 'sanctum')
+            ->postJson('/api/v1/organizer/events', $this->eventPayload($municipality, $category, 'Evento protetto'))
+            ->assertCreated();
+        $this->postJson("/api/v1/organizer/events/{$created->json('data.ulid')}/publish")->assertOk();
+        $this->app['auth']->forgetGuards();
+
+        $this->postJson("/api/v1/events/{$created->json('data.ulid')}/bookings", [
+            'phone' => '+393331234567',
+            'adults_count' => 1,
+            'children_count' => 0,
+            'items' => [['ticket_type_ulid' => $created->json('data.ticket_types.0.ulid'), 'quantity' => 1]],
+        ])->assertUnauthorized()->assertJsonPath('message', 'Non autenticato.');
+
+        $source = file_get_contents(base_path('../frontend/src/App.ts'));
+        $this->assertIsString($source);
+        $this->assertStringContainsString("error.status === 401) { clearSession('Sessione scaduta o non valida. Accedi di nuovo.'); }", $source);
+    }
+
     public function test_organizer_event_is_listed_by_ulid_opened_booked_and_returns_qr(): void
     {
         Mail::fake();
@@ -173,6 +194,7 @@ class CustomerEventDetailBookingTest extends TestCase
         $customer = User::factory()->create(['role' => UserRole::Customer, 'status' => 'active', 'phone' => '+393331234567']);
         $organizer = User::factory()->create(['role' => UserRole::Organizer, 'status' => 'active']);
         $region = Region::query()->create(['name' => 'Molise Customer', 'code' => 'MCT']);
+        config(['territory.region_code' => $region->code]);
         $province = Province::query()->create(['region_id' => $region->id, 'name' => 'Campobasso', 'code' => 'CB']);
         $municipality = Municipality::query()->create(['province_id' => $province->id, 'name' => 'Campobasso', 'istat_code' => '070006', 'postal_code' => '86100']);
         OrganizerProfile::query()->create(['ulid' => (string) Str::ulid(), 'owner_user_id' => $organizer->id, 'name' => 'Organizer Customer QA', 'type' => 'associazione', 'email' => 'organizer-customer@example.test', 'municipality_id' => $municipality->id, 'verification_status' => 'verified', 'verified_at' => now()]);

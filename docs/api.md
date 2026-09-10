@@ -24,6 +24,8 @@ Base path: `/api/v1`
 
 Filtri eventi: `q` (ricerca case-insensitive in titolo e descrizione), `category_id`, `province_id`, `municipality_id`, `date`, `free`, `available`. I filtri sono combinabili e la risposta mantiene la paginazione standard Laravel.
 
+`GET /locations/search` e `GET /locations/municipalities` espongono soltanto i comuni della regione configurata tramite `TERRITORY_REGION_CODE`. Il catalogo strutturale del territorio pilota contiene i 136 comuni molisani con codici ISTAT e province `CB`/`IS`; la stessa regola viene applicata server-side alla creazione e modifica evento.
+
 ## Cliente
 - `GET /customer/dashboard`
 - `GET /customer/successful-events`
@@ -120,6 +122,8 @@ Eventi simili:
 - `GET /organizer/reviews/events/{event}`
 
 `GET/POST/PUT /organizer/profile` richiede `role:organizer`; le altre route organizzatore richiedono anche `organizer.approved`. Un organizzatore pending puo vedere/aggiornare lo stato del profilo, ma non puo creare, pubblicare o gestire eventi. Il flusso evento e `draft -> published`: un organizzatore verificato pubblica direttamente, senza approvazione preventiva admin.
+
+`GET /organizer/events` è sempre limitato al profilo dell'Organizer autenticato. Il KPI `bi.total_events` della dashboard usa la stessa relazione e corrisponde al totale non filtrato mostrato in `I miei eventi`; i KPI futuri, conclusi e non pubblicati restano sottoinsiemi distinti.
 
 `GET /organizer/bookings` offre ricerca per cliente, email, evento e codice, filtri di stato, ordinamento e paginazione server-side. Lista e dettaglio sono in sola lettura: l'Organizer vede esclusivamente prenotazioni dei propri eventi; l'Admin mantiene visibilita completa. Il QR viene restituito soltanto nel dettaglio autorizzato.
 

@@ -117,6 +117,22 @@ class OrganizerEventManagementTest extends TestCase
             ->assertJsonValidationErrors(['ends_at', 'ticket_types.0.price_cents', 'ticket_types.0.max_quantity']);
     }
 
+    public function test_create_and_update_reject_municipalities_outside_the_configured_region(): void
+    {
+        [$organizer, $profile, $municipality, $category] = $this->domain();
+        $outsideRegion = Region::query()->create(['name' => 'Fuori territorio', 'code' => 'OUT']);
+        $outsideProvince = Province::query()->create(['region_id' => $outsideRegion->id, 'name' => 'Provincia errata', 'code' => 'XX']);
+        $outsideMunicipality = Municipality::query()->create(['province_id' => $outsideProvince->id, 'name' => 'Comune errato', 'istat_code' => 'OUT001']);
+        $payload = $this->payload($outsideMunicipality, $category);
+
+        $this->actingAs($organizer, 'sanctum')->postJson('/api/v1/organizer/events', $payload)
+            ->assertUnprocessable()->assertJsonValidationErrors('municipality_id');
+
+        $event = $this->event($profile, $municipality, $category, EventStatus::Draft);
+        $this->putJson("/api/v1/organizer/events/{$event->ulid}", $payload)
+            ->assertUnprocessable()->assertJsonValidationErrors('municipality_id');
+    }
+
     public function test_ticket_failure_rolls_back_event_creation(): void
     {
         [$organizer, , $municipality, $category] = $this->domain();
@@ -427,6 +443,7 @@ class OrganizerEventManagementTest extends TestCase
     {
         $organizer = User::factory()->create(['role' => UserRole::Organizer, 'status' => 'active']);
         $region = Region::query()->create(['name' => fake()->unique()->state(), 'code' => fake()->unique()->lexify('???')]);
+        config(['territory.region_code' => $region->code]);
         $province = Province::query()->create(['region_id' => $region->id, 'name' => fake()->city(), 'code' => fake()->unique()->lexify('??')]);
         $municipality = Municipality::query()->create(['province_id' => $province->id, 'name' => fake()->city(), 'istat_code' => fake()->unique()->numerify('######')]);
         $category = Category::query()->create(['name' => fake()->unique()->word(), 'slug' => fake()->unique()->slug(), 'is_active' => true]);

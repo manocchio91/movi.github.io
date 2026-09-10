@@ -17,8 +17,6 @@ use App\Models\NotificationPreference;
 use App\Models\OrganizerProfile;
 use App\Models\OrganizerStatistic;
 use App\Models\OrganizerSubscription;
-use App\Models\Province;
-use App\Models\Region;
 use App\Models\SeasonalEventTemplate;
 use App\Models\SubscriptionPlan;
 use App\Models\TicketType;
@@ -52,19 +50,13 @@ class DatabaseSeeder extends Seeder
             'role' => UserRole::Organizer,
         ]);
 
-        $molise = Region::query()->create(['name' => 'Molise', 'code' => 'MOL']);
-        $campobasso = Province::query()->create(['region_id' => $molise->id, 'name' => 'Campobasso', 'code' => 'CB']);
-        $isernia = Province::query()->create(['region_id' => $molise->id, 'name' => 'Isernia', 'code' => 'IS']);
+        $this->call(MoliseGeographySeeder::class);
 
-        foreach ([
-            ['province_id' => $campobasso->id, 'name' => 'Campobasso', 'istat_code' => '070006', 'postal_code' => '86100'],
-            ['province_id' => $campobasso->id, 'name' => 'Termoli', 'istat_code' => '070078', 'postal_code' => '86039'],
-            ['province_id' => $campobasso->id, 'name' => 'Bojano', 'istat_code' => '070003', 'postal_code' => '86021'],
-            ['province_id' => $isernia->id, 'name' => 'Isernia', 'istat_code' => '094023', 'postal_code' => '86170'],
-            ['province_id' => $isernia->id, 'name' => 'Agnone', 'istat_code' => '094002', 'postal_code' => '86081'],
-        ] as $municipality) {
-            Municipality::query()->create($municipality);
-        }
+        Municipality::query()->where('istat_code', '070006')->update(['postal_code' => '86100']);
+        Municipality::query()->where('istat_code', '070078')->update(['postal_code' => '86039']);
+        Municipality::query()->where('istat_code', '070003')->update(['postal_code' => '86021']);
+        Municipality::query()->where('istat_code', '094023')->update(['postal_code' => '86170']);
+        Municipality::query()->where('istat_code', '094002')->update(['postal_code' => '86081']);
 
         $categories = collect([
             'bambini',
@@ -96,63 +88,8 @@ class DatabaseSeeder extends Seeder
             'frequency' => 'immediate',
         ]);
 
-        $plans = collect([
-            [
-                'name' => 'Free Trial',
-                'slug' => 'free-trial',
-                'description' => 'Prova configurabile con massimo 2 esperienze attive.',
-                'monthly_price_cents' => 0,
-                'trial_days' => 30,
-                'active_event_limit' => 2,
-                'features' => ['2 esperienze attive', 'prenotazioni base', 'profilo pubblico'],
-            ],
-            [
-                'name' => 'Starter',
-                'slug' => 'starter',
-                'description' => 'Esperienze illimitate, prenotazioni e statistiche base.',
-                'monthly_price_cents' => 1900,
-                'trial_days' => null,
-                'active_event_limit' => null,
-                'features' => ['esperienze illimitate', 'gestione prenotazioni', 'statistiche base'],
-            ],
-            [
-                'name' => 'Professional',
-                'slug' => 'professional',
-                'description' => 'Notifiche follower, lista attesa, comunicazioni e visibilita maggiore.',
-                'monthly_price_cents' => 4900,
-                'trial_days' => null,
-                'active_event_limit' => null,
-                'features' => ['notifiche follower', 'lista attesa', 'comunicazioni partecipanti', 'statistiche avanzate'],
-            ],
-            [
-                'name' => 'Enterprise',
-                'slug' => 'enterprise',
-                'description' => 'Predisposto per Comuni, reti di locali e organizzazioni complesse.',
-                'monthly_price_cents' => 0,
-                'trial_days' => null,
-                'active_event_limit' => null,
-                'features' => ['multi sede', 'supporto dedicato', 'fatturazione personalizzata'],
-            ],
-        ])->map(function (array $plan) {
-            $features = $plan['features'];
-            unset($plan['features']);
-
-            $subscriptionPlan = SubscriptionPlan::query()->create([
-                ...$plan,
-                'ulid' => (string) Str::ulid(),
-                'is_public' => true,
-                'is_active' => true,
-            ]);
-
-            foreach ($features as $feature) {
-                $subscriptionPlan->features()->create([
-                    'feature_key' => Str::slug($feature),
-                    'name' => $feature,
-                ]);
-            }
-
-            return $subscriptionPlan;
-        });
+        $this->call(SubscriptionPlanSeeder::class);
+        $plans = SubscriptionPlan::query()->get();
 
         $profile = OrganizerProfile::query()->create([
             'ulid' => (string) Str::ulid(),
