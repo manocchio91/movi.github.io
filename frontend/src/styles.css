@@ -1788,6 +1788,13 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand-600); box-
 .movi-plan-card p, .movi-plan-card span, .movi-plan-card small { color: #415b58; }
 .movi-plan-step { background: #f2f8f7; border-color: #b7d1cc; }
 .weekday-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+.manager-workspace { display: grid; gap: 1rem; }
+.manager-form { display: grid; gap: 1rem; }
+.manager-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .8rem; }
+.manager-form-grid label { display: grid; gap: .35rem; }
+.manager-form .weekday-picker { border: 1px solid var(--line); border-radius: 14px; padding: .85rem; }
+.manager-form .weekday-picker legend { padding: 0 .35rem; font-weight: 800; }
+.item-status-form { padding-left: 1rem; }
 .customer-discovery-hero::after { border: 36px solid rgba(20,184,166,.15); border-radius: 50%; content: ""; height: 240px; position: absolute; right: -90px; top: -100px; width: 240px; }
 .customer-discovery-hero > * { position: relative; z-index: 1; }
 .customer-discovery-hero .eyebrow { color: #7ddfd3; display: block; font-size: .76rem; font-weight: 900; letter-spacing: .11em; margin-bottom: 12px; text-transform: uppercase; }

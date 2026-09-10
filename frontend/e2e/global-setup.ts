@@ -1,10 +1,12 @@
 import { compose } from './docker';
 
 export default async function globalSetup() {
-  compose('up', '--build', '-d', '--wait');
-  compose('exec', '-T', 'app', 'php', 'artisan', 'migrate:fresh', '--seed', '--force');
-  // Compose may recreate PHP-FPM after nginx has resolved its upstream address.
-  compose('restart', 'nginx');
+  if (process.env.PW_EXTERNAL_E2E !== '1') {
+    compose('up', '--build', '-d', '--wait');
+    compose('exec', '-T', 'app', 'php', 'artisan', 'migrate:fresh', '--seed', '--force');
+    // Compose may recreate PHP-FPM after nginx has resolved its upstream address.
+    compose('restart', 'nginx');
+  }
   for (let attempt = 0; attempt < 30; attempt += 1) {
     try {
       const response = await fetch('http://127.0.0.1:18081/api/v1/health');
