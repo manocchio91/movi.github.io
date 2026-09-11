@@ -66,6 +66,12 @@ class Activity extends Model
         return $this->hasMany(Reservation::class);
     }
 
+    /** @return HasMany<Event, $this> */
+    public function events(): HasMany
+    {
+        return $this->hasMany(Event::class, 'organizer_profile_id', 'organizer_profile_id');
+    }
+
     public function menus(): HasMany
     {
         return $this->hasMany(Menu::class);

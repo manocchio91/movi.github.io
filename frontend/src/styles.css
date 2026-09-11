@@ -1869,6 +1869,36 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand-600); box-
 
 /* Image-first event cards */
 .customer-layout .event-grid { gap: 18px; grid-template-columns: repeat(4,minmax(0,1fr)); }
+
+.venues-heading { margin-bottom: 20px; }
+.venues-heading h1 { margin: 4px 0 8px; font-size: clamp(2rem, 5vw, 3.5rem); }
+.venue-filters, .venue-booking-fields { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)) auto; gap: 14px; align-items: end; }
+.venue-filters label, .venue-booking-fields label { display: grid; gap: 7px; }
+.venue-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 20px; }
+.venue-card { overflow: hidden; background: #fff; border: 1px solid var(--line-soft); border-radius: var(--radius-card); box-shadow: var(--shadow-card); }
+.venue-card-cover { min-height: 170px; display: grid; place-items: center; background: linear-gradient(135deg,#411524,#8c3545); background-position: center; background-size: cover; }
+.venue-card-cover img, .venue-hero > img { width: 78px; height: 78px; object-fit: cover; border-radius: 50%; border: 3px solid #fff; background: #fff; }
+.venue-card-cover > span { font-size: 3rem; color: #fff; }
+.venue-card-body { display: grid; gap: 9px; padding: 20px; }
+.venue-card-body h2, .venue-card-body p { margin: 0; }
+.venue-facts { display: grid; gap: 5px; min-height: 45px; }
+.venue-hero { display: grid; grid-template-columns: auto 1fr auto; gap: 24px; align-items: center; min-height: 260px; margin-bottom: 16px; padding: 36px; color: #fff; border-radius: var(--radius-card); background: linear-gradient(135deg,#17111b,#5b1f30); background-position: center; background-size: cover; }
+.venue-hero h1 { margin: 4px 0; font-size: clamp(2rem,5vw,3.25rem); }
+.venue-tabs { position: sticky; top: 72px; z-index: 4; display: flex; gap: 10px; overflow-x: auto; margin-bottom: 16px; padding: 10px; background: rgba(255,255,255,.96); border: 1px solid var(--line-soft); border-radius: 999px; }
+.venue-tabs a { padding: 8px 14px; color: inherit; text-decoration: none; white-space: nowrap; }
+.venue-slots { display: flex; flex-wrap: wrap; gap: 10px; }
+.venue-slots button { display: grid; gap: 3px; min-width: 112px; }
+.review-list { display: grid; gap: 12px; }
+
+@media (max-width: 900px) {
+  .venue-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .venue-filters, .venue-booking-fields { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 620px) {
+  .venue-grid, .venue-filters, .venue-booking-fields, .venue-hero { grid-template-columns: 1fr; }
+  .venue-hero { padding: 24px; }
+}
 .customer-layout .event-card { background: #111522; border-color: var(--premium-line); border-radius: 18px; box-shadow: 0 18px 44px rgba(0,0,0,.24); display: block; min-height: 390px; overflow: hidden; padding: 0; }
 .customer-layout .event-card::before { content: none; }
 .customer-layout .event-card > .event-card-cover { align-items: flex-start; background-color: #29164a; background-image: radial-gradient(circle at 70% 30%,rgba(249,115,22,.8),transparent 30%), radial-gradient(circle at 35% 70%,rgba(236,72,153,.72),transparent 34%), linear-gradient(145deg,#312e81,#111827); background-position: center; background-size: cover; border: 0; display: flex; height: 220px; justify-content: space-between; padding: 14px; position: relative; }

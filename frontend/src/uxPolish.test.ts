@@ -83,13 +83,14 @@ test('event detail exposes native share copy fallback and WhatsApp', () => {
 });
 
 test('activity reservations use real capacity APIs without table mode', () => {
-  assert.ok(app.includes("api<any>('/activities')"));
+  assert.match(app, /api<any>\(`\/activities\$\{params\.size/);
   assert.ok(app.includes('/availability?date='));
   assert.ok(app.includes("'Idempotency-Key': crypto.randomUUID()"));
   assert.ok(app.includes("api<any>('/me/reservations')"));
   assert.doesNotMatch(app, /\['MòVi Manager', '\/organizer\/activities'\]/);
   assert.doesNotMatch(app, /\['Attività', '\/customer\/activities'\]/);
-  assert.doesNotMatch(app, /\['Prenotazioni locali', '\/customer\/reservations'\]/);
+  assert.match(app, /\['Locali', '\/customer\/activities'\]/);
+  assert.match(app, /\['Prenotazioni locali', '\/customer\/reservations'\]/);
   assert.match(app, /hiddenEntryPoints/);
   assert.ok(!app.includes('floor-plan editor'));
 });
@@ -121,6 +122,9 @@ test('MòVi Manager exposes calendar reservations menu and readable real plan ca
   assert.match(app, /renderMenuWorkspace/);
   assert.match(app, /Numero coperti MòVi/);
   assert.match(app, /Pranzo.*Cena.*Entrambi/s);
+  assert.match(app, /requestedTypes.*\['lunch', 'dinner'\]/s);
+  assert.match(app, /existingServices\.find/);
+  assert.doesNotMatch(app, /Configura prima il servizio Pranzo o Cena richiesto/);
   assert.match(app, /Salva chiusura/);
   assert.match(app, /Salva categoria/);
   assert.match(app, /Piatto attivo/);

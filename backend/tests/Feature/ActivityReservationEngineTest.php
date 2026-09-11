@@ -135,12 +135,28 @@ class ActivityReservationEngineTest extends TestCase
         $reservation = Reservation::query()->create(['ulid' => (string) Str::ulid(), 'user_id' => $customer->id, 'activity_id' => $activity->id, 'service_id' => $service->id, 'starts_at' => now()->subDay(), 'party_size' => 2, 'status' => ReservationStatus::Completed, 'contact_phone' => '+393331234567', 'idempotency_key' => 'reviewable']);
         $this->actingAs($other, 'sanctum')->postJson("/api/v1/activities/{$activity->ulid}/reviews", ['reservation_ulid' => $reservation->ulid, 'rating' => 5, 'would_recommend' => true])->assertNotFound();
         $this->actingAs($customer, 'sanctum')->postJson("/api/v1/activities/{$activity->ulid}/reviews", ['reservation_ulid' => $reservation->ulid, 'rating' => 5, 'comment' => 'Ottimo', 'would_recommend' => true])->assertCreated();
+        $this->getJson("/api/v1/activities/{$activity->ulid}/reviews")->assertOk()
+            ->assertJsonPath('data.0.customer_name', $customer->name)
+            ->assertJsonMissing(['event_id' => $activity->id]);
         $this->assertDatabaseHas('analytics_events', ['type' => 'activity_followed', 'activity_id' => $activity->id]);
         $this->assertDatabaseHas('analytics_events', ['type' => 'activity_unfollowed', 'activity_id' => $activity->id]);
         $this->assertDatabaseHas('analytics_events', ['type' => 'activity_review_created', 'activity_id' => $activity->id]);
         $this->actingAs($customer, 'sanctum')->withHeader('X-Analytics-Session', 'activity-session')->getJson("/api/v1/activities/{$activity->ulid}")->assertOk();
         $this->withHeader('X-Analytics-Session', 'activity-session')->getJson("/api/v1/activities/{$activity->ulid}")->assertOk();
         $this->assertSame(1, AnalyticsEvent::query()->where('type', 'activity_detail_view')->count());
+    }
+
+    public function test_public_directory_filters_and_excludes_unverified_organizers(): void
+    {
+        [, $activity] = $this->bookableDomain();
+        [, $hiddenProfile, $hiddenMunicipality] = $this->organizerDomain('Hidden');
+        $hiddenProfile->update(['verification_status' => 'pending']);
+        $hidden = Activity::query()->create([...$this->activityPayload($hiddenMunicipality), 'ulid' => (string) Str::ulid(), 'organizer_profile_id' => $hiddenProfile->id, 'slug' => 'hidden-'.Str::lower(Str::random(8)), 'status' => ActivityStatus::Published]);
+
+        $this->getJson('/api/v1/activities?q=Aurora&type=restaurant&municipality_id='.$activity->municipality_id)
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.ulid', $activity->ulid);
+        $this->getJson('/api/v1/activities?q=inesistente')->assertOk()->assertJsonCount(0, 'data');
+        $this->getJson("/api/v1/activities/{$hidden->ulid}")->assertNotFound();
     }
 
     private function bookableDomain(int $capacity = 6, int $minimumAdvance = 0): array

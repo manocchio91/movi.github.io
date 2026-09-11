@@ -41,6 +41,13 @@ const accounts = {
 
 async function login(page: Page, role: keyof typeof accounts) {
   await page.goto('/');
+  const logout = page.getByRole('button', { name: 'Esci dal tuo account' });
+  if (await logout.isVisible()) {
+    await logout.click();
+    await expect(logout).toBeHidden();
+    await page.reload();
+    await expect(page.getByRole('button', { name: accounts[role][0] })).toBeVisible();
+  }
   await page.getByRole('button', { name: accounts[role][0] }).click();
   await page.getByLabel('Email').fill(accounts[role][1]);
   await page.getByLabel('Password').fill('password');
@@ -54,7 +61,8 @@ test('cliente: navigazione, evento, disponibilità, booking, QR e preferenze', a
   await expect(sidebar).toBeVisible();
   await expect(sidebar).not.toContainText('MòVi Manager');
   await expect(sidebar).not.toContainText('Attività');
-  await expect(sidebar).not.toContainText('Prenotazioni locali');
+  await expect(sidebar).toContainText('Locali');
+  await expect(sidebar).toContainText('Prenotazioni locali');
 
   await page.getByRole('button', { name: 'Tutti gli Eventi' }).click();
   await expect(page.getByRole('heading', { name: 'Laboratorio creativo in fattoria', exact: true })).toBeVisible();
@@ -132,16 +140,14 @@ test('organizzatore: menu, tutti gli eventi, modifica e profilo pending', async 
   await expect(page.getByText(/attesa di approvazione/i)).toBeVisible();
 });
 
-test('MòVi Manager: calendario, menu, import e prenotazioni locale sono operativi', async ({ page, request }) => {
+test('MòVi Manager: calendario, menu, import e prenotazioni locale sono operativi', async ({ page, request, browser }) => {
+  test.setTimeout(90_000);
   const auth = await request.post('http://127.0.0.1:18081/api/v1/auth/login', { data: { email: 'organizer@example.test', password: 'password' } });
   const token = (await auth.json()).token;
   const headers = { Authorization: `Bearer ${token}` };
   const activityResponse = await request.post('http://127.0.0.1:18081/api/v1/organizer/activities', { headers, data: { name: 'Ristorante Manager E2E', type: 'restaurant', description: 'Fixture isolata Manager', status: 'published', booking_enabled: true } });
   expect(activityResponse.ok()).toBeTruthy();
   const activity = (await activityResponse.json()).data;
-  const dinnerResponse = await request.post(`http://127.0.0.1:18081/api/v1/organizer/activities/${activity.ulid}/services`, { headers, data: { name: 'Cena', type: 'dinner', active: true, booking_enabled: true, min_party_size: 1, max_party_size: 8, minimum_advance_minutes: 0, indicative_duration_minutes: 90 } });
-  expect(dinnerResponse.ok()).toBeTruthy();
-  const dinner = (await dinnerResponse.json()).data;
 
   await login(page, 'organizer');
   const sidebar = page.locator('.app-header nav');
@@ -154,16 +160,21 @@ test('MòVi Manager: calendario, menu, import e prenotazioni locale sono operati
   const calendar = page.locator('article').filter({ has: page.getByRole('heading', { name: 'Ristorante Manager E2E' }) });
   await calendar.getByLabel('Dal', { exact: true }).fill('2026-10-15');
   await calendar.getByLabel('Al', { exact: true }).fill('2026-11-30');
-  await calendar.getByLabel('Turno').selectOption('dinner');
+  await calendar.getByLabel('Turno').selectOption('both');
   await calendar.getByLabel('Numero coperti MòVi').fill('20');
   await calendar.getByLabel('Lunedì').check();
   await calendar.getByLabel('Mercoledì').check();
   await calendar.getByLabel('Venerdì').check();
   await calendar.getByRole('button', { name: 'Salva disponibilità' }).click();
-  await expect(calendar.getByRole('status')).toContainText('Disponibilita salvate.');
+  await expect(calendar.getByRole('status')).toContainText('Disponibilità salvate.');
   await page.getByRole('button', { name: 'Dashboard', exact: true }).click();
   await page.getByRole('button', { name: 'Calendario', exact: true }).click();
   await expect(page.getByText(/20 coperti · 2026-10-15 → 2026-11-30/).first()).toBeVisible();
+  const refreshedActivities = await request.get('http://127.0.0.1:18081/api/v1/organizer/activities', { headers });
+  const configuredServices = (await refreshedActivities.json()).data.find((row: { ulid: string }) => row.ulid === activity.ulid).services;
+  const dinner = configuredServices.find((service: { type: string }) => service.type === 'dinner');
+  expect(dinner).toBeTruthy();
+  expect(configuredServices.some((service: { type: string }) => service.type === 'lunch')).toBeTruthy();
 
   await page.getByRole('button', { name: 'Menu', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Menu', exact: true })).toBeVisible();
@@ -202,6 +213,8 @@ test('MòVi Manager: calendario, menu, import e prenotazioni locale sono operati
   await request.put(`http://127.0.0.1:18081/api/v1/organizer/activities/${activity.ulid}/services/${dinner.ulid}`, { headers, data: { name: 'Cena', type: 'dinner', active: true, booking_enabled: true, min_party_size: 1, max_party_size: 8, minimum_advance_minutes: 0, indicative_duration_minutes: 90, preorder_enabled: true, preorder_edit_deadline_minutes: 120, preorder_menu_ulid: manualMenu.ulid } });
   const customerAuth = await request.post('http://127.0.0.1:18081/api/v1/auth/login', { data: { email: 'customer@example.test', password: 'password' } });
   const customerHeaders = { Authorization: `Bearer ${(await customerAuth.json()).token}` };
+  const profileResponse = await request.patch('http://127.0.0.1:18081/api/v1/me/profile', { headers: customerHeaders, data: { name: 'Cliente Demo', email: 'customer@example.test', phone: '+393331234567' } });
+  expect(profileResponse.ok()).toBeTruthy();
   const availabilityResponse = await request.get(`http://127.0.0.1:18081/api/v1/activities/${activity.ulid}/services/${dinner.ulid}/availability?date=2026-10-16`, { headers: customerHeaders });
   const availableSlot = (await availabilityResponse.json()).data[0];
   expect(availableSlot.available).toBe(20);
@@ -212,9 +225,40 @@ test('MòVi Manager: calendario, menu, import e prenotazioni locale sono operati
   const preorderResponse = await request.put(`http://127.0.0.1:18081/api/v1/me/reservations/${reservation.ulid}/preorder`, { headers: customerHeaders, data: { items: [{ menu_item_ulid: item.ulid, quantity: 2 }] } });
   expect(preorderResponse.ok()).toBeTruthy();
 
+  const customerContext = await browser.newContext();
+  const customerPage = await customerContext.newPage();
+  await login(customerPage, 'customer');
+  await customerPage.getByRole('button', { name: 'Locali', exact: true }).click();
+  await expect(customerPage.getByRole('heading', { name: 'Locali', exact: true })).toBeVisible();
+  await customerPage.getByPlaceholder('Cerca un locale').fill('Ristorante Manager E2E');
+  await customerPage.getByRole('button', { name: 'Cerca', exact: true }).click();
+  const venueCard = customerPage.locator('.venue-card').filter({ has: customerPage.getByRole('heading', { name: 'Ristorante Manager E2E' }) });
+  await expect(venueCard).toBeVisible();
+  await venueCard.getByRole('button', { name: 'Scopri il locale' }).click();
+  await expect(customerPage.getByRole('heading', { name: 'Ristorante Manager E2E', exact: true })).toBeVisible();
+  await expect(customerPage.getByRole('navigation', { name: 'Sezioni locale' })).toContainText('Prenota');
+  await expect(customerPage.locator('#venue-menu')).toContainText('Cavatelli QA');
+  await Promise.all([
+    customerPage.waitForResponse(response => response.url().includes(`/services/${dinner.ulid}/availability`)),
+    customerPage.getByLabel('Servizio').selectOption(dinner.ulid),
+  ]);
+  await Promise.all([
+    customerPage.waitForResponse(response => response.url().includes('availability?date=2026-10-16')),
+    customerPage.getByLabel('Data').fill('2026-10-16'),
+  ]);
+  await customerPage.getByRole('spinbutton', { name: 'Persone' }).fill('2');
+  const slot = customerPage.locator('.venue-slots button').first();
+  await expect(slot).toContainText('18 coperti');
+  await slot.click();
+  await expect(customerPage.getByRole('status')).toContainText('Prenotazione confermata');
+  await expect(customerPage.locator('.venue-slots button').first()).toContainText('16 coperti');
+  await expect(customerPage.locator('#venue-eventi')).not.toContainText('Evento QA E2E');
+  await expect(customerPage.locator('#venue-recensioni')).toBeVisible();
+  await customerContext.close();
+
   await page.getByRole('button', { name: 'Prenotazioni', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Prenotazioni locale' })).toBeVisible();
-  await expect(page.getByText(/Cliente Demo.*Cena.*2 persone.*confirmed/)).toBeVisible();
+  await expect(page.getByText(/Cliente Demo.*Cena.*2 persone.*confirmed/).first()).toBeVisible();
   await expect(page.getByText(/Cavatelli QA × 2/)).toBeVisible();
 });
 

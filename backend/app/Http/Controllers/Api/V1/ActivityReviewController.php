@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\ActivityStatus;
 use App\Enums\ReservationStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreActivityReviewRequest;
@@ -16,7 +17,11 @@ class ActivityReviewController extends Controller
 {
     public function index(Activity $activity): JsonResponse
     {
-        return response()->json(ActivityReview::query()->where('activity_id', $activity->id)->where('status', 'approved')->latest('reviewed_at')->paginate(20));
+        abort_unless($activity->status === ActivityStatus::Published, 404);
+        $reviews = ActivityReview::query()->where('activity_id', $activity->id)->where('status', 'approved')->with('user:id,name')->latest('reviewed_at')->paginate(20);
+        $reviews->through(fn (ActivityReview $review) => [...$review->toArray(), 'customer_name' => $review->user->name]);
+
+        return response()->json($reviews);
     }
 
     public function store(StoreActivityReviewRequest $request, Activity $activity, AnalyticsRecorder $analytics): JsonResponse
