@@ -198,7 +198,7 @@ type OrganizerEventListResponse = {
 type OrganizerBookingFilter = 'all' | 'confirmed' | 'checked_in' | 'completed' | 'cancelled';
 type OrganizerBooking = {
   ulid: string; booking_code: string; customer: { name: string; email: string; phone: string | null };
-  event: { ulid: string; title: string }; people: number; status: string; booked_at: string;
+  event: { ulid: string; title: string; starts_at: string }; people: number; status: string; booked_at: string;
   checked_in_at: string | null; tickets?: Array<{ name: string; quantity: number }>;
   qr_token?: string | null; notes?: string | null;
 };
@@ -455,7 +455,7 @@ export default defineComponent({
     const organizerBookingsLoading = ref(false);
     const organizerBookingsError = ref('');
     const organizerBookingsPage = ref(1);
-    const organizerBookingsFilter = ref<OrganizerBookingFilter>('confirmed');
+    const organizerBookingsFilter = ref<OrganizerBookingFilter>('all');
     const organizerBookingsSearch = ref('');
     const organizerBookingsSort = ref('booked_at:desc');
     const selectedOrganizerBooking = ref<OrganizerBooking | null>(null);
@@ -561,6 +561,7 @@ export default defineComponent({
     const organizerReservationDashboard = ref<any>(null);
     const organizerReservationCustomers = ref<any[]>([]);
     const organizerReservationAnalytics = ref<any>(null);
+    const organizerBookingHubTab = ref<'venue' | 'events'>('venue');
     const adminDashboard = ref<any>(null);
     const adminOverview = ref<any>(null);
     const adminEvents = ref<any[]>([]);
@@ -1588,7 +1589,8 @@ export default defineComponent({
       else if (route.value === '/organizer/bookings') await loadOrganizerBookings();
       else if (route.value.startsWith('/organizer/bookings/')) await loadOrganizerBookingDetail(route.value.split('/')[3]);
       else if (route.value === '/organizer/events') await loadOrganizerEvents();
-      else if (['/organizer/activities', '/organizer/calendar-manager', '/organizer/reservations', '/organizer/menu'].includes(route.value)) await loadOrganizerActivities();
+      else if (route.value === '/organizer/reservations') await Promise.all([loadOrganizerActivities(), loadOrganizerBookings()]);
+      else if (['/organizer/activities', '/organizer/calendar-manager', '/organizer/menu'].includes(route.value)) await loadOrganizerActivities();
       else if (route.value.startsWith('/organizer/events/') && route.value.endsWith('/participants')) await loadOrganizerParticipants(route.value.split('/')[3]);
       else if (route.value === '/organizer/create-event') await loadEventForm();
       else if (route.value.startsWith('/organizer/events/') && route.value.endsWith('/edit')) {
@@ -1976,12 +1978,12 @@ export default defineComponent({
       class: 'auth-form',
       onSubmit: (event: Event) => { event.preventDefault(); void registerOrganizer(); },
     }, [
+      authInput('Nome locale', 'organization_name', 'text', organizerRegistrationForm.value.organization_name, (value) => { organizerRegistrationForm.value.organization_name = value; }),
+      authInput('Tipo organizzazione', 'organization_type', 'text', organizerRegistrationForm.value.organization_type, (value) => { organizerRegistrationForm.value.organization_type = value; }),
       authInput('Nome referente', 'name', 'text', organizerRegistrationForm.value.name, (value) => { organizerRegistrationForm.value.name = value; }),
       authInput('Email', 'email', 'email', organizerRegistrationForm.value.email, (value) => { organizerRegistrationForm.value.email = value; }),
       authInput('Password', 'password', 'password', organizerRegistrationForm.value.password, (value) => { organizerRegistrationForm.value.password = value; }),
       authInput('Conferma password', 'password_confirmation', 'password', organizerRegistrationForm.value.password_confirmation, (value) => { organizerRegistrationForm.value.password_confirmation = value; }),
-      authInput('Nome organizzazione', 'organization_name', 'text', organizerRegistrationForm.value.organization_name, (value) => { organizerRegistrationForm.value.organization_name = value; }),
-      authInput('Tipo organizzazione', 'organization_type', 'text', organizerRegistrationForm.value.organization_type, (value) => { organizerRegistrationForm.value.organization_type = value; }),
       h('button', { class: 'auth-submit', type: 'submit', disabled: authLoading.value }, authLoading.value ? 'Registrazione in corso…' : 'Crea account Organizzatore'),
     ]);
 
@@ -2761,12 +2763,24 @@ export default defineComponent({
       ])),
       organizerActivities.value.length === 0 ? emptyState('Nessuna attività disponibile per configurare il menu.') : null,
     ];
-    const renderRestaurantReservations = () => [
-      h('div', { class: 'page-heading' }, [h('h1', 'Prenotazioni locale'), h('p', 'Prenotazioni del Reservation Engine, separate dai booking degli eventi.')]),
-      organizerReservationDashboard.value ? h('section', { class: 'metric-grid' }, [card('Prenotazioni oggi', `${organizerReservationDashboard.value.today.reservations}`, 'locale'), card('Coperti oggi', `${organizerReservationDashboard.value.today.covers}`, 'confermati'), card('Coperti residui', `${organizerReservationDashboard.value.today.available}`, 'disponibilità reale')]) : null,
-      ...organizerActivities.value.map((activity: any) => h('article', { class: 'wide-panel manager-workspace' }, [h('div', { class: 'panel-heading' }, [h('h2', activity.name), h('span', 'Reservation Engine')]), renderOrganizerActivityReservations(activity)])),
-      organizerActivities.value.length === 0 ? emptyState('Nessuna attività o prenotazione locale disponibile.') : null,
-    ];
+    const renderRestaurantReservations = () => {
+      const today = new Date().toDateString();
+      const eventBookingsToday = organizerBookings.value.filter((booking) => new Date(booking.event.starts_at).toDateString() === today && !booking.status.startsWith('cancelled'));
+      const preorderCount = Object.values(organizerActivityReservations.value).flat().filter((reservation: any) => reservation.preorder?.status === 'confirmed').length;
+      const localTab = [
+        ...organizerActivities.value.map((activity: any) => h('article', { class: 'wide-panel manager-workspace' }, [h('div', { class: 'panel-heading' }, [h('h2', activity.name), h('span', 'Reservation Engine')]), renderOrganizerActivityReservations(activity)])),
+        organizerActivities.value.length === 0 ? emptyState('Nessuna attività o prenotazione locale disponibile.') : null,
+      ];
+      return [
+        h('div', { class: 'page-heading' }, [h('h1', 'Prenotazioni'), h('p', 'Centro operativo per locale ed eventi, con i due motori mantenuti separati.')]),
+        organizerReservationDashboard.value ? h('section', { class: 'metric-grid' }, [card('Coperti oggi', `${organizerReservationDashboard.value.today.covers}`, 'locale'), card('Partecipanti eventi oggi', `${eventBookingsToday.reduce((total, booking) => total + booking.people, 0)}`, 'booking eventi'), card('Preordini', `${preorderCount}`, 'confermati')]) : null,
+        h('div', { class: 'filter-strip booking-hub-tabs', role: 'tablist', 'aria-label': 'Tipi di prenotazione' }, [
+          h('button', { role: 'tab', 'aria-selected': organizerBookingHubTab.value === 'venue', class: organizerBookingHubTab.value === 'venue' ? 'active' : '', onClick: () => { organizerBookingHubTab.value = 'venue'; } }, 'Prenotazioni locale'),
+          h('button', { role: 'tab', 'aria-selected': organizerBookingHubTab.value === 'events', class: organizerBookingHubTab.value === 'events' ? 'active' : '', onClick: () => { organizerBookingHubTab.value = 'events'; } }, 'Prenotazioni eventi'),
+        ]),
+        ...(organizerBookingHubTab.value === 'venue' ? localTab : renderOrganizerBookings()),
+      ];
+    };
     const renderOrganizerActivities = () => [
       h('div', { class: 'page-heading' }, [h('h1', 'MòVi Manager · Attività'), h('p', 'Configura servizi e coperti senza gestione tavoli.')]),
       organizerReservationDashboard.value ? h('section', { class: 'metric-grid' }, [h('article', { class: 'metric-card' }, [h('strong', organizerReservationDashboard.value.today.reservations), h('span', 'Prenotazioni oggi')]), h('article', { class: 'metric-card' }, [h('strong', organizerReservationDashboard.value.today.covers), h('span', 'Coperti oggi')]), h('article', { class: 'metric-card' }, [h('strong', organizerReservationDashboard.value.today.cancellations), h('span', 'Cancellazioni')]), h('article', { class: 'metric-card' }, [h('strong', organizerReservationDashboard.value.today.no_show), h('span', 'No-show')])]) : null,
@@ -2981,9 +2995,9 @@ export default defineComponent({
       if (organizerBookingsError.value) return [heading, controls, h('article', { class: 'wide-panel dashboard-error' }, [h('p', organizerBookingsError.value), h('button', { onClick: () => { void loadOrganizerBookings(); } }, 'Riprova')])];
       if (!organizerBookings.value.length) return [heading, controls, h('article', { class: 'wide-panel empty-state' }, [h('strong', 'Nessuna prenotazione trovata'), h('p', 'Prova a modificare ricerca o filtri.')])];
       const table = h('div', { class: 'booking-table-wrap' }, h('table', { class: 'booking-table' }, [
-        h('thead', h('tr', ['Evento', 'Cliente', 'Persone', 'Stato', 'Data'].map((label) => h('th', label)))),
+        h('thead', h('tr', ['Evento', 'Cliente', 'Persone', 'Stato', 'Data evento', 'QR / check-in'].map((label) => h('th', label)))),
         h('tbody', organizerBookings.value.map((booking) => h('tr', { tabindex: 0, onClick: () => { void go(`/organizer/bookings/${booking.ulid}`); }, onKeydown: (event: KeyboardEvent) => { if (event.key === 'Enter') void go(`/organizer/bookings/${booking.ulid}`); } }, [
-          h('td', booking.event.title), h('td', [h('strong', booking.customer.name), h('small', booking.customer.email)]), h('td', String(booking.people)), h('td', h('span', { class: `status-badge status-${booking.status}` }, bookingStatusLabel(booking.status))), h('td', new Date(booking.booked_at).toLocaleString('it-IT')),
+          h('td', booking.event.title), h('td', [h('strong', booking.customer.name), h('small', booking.customer.email)]), h('td', String(booking.people)), h('td', h('span', { class: `status-badge status-${booking.status}` }, bookingStatusLabel(booking.status))), h('td', new Date(booking.event.starts_at).toLocaleString('it-IT')), h('td', booking.checked_in_at ? `Effettuato · ${new Date(booking.checked_in_at).toLocaleString('it-IT')}` : 'Da effettuare'),
         ]))),
       ]));
       const meta = organizerBookingsMeta.value;
@@ -2995,7 +3009,7 @@ export default defineComponent({
       if (organizerBookingsLoading.value) return [h('article', { class: 'wide-panel' }, 'Caricamento dettaglio…')];
       if (organizerBookingsError.value || !booking) return [h('article', { class: 'wide-panel dashboard-error' }, [h('p', organizerBookingsError.value || 'Prenotazione non disponibile.'), h('button', { onClick: () => { void loadOrganizerBookingDetail(route.value.split('/')[3]); } }, 'Riprova')])];
       return [
-        h('div', { class: 'section-title' }, [h('div', [h('h2', `Prenotazione ${booking.booking_code}`), h('span', booking.event.title)]), h('button', { onClick: () => { void go('/organizer/bookings'); } }, 'Torna alle prenotazioni')]),
+        h('div', { class: 'section-title' }, [h('div', [h('h2', `Prenotazione ${booking.booking_code}`), h('span', booking.event.title)]), h('button', { onClick: () => { organizerBookingHubTab.value = 'events'; void go('/organizer/reservations'); } }, 'Torna alle prenotazioni')]),
         h('article', { class: 'wide-panel booking-detail' }, [
           h('div', { class: 'booking-detail-grid' }, [
             h('div', [h('small', 'Cliente'), h('strong', booking.customer.name)]), h('div', [h('small', 'Email'), h('strong', booking.customer.email)]),

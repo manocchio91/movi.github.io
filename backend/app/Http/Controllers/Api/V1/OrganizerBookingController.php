@@ -31,7 +31,7 @@ class OrganizerBookingController extends Controller
         $data = [
             'ulid' => $booking->ulid, 'booking_code' => $booking->booking_code,
             'customer' => ['name' => $booking->user->name, 'email' => $booking->user->email, 'phone' => $booking->contact_phone],
-            'event' => ['ulid' => $booking->event->ulid, 'title' => $booking->event->title],
+            'event' => ['ulid' => $booking->event->ulid, 'title' => $booking->event->title, 'starts_at' => $booking->event->starts_at],
             'people' => $booking->total_people, 'status' => $booking->status, 'booked_at' => $booking->booked_at,
             'checked_in_at' => $booking->checkIns->first()?->checked_in_at,
         ];

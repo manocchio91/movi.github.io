@@ -74,6 +74,7 @@ class OrganizerProfileApprovalTest extends TestCase
         $this->postJson('/api/v1/admin/organizers/'.$profile->ulid.'/approve')->assertOk();
         $this->postJson('/api/v1/admin/organizers/'.$profile->ulid.'/approve')->assertConflict();
         $this->assertSame(1, Activity::query()->where('organizer_profile_id', $profile->id)->count());
+        $this->assertDatabaseHas('activities', ['organizer_profile_id' => $profile->id, 'status' => 'published']);
     }
 
     /** @return array{User, OrganizerProfile} */

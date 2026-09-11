@@ -26,7 +26,7 @@ class ActivityController extends Controller
             'type' => ['nullable', Rule::enum(ActivityType::class)],
         ]);
         $search = trim((string) ($filters['q'] ?? ''));
-        $activities = Activity::query()->where('status', ActivityStatus::Published)->where('booking_enabled', true)
+        $activities = Activity::query()->where('status', ActivityStatus::Published)
             ->whereHas('organizerProfile', fn ($query) => $query->where('verification_status', 'verified')->whereNull('suspended_at')->whereHas('owner', fn ($owner) => $owner->where('status', 'active')))
             ->when($search !== '', fn ($query) => $query->where('name', 'ilike', "%{$search}%"))
             ->when(isset($filters['municipality_id']), fn ($query) => $query->where('municipality_id', $filters['municipality_id']))

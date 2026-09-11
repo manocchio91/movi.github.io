@@ -14,7 +14,7 @@ class OrganizerBookingService
     /** @param array<string, mixed> $filters */
     public function paginate(User $actor, array $filters): LengthAwarePaginator
     {
-        $query = $this->visibleQuery($actor)->with(['user:id,name,email', 'event:id,ulid,title,organizer_profile_id', 'items.ticketType:id,name', 'checkIns']);
+        $query = $this->visibleQuery($actor)->with(['user:id,name,email', 'event:id,ulid,title,organizer_profile_id,starts_at', 'items.ticketType:id,name', 'checkIns']);
         $search = trim((string) ($filters['search'] ?? ''));
         $filter = (string) ($filters['filter'] ?? 'all');
 
@@ -48,7 +48,7 @@ class OrganizerBookingService
     {
         abort_unless($this->visibleQuery($actor)->whereKey($booking->id)->exists(), 403);
 
-        return $booking->load(['user:id,name,email', 'event:id,ulid,title,organizer_profile_id', 'items.ticketType:id,name', 'checkIns']);
+        return $booking->load(['user:id,name,email', 'event:id,ulid,title,organizer_profile_id,starts_at', 'items.ticketType:id,name', 'checkIns']);
     }
 
     /** @return Builder<Booking> */

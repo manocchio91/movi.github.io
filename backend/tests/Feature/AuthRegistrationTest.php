@@ -103,6 +103,12 @@ class AuthRegistrationTest extends TestCase
             'name' => 'Cantina Reale',
             'verification_status' => 'incomplete',
         ]);
+        $this->assertDatabaseHas('activities', [
+            'organizer_profile_id' => $user->organizerProfile->id,
+            'name' => 'Cantina Reale',
+            'status' => 'draft',
+            'booking_enabled' => false,
+        ]);
 
         $this->withToken($response->json('token'))
             ->getJson('/api/v1/organizer/dashboard')

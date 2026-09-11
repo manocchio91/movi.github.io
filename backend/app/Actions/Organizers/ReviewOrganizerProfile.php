@@ -35,13 +35,16 @@ class ReviewOrganizerProfile
                 'review_notes' => $status === 'verified' ? null : trim((string) $reason),
             ])->save();
 
-            if ($status === 'verified' && ! $profile->activities()->exists()) {
-                Activity::query()->create([
+            if ($status === 'verified') {
+                $activity = $profile->activities()->oldest('id')->first() ?? new Activity([
                     'ulid' => (string) Str::ulid(),
                     'organizer_profile_id' => $profile->id,
+                    'slug' => Str::slug($profile->name).'-'.strtolower(Str::random(6)),
+                    'booking_enabled' => false,
+                ]);
+                $activity->fill([
                     'municipality_id' => $profile->municipality_id,
                     'name' => $profile->name,
-                    'slug' => Str::slug($profile->name).'-'.strtolower(Str::random(6)),
                     'type' => str_contains(strtolower((string) $profile->type), 'ristor') ? ActivityType::Restaurant : ActivityType::Other,
                     'description' => $profile->description,
                     'address' => trim(implode(' ', array_filter([$profile->address, $profile->street_number]))),
@@ -50,6 +53,7 @@ class ReviewOrganizerProfile
                     'public_email' => $profile->public_email,
                     'status' => ActivityStatus::Published,
                 ]);
+                $activity->save();
             }
 
             return $profile->refresh();

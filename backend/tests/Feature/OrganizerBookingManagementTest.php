@@ -34,6 +34,7 @@ class OrganizerBookingManagementTest extends TestCase
 
         $response->assertOk()->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.ulid', $owned->ulid)->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.event.starts_at', $event->starts_at->toJSON())
             ->assertJsonMissing(['ulid' => $foreign->ulid])->assertJsonMissingPath('data.0.qr_token');
     }
 

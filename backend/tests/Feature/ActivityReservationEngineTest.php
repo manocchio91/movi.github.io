@@ -159,6 +159,15 @@ class ActivityReservationEngineTest extends TestCase
         $this->getJson("/api/v1/activities/{$hidden->ulid}")->assertNotFound();
     }
 
+    public function test_public_directory_includes_verified_published_activity_without_booking_services(): void
+    {
+        [, $profile, $municipality] = $this->organizerDomain('Showcase');
+        $activity = Activity::query()->create([...$this->activityPayload($municipality), 'ulid' => (string) Str::ulid(), 'organizer_profile_id' => $profile->id, 'slug' => 'showcase-'.Str::lower(Str::random(8)), 'status' => ActivityStatus::Published, 'booking_enabled' => false]);
+
+        $this->getJson('/api/v1/activities?q=Aurora')->assertOk()
+            ->assertJsonFragment(['ulid' => $activity->ulid, 'booking_enabled' => false]);
+    }
+
     private function bookableDomain(int $capacity = 6, int $minimumAdvance = 0): array
     {
         [$organizer, $profile, $municipality] = $this->organizerDomain('Bookable'.Str::random(3));

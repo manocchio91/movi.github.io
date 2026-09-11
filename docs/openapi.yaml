@@ -1608,7 +1608,7 @@ paths:
     get:
       operationId: get_activities
       security: []
-      summary: Directory delle Activity pubblicate, prenotabili e appartenenti a Organizer verificati
+      summary: Directory delle Activity pubblicate appartenenti a Organizer verificati
       parameters:
         - { name: q, in: query, required: false, schema: { type: string, maxLength: 100 } }
         - { name: municipality_id, in: query, required: false, schema: { type: integer } }

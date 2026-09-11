@@ -119,6 +119,9 @@ test('MòVi Manager exposes calendar reservations menu and readable real plan ca
   assert.match(app, /\['I miei eventi', '\/organizer\/events'\]/);
   assert.match(app, /renderCalendarWorkspace/);
   assert.match(app, /renderRestaurantReservations/);
+  assert.match(app, /Prenotazioni locale/);
+  assert.match(app, /Prenotazioni eventi/);
+  assert.match(app, /Partecipanti eventi oggi/);
   assert.match(app, /renderMenuWorkspace/);
   assert.match(app, /Numero coperti MòVi/);
   assert.match(app, /Pranzo.*Cena.*Entrambi/s);
@@ -128,12 +131,18 @@ test('MòVi Manager exposes calendar reservations menu and readable real plan ca
   assert.match(app, /Salva chiusura/);
   assert.match(app, /Salva categoria/);
   assert.match(app, /Piatto attivo/);
-  assert.match(app, /Prenotazioni del Reservation Engine, separate dai booking degli eventi/);
+  assert.match(app, /Prenotazioni locale/);
+  assert.match(app, /Prenotazioni eventi/);
   assert.match(app, /La regia della tua attività/);
   assert.doesNotMatch(app, /La regia dei tuoi eventi/);
   assert.match(app, /movi-plan-card/);
   assert.match(styles, /\.movi-plan-card h2/);
   assert.match(app, /posti disponibili/);
+});
+
+test('organizer registration leads with venue identity and keeps backend field names', () => {
+  assert.match(app, /authInput\('Nome locale', 'organization_name'/);
+  assert.match(app, /Nome locale[\s\S]*Tipo organizzazione[\s\S]*Nome referente[\s\S]*Email[\s\S]*Password[\s\S]*Conferma password/);
 });
 
 test('organizer profile approval uses standalone profile actions and removes activity creation UX', () => {
