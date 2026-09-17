@@ -29,6 +29,12 @@ class CreateReview
             ->first();
 
         abort_unless($booking !== null, 403, 'Serve una prenotazione confermata per recensire.');
+        abort_if(
+            Review::query()->where('booking_id', $booking->id)->exists()
+                || Review::query()->where('event_id', $event->id)->where('user_id', $user->id)->exists(),
+            422,
+            'Hai già recensito questa esperienza.',
+        );
         abort_unless(app(ReviewEligibility::class)->eventBooking($booking), 403, 'Puoi recensire solo dopo la conclusione dell’evento e una sola volta.');
 
         $review = Review::query()->create([
