@@ -1768,6 +1768,7 @@ paths:
     get:
       operationId: get_discovery
       summary: Discovery deterministica di Event e Activity realmente disponibili
+      description: category_id filtra Event e Activity tramite la tassonomia categories condivisa; non vengono inferiti interessi mancanti.
       parameters:
         - { name: when, in: query, schema: { type: string, enum: [today, evening, tomorrow, weekend] } }
         - { name: type, in: query, schema: { type: string, enum: [all, event, activity] } }
@@ -1790,6 +1791,7 @@ paths:
     post:
       operationId: post_plans_generate
       summary: Genera fino a tre piani deterministici da Event e Activity reali
+      description: Verifica orari e distanza con margine fisso ed euristica chilometrica; prezzi ignoti restano null e la disponibilità proviene dai motori di dominio.
       responses: { "200": { description: Piani temporanei ordinati e motivati }, "422": { $ref: "#/components/responses/UnprocessableEntity" } }
   /plans/revalidate:
     post:

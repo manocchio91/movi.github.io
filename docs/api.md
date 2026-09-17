@@ -2,6 +2,12 @@
 
 Base path: `/api/v1`
 
+## Discovery e MòVi Plan
+
+La tassonomia `categories` è unica: Event e Activity possono condividere una categoria, mentre `Activity.type` descrive che cosa è il locale. `category_id` e il contesto Famiglia includono entrambi i tipi soltanto con un'associazione persistita; nessun interesse viene dedotto dal nome o dal tipo.
+
+Il ranking è deterministico: categoria/preferenze, follow e disponibilità alimentano lo score; a parità si ordinano tipo e ULID. Il Plan combina fino a tre risultati e tra tappe applica 30 minuti più 3 minuti per chilometro. La disponibilità proviene dai motori Event e Reservation. Il budget usa solo prezzi reali: se uno manca, il totale è `null` e la verifica è `partial`.
+
 ## Autenticazione
 - `POST /auth/register`
 - `POST /auth/login`
@@ -15,6 +21,7 @@ Base path: `/api/v1`
 
 ## Pubblico
 - `GET /categories`
+- `GET /activities` (`category_id` usa la stessa tassonomia degli Eventi)
 - `GET /events`
 - `GET /events/{event}`
 - `GET /events/{event}/reviews`
@@ -92,6 +99,10 @@ Eventi simili:
 `notify-similar` salva una preferenza reale in `customer_event_format_interests` e sincronizza la categoria in `user_event_preferences`.
 
 ## Organizzatore
+- `GET /organizer/activities`
+- `POST /organizer/activities`
+- `PUT /organizer/activities/{activity}` (`category_ids` associa interessi amministrati esistenti)
+
 - `GET /organizer/profile`
 - `GET /organizer/dashboard`
 - `GET /organizer/reviews`

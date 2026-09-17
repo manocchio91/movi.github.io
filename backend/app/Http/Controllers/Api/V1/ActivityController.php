@@ -24,6 +24,7 @@ class ActivityController extends Controller
             'q' => ['nullable', 'string', 'max:100'],
             'municipality_id' => ['nullable', 'integer', 'exists:municipalities,id'],
             'type' => ['nullable', Rule::enum(ActivityType::class)],
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
         ]);
         $search = trim((string) ($filters['q'] ?? ''));
         $activities = Activity::query()->where('status', ActivityStatus::Published)
@@ -31,7 +32,8 @@ class ActivityController extends Controller
             ->when($search !== '', fn ($query) => $query->where('name', 'ilike', "%{$search}%"))
             ->when(isset($filters['municipality_id']), fn ($query) => $query->where('municipality_id', $filters['municipality_id']))
             ->when(isset($filters['type']), fn ($query) => $query->where('type', $filters['type']))
-            ->with(['municipality', 'organizerProfile', 'services' => fn ($q) => $q->where('active', true)->where('booking_enabled', true)])
+            ->when(isset($filters['category_id']), fn ($query) => $query->whereHas('categories', fn ($category) => $category->whereKey($filters['category_id'])->where('is_active', true)))
+            ->with(['categories', 'municipality', 'organizerProfile', 'services' => fn ($q) => $q->where('active', true)->where('booking_enabled', true)])
             ->withCount(['followers', 'reviews' => fn ($q) => $q->where('status', 'approved')])->withAvg(['reviews' => fn ($q) => $q->where('status', 'approved')], 'rating')->orderBy('name')->paginate(15);
 
         $activities->getCollection()->each(fn (Activity $activity) => $activity->setAttribute('next_available_at', $this->nextAvailableAt($activity, $availability)));
@@ -44,7 +46,7 @@ class ActivityController extends Controller
         abort_unless($this->isPublic($activity), 404);
         $analytics->recordActivityDetail($activity, $request->user(), $request->header('X-Analytics-Session'));
         $user = $request->user();
-        $activity->load(['municipality', 'organizerProfile', 'services' => fn ($q) => $q->where('active', true)->where('booking_enabled', true), 'events' => fn ($q) => $q->whereIn('status', [EventStatus::Published, EventStatus::SoldOut])->where('starts_at', '>=', now())->where('municipality_id', $activity->municipality_id)->with(['categories', 'municipality', 'ticketTypes'])->orderBy('starts_at')->limit(6), 'followers' => fn ($q) => $user ? $q->whereKey($user->id) : $q->whereRaw('1 = 0')])->loadCount(['followers', 'reviews' => fn ($q) => $q->where('status', 'approved')])->loadAvg(['reviews' => fn ($q) => $q->where('status', 'approved')], 'rating');
+        $activity->load(['municipality', 'categories', 'organizerProfile', 'services' => fn ($q) => $q->where('active', true)->where('booking_enabled', true), 'events' => fn ($q) => $q->whereIn('status', [EventStatus::Published, EventStatus::SoldOut])->where('starts_at', '>=', now())->where('municipality_id', $activity->municipality_id)->with(['categories', 'municipality', 'ticketTypes'])->orderBy('starts_at')->limit(6), 'followers' => fn ($q) => $user ? $q->whereKey($user->id) : $q->whereRaw('1 = 0')])->loadCount(['followers', 'reviews' => fn ($q) => $q->where('status', 'approved')])->loadAvg(['reviews' => fn ($q) => $q->where('status', 'approved')], 'rating');
         $activity->setAttribute('next_available_at', $this->nextAvailableAt($activity, app(AvailabilityService::class)));
 
         return response()->json(['data' => ActivityResource::make($activity)]);

@@ -203,7 +203,11 @@ test('MòVi Manager: calendario, menu, import e prenotazioni locale sono operati
   const auth = await request.post('http://127.0.0.1:18081/api/v1/auth/login', { data: { email: 'organizer@example.test', password: 'password' } });
   const token = (await auth.json()).token;
   const headers = { Authorization: `Bearer ${token}` };
-  const activityResponse = await request.post('http://127.0.0.1:18081/api/v1/organizer/activities', { headers, data: { name: 'Ristorante Manager E2E', type: 'restaurant', description: 'Fixture isolata Manager', status: 'published', booking_enabled: true } });
+  const categories = (await (await request.get('http://127.0.0.1:18081/api/v1/categories')).json()).data;
+  const interest = categories[0];
+  const municipalities = (await (await request.get('http://127.0.0.1:18081/api/v1/locations/municipalities?postal_code=86100')).json()).data;
+  const municipality = municipalities[0];
+  const activityResponse = await request.post('http://127.0.0.1:18081/api/v1/organizer/activities', { headers, data: { name: 'Ristorante Manager E2E', type: 'restaurant', description: 'Fixture isolata Manager', municipality_id: municipality.id, status: 'published', booking_enabled: true } });
   expect(activityResponse.ok()).toBeTruthy();
   const activity = (await activityResponse.json()).data;
 
@@ -212,6 +216,12 @@ test('MòVi Manager: calendario, menu, import e prenotazioni locale sono operati
   await expect(sidebar).toContainText('Calendario');
   await expect(sidebar).toContainText('Menu');
   await expect(page.getByRole('heading', { name: 'La regia della tua attività.' })).toBeVisible();
+
+  await page.getByRole('button', { name: /Attivit/, exact: true }).click();
+  const activityManager = page.locator('article').filter({ has: page.getByRole('heading', { name: 'Ristorante Manager E2E' }) });
+  await activityManager.getByLabel(interest.name, { exact: true }).check();
+  await activityManager.getByRole('button', { name: 'Salva interessi' }).click();
+  await expect(activityManager.getByRole('status')).toContainText('Interessi aggiornati.');
 
   await page.getByRole('button', { name: 'Calendario', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Calendario disponibilità' })).toBeVisible();
@@ -229,10 +239,26 @@ test('MòVi Manager: calendario, menu, import e prenotazioni locale sono operati
   await page.getByRole('button', { name: 'Calendario', exact: true }).click();
   await expect(page.getByText(/20 coperti · 2026-10-15 → 2026-11-30/).first()).toBeVisible();
   const refreshedActivities = await request.get('http://127.0.0.1:18081/api/v1/organizer/activities', { headers });
-  const configuredServices = (await refreshedActivities.json()).data.find((row: { ulid: string }) => row.ulid === activity.ulid).services;
+  const refreshedActivity = (await refreshedActivities.json()).data.find((row: { ulid: string }) => row.ulid === activity.ulid);
+  const configuredServices = refreshedActivity.services;
   const dinner = configuredServices.find((service: { type: string }) => service.type === 'dinner');
   expect(dinner).toBeTruthy();
   expect(configuredServices.some((service: { type: string }) => service.type === 'lunch')).toBeTruthy();
+  expect(refreshedActivity.categories).toContainEqual(expect.objectContaining({ id: interest.id }));
+
+  const eventResponse = await request.post('http://127.0.0.1:18081/api/v1/organizer/events', { headers, data: { title: 'Concerto Discovery E2E', summary: 'Evento reale per il piano', description: 'Fixture DB isolata', municipality_id: municipality.id, category_ids: [interest.id], starts_at: '2026-10-16T22:30:00+02:00', ends_at: '2026-10-16T23:30:00+02:00', capacity_total: 30, is_free: false, family_friendly: false, indoor_outdoor: 'indoor', ticket_types: [{ name: 'Ingresso', audience: 'generic', price_cents: 1500, max_quantity: 30, is_active: true }] } });
+  expect(eventResponse.ok()).toBeTruthy();
+  const planEvent = (await eventResponse.json()).data;
+  expect((await request.post(`http://127.0.0.1:18081/api/v1/organizer/events/${planEvent.ulid}/publish`, { headers })).ok()).toBeTruthy();
+  const discovery = await request.get(`http://127.0.0.1:18081/api/v1/discovery?from=2026-10-16&to=2026-10-16&category_id=${interest.id}&available=1`);
+  const discoveryRows = (await discovery.json()).data;
+  expect(discoveryRows).toEqual(expect.arrayContaining([expect.objectContaining({ entity_type: 'activity', entity_id: activity.ulid }), expect.objectContaining({ entity_type: 'event', entity_id: planEvent.ulid })]));
+  const planResponse = await request.post('http://127.0.0.1:18081/api/v1/plans/generate', { data: { date: '2026-10-16', category_id: interest.id, budget_cents: 3000 } });
+  const plans = (await planResponse.json()).data;
+  const combinedPlan = plans.find((plan: { steps: Array<{ entity_type: string }> }) => new Set(plan.steps.map(step => step.entity_type)).size === 2);
+  expect(combinedPlan).toBeTruthy();
+  expect(combinedPlan.steps.every((step: { entity_id: string }) => [activity.ulid, planEvent.ulid].includes(step.entity_id))).toBeTruthy();
+  expect(combinedPlan.known_total_price_cents).toBeNull();
 
   await page.getByRole('button', { name: 'Menu', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Menu', exact: true })).toBeVisible();

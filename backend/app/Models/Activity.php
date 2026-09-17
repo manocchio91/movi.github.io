@@ -88,4 +88,10 @@ class Activity extends Model
     {
         return $this->belongsToMany(User::class, 'activity_followers')->withTimestamps();
     }
+
+    /** @return BelongsToMany<Category, $this> */
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(Category::class, 'activity_categories');
+    }
 }

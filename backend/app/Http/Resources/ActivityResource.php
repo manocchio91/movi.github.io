@@ -19,6 +19,7 @@ class ActivityResource extends JsonResource
             'description' => $activity->description, 'address' => $activity->address, 'postal_code' => $activity->postal_code,
             'phone' => $activity->phone, 'public_email' => $activity->public_email, 'status' => $activity->status,
             'booking_enabled' => $activity->booking_enabled, 'municipality' => $this->whenLoaded('municipality'),
+            'categories' => $this->whenLoaded('categories'),
             'organizer' => $this->whenLoaded('organizerProfile', fn () => [
                 'ulid' => $activity->organizerProfile->ulid, 'name' => $activity->organizerProfile->name,
                 'logo_url' => $activity->organizerProfile->logo_path ? Storage::disk('public')->url($activity->organizerProfile->logo_path) : null,

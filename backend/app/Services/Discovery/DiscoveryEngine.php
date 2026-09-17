@@ -24,30 +24,41 @@ class DiscoveryEngine
         if ($type !== 'activity') {
             $rows = $rows->concat($this->events($filters, $from, $to, $profile));
         }
-        if ($type !== 'event' && empty($filters['category_id']) && empty($filters['family'])) {
+        if ($type !== 'event') {
             $rows = $rows->concat($this->activities($filters, $from, $to, $evening, $profile));
         }
         $rows = $rows->filter(fn (array $row) => ! isset($filters['radius_km']) || ($row['distance_km'] !== null && $row['distance_km'] <= (float) $filters['radius_km']));
         $sort = $recommended ? 'relevance' : ($filters['sort'] ?? 'date');
 
-        return $rows->sortBy(fn (array $row) => match ($sort) {
-            'distance' => $row['distance_km'] ?? PHP_FLOAT_MAX, 'popularity' => -$row['popularity'], 'relevance' => -$row['recommendation_score'], default => $row['starts_at']
+        return $rows->sort(function (array $left, array $right) use ($sort): int {
+            $primary = match ($sort) {
+                'distance' => ($left['distance_km'] ?? PHP_FLOAT_MAX) <=> ($right['distance_km'] ?? PHP_FLOAT_MAX),
+                'popularity' => $right['popularity'] <=> $left['popularity'],
+                'relevance' => $right['recommendation_score'] <=> $left['recommendation_score'],
+                default => ($left['starts_at'] ?? '') <=> ($right['starts_at'] ?? ''),
+            };
+
+            return $primary !== 0 ? $primary : [$left['entity_type'], $left['entity_id']] <=> [$right['entity_type'], $right['entity_id']];
         })->values();
     }
 
     private function events(array $filters, CarbonImmutable $from, CarbonImmutable $to, InterestProfile $profile): Collection
     {
         return Event::query()->with(['categories', 'municipality', 'organizerProfile', 'ticketTypes'])->whereIn('status', [EventStatus::Published, EventStatus::SoldOut])
+            ->whereHas('organizerProfile', fn ($q) => $q->where('verification_status', 'verified')->whereNull('suspended_at')->whereHas('owner', fn ($owner) => $owner->where('status', 'active')))
             ->whereBetween('starts_at', [$from, $to])->when(empty($filters['include_sold_out']) || ! empty($filters['available']), fn ($q) => $q->where('available_total', '>=', (int) ($filters['party_size'] ?? 1)))
             ->when($filters['category_id'] ?? null, fn ($q, $id) => $q->whereHas('categories', fn ($c) => $c->whereKey($id)))
-            ->when($filters['municipality_id'] ?? null, fn ($q, $id) => $q->where('municipality_id', $id))->when($filters['family'] ?? false, fn ($q) => $q->where('family_friendly', true))
+            ->when($filters['municipality_id'] ?? null, fn ($q, $id) => $q->where('municipality_id', $id))->when($filters['family'] ?? false, fn ($q) => $q->where(fn ($family) => $family->where('family_friendly', true)->orWhereHas('categories', fn ($category) => $category->where('slug', 'famiglia')->where('is_active', true))))
             ->limit(200)->get()->map(fn (Event $event) => $this->eventRow($event, $profile, $filters));
     }
 
     private function activities(array $filters, CarbonImmutable $from, CarbonImmutable $to, bool $evening, InterestProfile $profile): Collection
     {
-        return Activity::query()->with(['municipality', 'organizerProfile', 'services' => fn ($q) => $q->where('active', true)->where('booking_enabled', true)])
+        return Activity::query()->with(['categories', 'municipality', 'organizerProfile', 'services' => fn ($q) => $q->where('active', true)->where('booking_enabled', true)])
             ->withCount('followers')->where('status', ActivityStatus::Published)->where('booking_enabled', true)
+            ->whereHas('organizerProfile', fn ($q) => $q->where('verification_status', 'verified')->whereNull('suspended_at')->whereHas('owner', fn ($owner) => $owner->where('status', 'active')))
+            ->when($filters['category_id'] ?? null, fn ($q, $id) => $q->whereHas('categories', fn ($category) => $category->whereKey($id)->where('is_active', true)))
+            ->when($filters['family'] ?? false, fn ($q) => $q->whereHas('categories', fn ($category) => $category->where('slug', 'famiglia')->where('is_active', true)))
             ->when($filters['municipality_id'] ?? null, fn ($q, $id) => $q->where('municipality_id', $id))->limit(100)->get()
             ->map(function (Activity $activity) use ($from, $to, $evening, $profile, $filters): ?array {
                 $slots = collect();
@@ -60,9 +71,10 @@ class DiscoveryEngine
                     return null;
                 }
                 $first = $slots->sortBy('starts_at')->first();
-                [$score, $reasons] = $this->score([], $activity->organizer_profile_id, $activity->id, $profile, $filters, $first !== null);
+                $categories = $activity->categories->pluck('id')->map(fn ($id) => (int) $id)->all();
+                [$score, $reasons] = $this->score($categories, $activity->organizer_profile_id, $activity->id, $profile, $filters, $first !== null);
 
-                return ['entity_type' => 'activity', 'entity_id' => $activity->ulid, 'title' => $activity->name, 'slug' => $activity->slug, 'category' => null, 'image' => null,
+                return ['entity_type' => 'activity', 'entity_id' => $activity->ulid, 'title' => $activity->name, 'slug' => $activity->slug, 'category' => $activity->categories->first()?->name, 'categories' => $activity->categories->values()->all(), 'image' => null,
                     'location' => $activity->municipality?->name, 'latitude' => $activity->municipality?->latitude, 'longitude' => $activity->municipality?->longitude,
                     'starts_at' => $first['starts_at'] ?? null, 'ends_at' => $first ? CarbonImmutable::parse($first['starts_at'])->addMinutes((int) $first['duration_minutes'])->toIso8601String() : null,
                     'duration_minutes' => $first['duration_minutes'] ?? null, 'service_id' => $first['service_ulid'] ?? null, 'availability_status' => $first ? 'available' : 'unavailable', 'available' => $first['available'] ?? 0,
@@ -93,6 +105,10 @@ class DiscoveryEngine
         if (array_intersect($categories, $profile->categoryIds)) {
             $score += $weights['preferred_category'];
             $reasons[] = 'Categoria che segui';
+        }
+        if (isset($filters['category_id']) && in_array((int) $filters['category_id'], $categories, true)) {
+            $score += $weights['preferred_category'];
+            $reasons[] = 'Corrisponde alla categoria scelta';
         }
         if (in_array($organizer, $profile->organizerIds, true)) {
             $score += $weights['followed_organizer'];

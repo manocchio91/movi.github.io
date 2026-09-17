@@ -67,3 +67,6 @@
 
 ## Tabelle predisposte
 `user_profiles`, `organizer_members`, `user_location_preferences`, `event_schedules`, `booking_participants_summary`, `waitlist_entries`, `check_ins`, `favorites`, `media`, `reports`, `idempotency_keys`.
+## Tassonomia Activity
+
+`activity_categories` collega le Activity alla tassonomia amministrata `categories`, già usata dagli Eventi. La chiave composta impedisce duplicati; le foreign key rimuovono l'associazione quando una risorsa viene eliminata.

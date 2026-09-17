@@ -30,4 +30,10 @@ class Category extends Model
     {
         return $this->belongsToMany(Event::class, 'event_categories');
     }
+
+    /** @return BelongsToMany<Activity, $this> */
+    public function activities(): BelongsToMany
+    {
+        return $this->belongsToMany(Activity::class, 'activity_categories');
+    }
 }

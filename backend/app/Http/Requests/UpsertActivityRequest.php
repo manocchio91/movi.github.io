@@ -22,6 +22,8 @@ class UpsertActivityRequest extends FormRequest
             'address' => ['nullable', 'string', 'max:255'], 'postal_code' => ['nullable', 'string', 'max:10'],
             'phone' => ['nullable', 'string', 'max:30'], 'public_email' => ['nullable', 'email', 'max:255'],
             'status' => ['sometimes', Rule::enum(ActivityStatus::class)], 'booking_enabled' => ['required', 'boolean'],
+            'category_ids' => ['sometimes', 'array', 'max:12'],
+            'category_ids.*' => ['integer', 'distinct', Rule::exists('categories', 'id')->where('is_active', true)],
         ];
     }
 }

@@ -97,11 +97,12 @@ class PlanningEngine
 
     private function compatible(array $first, array $second): bool
     {
-        $minimum = CarbonImmutable::parse($first['ends_at'])->addMinutes((int) config('planning.buffer_minutes'));
+        $distance = $this->distance($first, $second);
+        $travelMinutes = $distance === null ? 0 : (int) ceil($distance * (float) config('planning.travel_minutes_per_km'));
+        $minimum = CarbonImmutable::parse($first['ends_at'])->addMinutes((int) config('planning.buffer_minutes') + $travelMinutes);
         if (CarbonImmutable::parse($second['starts_at'])->lt($minimum)) {
             return false;
         }
-        $distance = $this->distance($first, $second);
 
         return $distance === null || $distance <= (float) config('planning.max_step_distance_km');
     }
