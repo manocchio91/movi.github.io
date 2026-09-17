@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Actions\Notifications\SendPostVisitReviewRequests;
 use App\Actions\Reservations\SendReservationReminders;
 use App\Contracts\OrganizerWhatsAppProvider;
 use App\Enums\ActivityStatus;
@@ -10,13 +11,17 @@ use App\Enums\ReservationStatus;
 use App\Enums\UserRole;
 use App\Jobs\SendOrganizerWhatsAppBookingNotification;
 use App\Models\Activity;
+use App\Models\ActivityReview;
 use App\Models\ActivityService;
 use App\Models\AnalyticsEvent;
 use App\Models\Booking;
 use App\Models\Event;
 use App\Models\Municipality;
+use App\Models\Notification;
+use App\Models\NotificationPreference;
 use App\Models\OrganizerProfile;
 use App\Models\PreOrder;
+use App\Models\PreOrderItem;
 use App\Models\Province;
 use App\Models\Region;
 use App\Models\Reservation;
@@ -57,6 +62,71 @@ class ActivityReservationEngineTest extends TestCase
         $this->assertSame(0, $sender->handle(24));
         $this->assertDatabaseCount('notifications', 1);
         $this->assertDatabaseHas('notifications', ['reservation_id' => $reservation->id, 'kind' => 'reservation_reminder', 'payload->has_preorder' => true]);
+    }
+
+    public function test_post_visit_review_requests_are_eligible_preference_aware_and_idempotent(): void
+    {
+        [, $activity, $service] = $this->bookableDomain();
+        $eligible = User::factory()->create(['role' => UserRole::Customer, 'status' => 'active']);
+        NotificationPreference::query()->create(['user_id' => $eligible->id, 'internal_enabled' => true, 'email_enabled' => false, 'promotional_enabled' => false, 'operational_enabled' => true, 'followed_organizer_events_enabled' => false, 'frequency' => 'immediate']);
+        $reservation = Reservation::query()->create(['ulid' => (string) Str::ulid(), 'user_id' => $eligible->id, 'activity_id' => $activity->id, 'service_id' => $service->id, 'starts_at' => now()->subDay(), 'party_size' => 2, 'status' => ReservationStatus::Completed, 'contact_phone' => '+393331234567', 'idempotency_key' => 'review-request-eligible']);
+
+        $tooEarly = User::factory()->create(['role' => UserRole::Customer, 'status' => 'active']);
+        Reservation::query()->create(['ulid' => (string) Str::ulid(), 'user_id' => $tooEarly->id, 'activity_id' => $activity->id, 'service_id' => $service->id, 'starts_at' => now()->subHour(), 'party_size' => 2, 'status' => ReservationStatus::Completed, 'contact_phone' => '+393331234567', 'idempotency_key' => 'review-request-early']);
+        $cancelled = User::factory()->create(['role' => UserRole::Customer, 'status' => 'active']);
+        Reservation::query()->create(['ulid' => (string) Str::ulid(), 'user_id' => $cancelled->id, 'activity_id' => $activity->id, 'service_id' => $service->id, 'starts_at' => now()->subDays(2), 'party_size' => 2, 'status' => ReservationStatus::Cancelled, 'contact_phone' => '+393331234567', 'idempotency_key' => 'review-request-cancelled']);
+        $optedOut = User::factory()->create(['role' => UserRole::Customer, 'status' => 'active']);
+        NotificationPreference::query()->create(['user_id' => $optedOut->id, 'internal_enabled' => true, 'email_enabled' => true, 'promotional_enabled' => false, 'operational_enabled' => false, 'followed_organizer_events_enabled' => false, 'frequency' => 'immediate']);
+        Reservation::query()->create(['ulid' => (string) Str::ulid(), 'user_id' => $optedOut->id, 'activity_id' => $activity->id, 'service_id' => $service->id, 'starts_at' => now()->subDays(2), 'party_size' => 2, 'status' => ReservationStatus::Completed, 'contact_phone' => '+393331234567', 'idempotency_key' => 'review-request-optout']);
+        $reviewed = User::factory()->create(['role' => UserRole::Customer, 'status' => 'active']);
+        $reviewedReservation = Reservation::query()->create(['ulid' => (string) Str::ulid(), 'user_id' => $reviewed->id, 'activity_id' => $activity->id, 'service_id' => $service->id, 'starts_at' => now()->subDays(2), 'party_size' => 2, 'status' => ReservationStatus::Completed, 'contact_phone' => '+393331234567', 'idempotency_key' => 'review-request-reviewed']);
+        ActivityReview::query()->create(['ulid' => (string) Str::ulid(), 'activity_id' => $activity->id, 'reservation_id' => $reviewedReservation->id, 'user_id' => $reviewed->id, 'rating' => 5, 'would_recommend' => true, 'status' => 'approved', 'reviewed_at' => now()]);
+
+        $event = Event::query()->create(['ulid' => (string) Str::ulid(), 'organizer_profile_id' => $activity->organizer_profile_id, 'municipality_id' => $activity->municipality_id, 'title' => 'Evento concluso', 'slug' => 'concluso-'.Str::lower(Str::random(8)), 'summary' => 'Evento', 'description' => 'Evento', 'status' => 'completed', 'starts_at' => now()->subDays(2), 'ends_at' => now()->subDay(), 'capacity_total' => 10, 'available_total' => 9, 'is_free' => true, 'family_friendly' => false, 'indoor_outdoor' => 'indoor']);
+        $booking = Booking::query()->create(['ulid' => (string) Str::ulid(), 'user_id' => $eligible->id, 'event_id' => $event->id, 'status' => 'completed', 'total_people' => 1, 'adults_count' => 1, 'children_count' => 0, 'total_price_cents' => 0, 'booking_code' => 'REVIEW-EVENT', 'qr_token_hash' => 'review-event-hash', 'booked_at' => now()->subDays(3)]);
+
+        $sender = app(SendPostVisitReviewRequests::class);
+        $this->assertSame(2, $sender->handle());
+        $this->assertSame(0, $sender->handle());
+        $this->assertDatabaseHas('notifications', ['user_id' => $eligible->id, 'activity_id' => $activity->id, 'reservation_id' => $reservation->id, 'kind' => 'activity_review_request']);
+        $this->assertDatabaseHas('notifications', ['user_id' => $eligible->id, 'event_id' => $event->id, 'kind' => 'event_review_request']);
+        $this->assertDatabaseMissing('notifications', ['user_id' => $tooEarly->id, 'kind' => 'activity_review_request']);
+        $this->assertDatabaseMissing('notifications', ['user_id' => $cancelled->id, 'kind' => 'activity_review_request']);
+        $this->assertDatabaseMissing('notifications', ['user_id' => $optedOut->id, 'kind' => 'activity_review_request']);
+        $this->assertDatabaseMissing('notifications', ['user_id' => $reviewed->id, 'kind' => 'activity_review_request']);
+        $eventRequest = Notification::query()->where('kind', 'event_review_request')->firstOrFail();
+        $this->assertStringContainsString($booking->ulid, $eventRequest->payload['url']);
+    }
+
+    public function test_reservation_analytics_are_periodized_aggregated_and_organizer_scoped(): void
+    {
+        [$organizer, $activity, $service] = $this->bookableDomain();
+        [$otherOrganizer, $otherActivity, $otherService] = $this->bookableDomain();
+        $returning = User::factory()->create(['role' => UserRole::Customer, 'status' => 'active']);
+        $new = User::factory()->create(['role' => UserRole::Customer, 'status' => 'active']);
+        Reservation::query()->create(['ulid' => (string) Str::ulid(), 'user_id' => $returning->id, 'activity_id' => $activity->id, 'service_id' => $service->id, 'starts_at' => now()->subDays(40), 'party_size' => 2, 'status' => ReservationStatus::Completed, 'contact_phone' => '+393331234567', 'idempotency_key' => 'analytics-prior']);
+        $repeat = Reservation::query()->create(['ulid' => (string) Str::ulid(), 'user_id' => $returning->id, 'activity_id' => $activity->id, 'service_id' => $service->id, 'starts_at' => now()->subDays(2)->setTime(20, 0), 'party_size' => 3, 'status' => ReservationStatus::Completed, 'contact_phone' => '+393331234567', 'idempotency_key' => 'analytics-repeat']);
+        $fresh = Reservation::query()->create(['ulid' => (string) Str::ulid(), 'user_id' => $new->id, 'activity_id' => $activity->id, 'service_id' => $service->id, 'starts_at' => now()->subDay()->setTime(13, 0), 'party_size' => 2, 'status' => ReservationStatus::Confirmed, 'contact_phone' => '+393331234567', 'idempotency_key' => 'analytics-new']);
+        Reservation::query()->create(['ulid' => (string) Str::ulid(), 'user_id' => $new->id, 'activity_id' => $activity->id, 'service_id' => $service->id, 'starts_at' => now()->subDay(), 'party_size' => 1, 'status' => ReservationStatus::Cancelled, 'contact_phone' => '+393331234567', 'idempotency_key' => 'analytics-cancelled']);
+        Reservation::query()->create(['ulid' => (string) Str::ulid(), 'user_id' => $new->id, 'activity_id' => $otherActivity->id, 'service_id' => $otherService->id, 'starts_at' => now()->subDay(), 'party_size' => 9, 'status' => ReservationStatus::Completed, 'contact_phone' => '+393331234567', 'idempotency_key' => 'analytics-other']);
+        ActivityReview::query()->create(['ulid' => (string) Str::ulid(), 'activity_id' => $activity->id, 'reservation_id' => $repeat->id, 'user_id' => $returning->id, 'rating' => 4, 'would_recommend' => true, 'status' => 'approved', 'reviewed_at' => now()]);
+        $preorder = PreOrder::query()->create(['ulid' => (string) Str::ulid(), 'reservation_id' => $fresh->id, 'status' => 'confirmed', 'total_known_amount' => 2500]);
+        PreOrderItem::query()->create(['preorder_id' => $preorder->id, 'quantity' => 2, 'unit_price_snapshot' => 1250, 'item_name_snapshot' => 'Piatto QA', 'subtotal' => 2500]);
+        foreach (['activity_detail_view', 'activity_availability_view', 'reservation_created', 'activity_review_created'] as $type) {
+            AnalyticsEvent::query()->create(['organizer_profile_id' => $activity->organizer_profile_id, 'activity_id' => $activity->id, 'user_id' => $new->id, 'type' => $type, 'occurred_at' => now()]);
+        }
+
+        $response = $this->actingAs($organizer, 'sanctum')->getJson('/api/v1/organizer/reservations/analytics?period=30')->assertOk();
+        $response->assertJsonPath('data.overview.reservations', 3)->assertJsonPath('data.overview.covers', 6)
+            ->assertJsonPath('data.overview.unique_customers', 2)->assertJsonPath('data.overview.cancellations', 1)
+            ->assertJsonPath('data.customers.new', 1)->assertJsonPath('data.customers.returning', 1)->assertJsonPath('data.customers.repeat_rate', 50)
+            ->assertJsonPath('data.preorders.orders', 1)->assertJsonPath('data.preorders.items_quantity', 2)->assertJsonPath('data.preorders.known_value_cents', 2500)
+            ->assertJsonPath('data.reviews.count', 1)->assertJsonPath('data.funnel.activity_views', 1)->assertJsonPath('data.funnel.availability_views', 1)
+            ->assertJsonPath('data.funnel.returns', 1);
+        $this->actingAs($otherOrganizer, 'sanctum')->getJson('/api/v1/organizer/reservations/analytics?period=30')->assertOk()
+            ->assertJsonPath('data.overview.reservations', 1)->assertJsonPath('data.overview.covers', 9);
+        $this->actingAs($organizer, 'sanctum')->getJson('/api/v1/organizer/reservations/analytics?period=custom&from='.now()->subDays(3)->toDateString().'&to='.now()->toDateString())
+            ->assertOk()->assertJsonPath('data.period.key', 'custom');
     }
 
     public function test_organizer_owns_activity_crud_service_and_capacity_configuration(): void

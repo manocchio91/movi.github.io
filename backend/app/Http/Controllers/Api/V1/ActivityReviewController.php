@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\ActivityStatus;
-use App\Enums\ReservationStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreActivityReviewRequest;
 use App\Models\Activity;
@@ -11,6 +10,7 @@ use App\Models\ActivityReview;
 use App\Models\Booking;
 use App\Models\Reservation;
 use App\Services\Analytics\AnalyticsRecorder;
+use App\Services\Reviews\ReviewEligibility;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
 
@@ -25,13 +25,13 @@ class ActivityReviewController extends Controller
         return response()->json($reviews);
     }
 
-    public function store(StoreActivityReviewRequest $request, Activity $activity, AnalyticsRecorder $analytics): JsonResponse
+    public function store(StoreActivityReviewRequest $request, Activity $activity, AnalyticsRecorder $analytics, ReviewEligibility $eligibility): JsonResponse
     {
         $reservation = null;
         $booking = null;
         if ($request->validated('reservation_ulid')) {
             $reservation = Reservation::query()->where('ulid', $request->validated('reservation_ulid'))->where('activity_id', $activity->id)->where('user_id', $request->user()->id)->firstOrFail();
-            abort_unless(in_array($reservation->status, [ReservationStatus::Completed, ReservationStatus::Confirmed], true) && now()->startOfDay()->gte($reservation->starts_at->copy()->startOfDay()->addDay()), 403, 'La recensione è disponibile dal giorno successivo alla visita.');
+            abort_unless($eligibility->activityReservation($reservation), 403, 'La recensione è disponibile dal giorno successivo alla visita.');
         } else {
             $booking = Booking::query()->where('ulid', $request->validated('booking_ulid'))->where('user_id', $request->user()->id)
                 ->whereIn('status', ['confirmed', 'checked_in', 'completed'])->whereHas('event', fn ($query) => $query->where('organizer_profile_id', $activity->organizer_profile_id)->where('municipality_id', $activity->municipality_id))->with('event')->firstOrFail();

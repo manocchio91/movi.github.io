@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Api\V1;
 use App\Actions\Reservations\TransitionReservation;
 use App\Enums\ReservationStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\OrganizerReservationAnalyticsRequest;
 use App\Http\Requests\OrganizerReservationIndexRequest;
 use App\Http\Requests\TransitionReservationRequest;
 use App\Http\Resources\PreOrderResource;
 use App\Http\Resources\ReservationResource;
 use App\Models\ActivityService;
 use App\Models\Reservation;
+use App\Services\Analytics\OrganizerReservationAnalytics;
 use App\Services\Reservations\AvailabilityService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -90,20 +92,12 @@ class OrganizerReservationController extends Controller
         return response()->json($rows);
     }
 
-    public function analytics(): JsonResponse
+    public function analytics(OrganizerReservationAnalyticsRequest $request, OrganizerReservationAnalytics $analytics): JsonResponse
     {
-        $query = $this->ownedQuery();
-        $total = (clone $query)->count();
-        $covers = (int) (clone $query)->sum('party_size');
-        $count = fn (ReservationStatus $status): int => (clone $query)->where('status', $status)->count();
-        $cancelled = $count(ReservationStatus::Cancelled);
-        $completed = $count(ReservationStatus::Completed);
-        $noShow = $count(ReservationStatus::NoShow);
-        $repeat = DB::query()->fromSub((clone $query)->select('user_id')->groupBy('user_id')->havingRaw('COUNT(*) > 1'), 'repeat_customers')->count();
+        $profile = $request->user()->organizerProfile;
+        abort_unless($profile !== null, 403);
 
-        return response()->json(['data' => ['reservations' => $total, 'covers' => $covers, 'cancellations' => $cancelled, 'completed' => $completed, 'no_show' => $noShow,
-            'cancellation_rate' => $total ? round($cancelled / $total * 100, 1) : 0, 'no_show_rate' => $total ? round($noShow / $total * 100, 1) : 0,
-            'repeat_customers' => $repeat, 'average_party_size' => $total ? round($covers / $total, 1) : 0]]);
+        return response()->json(['data' => $analytics->calculate($profile, $request->validated())]);
     }
 
     private function ownedQuery(): Builder

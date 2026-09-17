@@ -50,10 +50,15 @@ class ActivityController extends Controller
         return response()->json(['data' => ActivityResource::make($activity)]);
     }
 
-    public function availability(Request $request, Activity $activity, ActivityService $service, AvailabilityService $availability): JsonResponse
+    public function availability(Request $request, Activity $activity, ActivityService $service, AvailabilityService $availability, AnalyticsRecorder $analytics): JsonResponse
     {
         abort_unless($this->isPublic($activity) && $activity->booking_enabled && $service->activity_id === $activity->id && $service->active && $service->booking_enabled, 404);
         $data = $request->validate(['date' => ['required', 'date_format:Y-m-d']]);
+        $session = trim((string) $request->header('X-Analytics-Session'));
+        $actor = $request->user();
+        $identity = $actor ? 'user:'.$actor->id : 'session:'.hash('sha256', mb_substr($session, 0, 128));
+        $analytics->recordActivity('activity_availability_view', $activity, $actor,
+            deduplicationKey: "activity_availability_view:{$activity->id}:{$service->id}:{$data['date']}:{$identity}");
 
         return response()->json(['data' => $availability->forDate($service, CarbonImmutable::parse($data['date']))]);
     }

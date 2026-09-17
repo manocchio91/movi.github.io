@@ -150,6 +150,21 @@ test('MòVi Manager exposes calendar reservations menu and readable real plan ca
   assert.match(app, /posti disponibili/);
 });
 
+test('MòVi Manager exposes periodized aggregate reservation analytics', () => {
+  assert.match(app, /organizerAnalyticsPeriod/);
+  assert.match(app, /Ultimi 7 giorni/);
+  assert.match(app, /Ultimi 30 giorni/);
+  assert.match(app, /Ultimi 90 giorni/);
+  assert.match(app, /Periodo personalizzato/);
+  for (const section of ['Panoramica', 'Clienti', 'Preordini', 'Andamento', 'Funnel']) assert.match(app, new RegExp(`'${section}'`));
+  assert.match(app, /Valore preordini/);
+  assert.match(app, /activity_views/);
+  assert.match(app, /availability_views/);
+  assert.match(app, /view_to_reservation_rate/);
+  assert.match(app, /returns/);
+  assert.doesNotMatch(app, /Fatturato/);
+});
+
 test('organizer registration leads with venue identity and keeps backend field names', () => {
   assert.match(app, /authInput\('Nome locale', 'organization_name'/);
   assert.match(app, /Nome locale[\s\S]*Tipo organizzazione[\s\S]*Nome referente[\s\S]*Email[\s\S]*Password[\s\S]*Conferma password/);

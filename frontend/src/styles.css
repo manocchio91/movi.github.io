@@ -1909,9 +1909,21 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand-600); box-
 .menu-organizer-surface .booking-detail { border-left: 4px solid var(--brand-600); margin-top: 14px; }
 .menu-organizer-surface .booking-detail section { background: #f7f8fa; border-radius: 12px; margin-top: 12px; padding: 14px; }
 .menu-organizer-surface .booking-detail section > h5 { color: #17202a; font-size: 1rem; margin: 0 0 12px; }
+.reservation-analytics { display: grid; gap: 16px; margin-bottom: 18px; }
+.reservation-analytics-section { display: grid; gap: 14px; }
+.reservation-analytics-section .metric-grid { margin: 0; }
+.reservation-period-filter { align-items: end; }
+.reservation-period-filter label { display: grid; gap: 5px; }
+.analytics-columns { display: grid; gap: 24px; grid-template-columns: repeat(2,minmax(0,1fr)); }
+.analytics-columns p { border-bottom: 1px solid var(--line-soft); margin: 0; padding: 8px 0; }
+.reservation-funnel { display: grid; gap: 8px; grid-template-columns: repeat(7,minmax(0,1fr)); }
+.reservation-funnel > div { background: #f5f7f9; border-radius: 12px; display: grid; gap: 4px; padding: 12px; text-align: center; }
+.reservation-funnel strong { font-size: 1.35rem; }
 
 @media (max-width: 900px) {
   .venue-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .reservation-funnel { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .analytics-columns { grid-template-columns: 1fr; }
   .venue-filters, .venue-booking-fields { grid-template-columns: 1fr 1fr; }
 }
 

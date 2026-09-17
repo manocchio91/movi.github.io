@@ -3,6 +3,7 @@
 use App\Actions\Reservations\SendReservationReminders;
 use App\Actions\Waitlist\ExpireWaitlistOffers;
 use App\Jobs\ReadinessProbe;
+use App\Jobs\SendPostVisitReviewRequestsJob;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schedule;
@@ -35,3 +36,6 @@ Schedule::call(fn () => app(ExpireWaitlistOffers::class)->handle())
 
 Schedule::call(fn () => app(SendReservationReminders::class)->handle())
     ->name('send-reservation-reminders')->everyFiveMinutes()->withoutOverlapping();
+
+Schedule::job(new SendPostVisitReviewRequestsJob)
+    ->name('send-post-visit-review-requests')->hourly()->withoutOverlapping();

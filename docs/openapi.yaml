@@ -1746,7 +1746,11 @@ paths:
   /organizer/reservations/analytics:
     get:
       operationId: get_organizer_reservation_analytics
-      summary: KPI operativi reali delle Reservation
+      summary: KPI, funnel e andamento aggregati delle Reservation
+      parameters:
+        - { name: period, in: query, schema: { type: string, enum: ['7', '30', '90', custom], default: '30' } }
+        - { name: from, in: query, description: Obbligatorio con period=custom, schema: { type: string, format: date } }
+        - { name: to, in: query, description: Obbligatorio con period=custom, schema: { type: string, format: date } }
       responses: { "200": { description: Analytics Reservation }, "403": { $ref: "#/components/responses/Forbidden" } }
   /organizer/reservations/{reservation}:
     parameters: [ { name: reservation, in: path, required: true, schema: { type: string } } ]

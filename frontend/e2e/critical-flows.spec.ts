@@ -318,6 +318,12 @@ test('MòVi Manager: calendario, menu, import e prenotazioni locale sono operati
   await page.getByRole('button', { name: 'Prenotazioni', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Prenotazioni', exact: true })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Prenotazioni locale' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByLabel('Analytics prenotazioni locali')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Panoramica' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Funnel' })).toBeVisible();
+  await page.getByLabel('Periodo').selectOption('7');
+  await expect(page.getByLabel('Periodo')).toHaveValue('7');
+  await expect(page.getByText('Valore preordini')).toBeVisible();
   await expect(page.getByText(/Cliente Demo.*Cena.*2 persone.*confirmed/).first()).toBeVisible();
   await expect(page.getByText(/Cavatelli QA × 2/)).toBeVisible();
   await page.getByRole('tab', { name: 'Prenotazioni eventi' }).click();

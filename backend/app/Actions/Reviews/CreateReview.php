@@ -9,6 +9,7 @@ use App\Models\Review;
 use App\Models\ReviewImage;
 use App\Models\User;
 use App\Services\Analytics\AnalyticsRecorder;
+use App\Services\Reviews\ReviewEligibility;
 use Illuminate\Support\Str;
 
 class CreateReview
@@ -28,10 +29,7 @@ class CreateReview
             ->first();
 
         abort_unless($booking !== null, 403, 'Serve una prenotazione confermata per recensire.');
-        $eventConcludedAt = $event->ends_at ?? $event->starts_at;
-        abort_unless($eventConcludedAt->isPast(), 403, 'Puoi recensire solo dopo la conclusione dell’evento.');
-        abort_if(Review::query()->where('booking_id', $booking->id)->exists(), 422, 'Prenotazione gia recensita.');
-        abort_if(Review::query()->where('event_id', $event->id)->where('user_id', $user->id)->exists(), 422, 'Hai gia recensito questa esperienza.');
+        abort_unless(app(ReviewEligibility::class)->eventBooking($booking), 403, 'Puoi recensire solo dopo la conclusione dell’evento e una sola volta.');
 
         $review = Review::query()->create([
             ...$data,

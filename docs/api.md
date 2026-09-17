@@ -67,6 +67,10 @@ Per `POST /events/{event}/reviews` l'utente deve avere un booking proprio non ca
 
 Per `POST /activities/{activity}/reviews` il cliente deve indicare una propria Reservation non cancellata oppure un proprio Event Booking valido dello stesso Organizer e territorio. La recensione del locale è accettata soltanto dal giorno successivo all'esperienza; richieste anticipate, riferite ad altre Activity o duplicate sono respinte dal backend.
 
+Lo scheduler accoda richieste recensione post-visita usando la stessa eligibility degli endpoint di recensione. Le notifiche operative rispettano l'opt-out e i canali abilitati, includono il collegamento all'esperienza corretta e sono deduplicate per esperienza e canale. Le Reservation cancellate/no-show e le esperienze già recensite sono escluse.
+
+`GET /organizer/reservations/analytics` accetta `period=7|30|90|custom`; per `custom` richiede `from` e `to`. Tutti i dati sono aggregati e isolati sull'Organizer autenticato. `return` indica un Cliente che effettua nel periodo una nuova Reservation presso la stessa Activity dopo una Reservation valida precedente; `repeat_rate` è la quota di tali Clienti sui Clienti unici del periodo. Il funnel usa esclusivamente Activity View, Availability View, Reservation, stati `completed`/`no_show`, Review e Return realmente registrati. `Valore preordini` somma soltanto i subtotali snapshot reali dei piatti in preordini confermati e non rappresenta fatturato.
+
 Le nuove Reservation locali e gli Event Booking accodano dopo il commit una notifica WhatsApp operativa verso il telefono dell'Organizer. Il provider è selezionato tramite `WHATSAPP_PROVIDER`; credenziali ed endpoint provengono dall'ambiente. Il provider `fake` è riservato ai test e un errore di invio non annulla la prenotazione.
 
 Tutte le route cliente sono protette da `auth:sanctum` + `role:customer`.
