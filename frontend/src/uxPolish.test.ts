@@ -102,6 +102,16 @@ test('restaurant menu and manager preorder summary use real APIs', () => {
   assert.doesNotMatch(app, /pagamento effettuato/);
 });
 
+test('venue booking uses lunch dinner and optional reservation preorder', () => {
+  assert.match(app, /h\('span', 'Turno'\)/);
+  assert.match(app, /item\.type === 'dinner' \? 'Cena' : 'Pranzo'/);
+  assert.match(app, /activityPreorderOpen/);
+  assert.match(app, /Preordina/);
+  assert.match(app, /\/me\/reservations\/\$\{result\.data\.ulid\}\/preorder/);
+  assert.doesNotMatch(app, /1-100 persone/);
+  assert.match(app, /reviewActivityReservation/);
+});
+
 test('release closure provides real menu management and multipiatto forms', () => {
   assert.match(app, /Menu Manager/);
   assert.match(app, /GENERA ANTEPRIMA/);

@@ -1881,14 +1881,34 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand-600); box-
 .venue-card-cover > span { font-size: 3rem; color: #fff; }
 .venue-card-body { display: grid; gap: 9px; padding: 20px; }
 .venue-card-body h2, .venue-card-body p { margin: 0; }
+.customer-layout .venue-card-body, .customer-layout .venue-card-body h2, .customer-layout .venue-card-body strong { color: #17202a; }
+.customer-layout .venue-card-body p, .customer-layout .venue-card-body small, .customer-layout .venue-card-body > span { color: #536273; }
+.customer-layout .venue-card-body button { background: #17202a; color: #fff; }
 .venue-facts { display: grid; gap: 5px; min-height: 45px; }
 .venue-hero { display: grid; grid-template-columns: auto 1fr auto; gap: 24px; align-items: center; min-height: 260px; margin-bottom: 16px; padding: 36px; color: #fff; border-radius: var(--radius-card); background: linear-gradient(135deg,#17111b,#5b1f30); background-position: center; background-size: cover; }
 .venue-hero h1 { margin: 4px 0; font-size: clamp(2rem,5vw,3.25rem); }
+.venue-follow { align-self: start; min-height: 38px; padding: 8px 14px; width: auto; }
+.venue-primary-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.venue-primary-actions a { background: #fff; border-radius: 10px; color: #17202a; font-size: .78rem; font-weight: 900; padding: 10px 15px; text-decoration: none; }
 .venue-tabs { position: sticky; top: 72px; z-index: 4; display: flex; gap: 10px; overflow-x: auto; margin-bottom: 16px; padding: 10px; background: rgba(255,255,255,.96); border: 1px solid var(--line-soft); border-radius: 999px; }
-.venue-tabs a { padding: 8px 14px; color: inherit; text-decoration: none; white-space: nowrap; }
+.venue-tabs a { padding: 8px 14px; color: #415064; font-weight: 800; text-decoration: none; white-space: nowrap; }
+.venue-tabs a.active, .venue-tabs a:hover, .venue-tabs a:focus-visible { background: #17202a; border-radius: 999px; color: #fff; }
+.customer-layout .venue-surface, .customer-layout .venue-surface h2, .customer-layout .venue-surface h3, .customer-layout .venue-surface strong, .customer-layout .venue-surface label { color: #17202a; }
+.customer-layout .venue-surface p, .customer-layout .venue-surface small, .customer-layout .venue-surface .field-help { color: #536273; }
+.venue-menu-item, .venue-event-row, .preorder-row { align-items: center; border-bottom: 1px solid #dce2e8; display: grid; gap: 10px; grid-template-columns: minmax(0,1fr) auto auto; padding: 12px 0; }
+.venue-menu-item p { margin: 4px 0 0; }
+.venue-booking-confirm { display: grid; gap: 14px; margin-top: 16px; }
+.preorder-picker { background: #f5f7f9; border-radius: 14px; padding: 16px; }
+.preorder-row { grid-template-columns: minmax(0,1fr) auto auto auto; }
+.venue-slots button.active { box-shadow: 0 0 0 3px #7c3aed; }
 .venue-slots { display: flex; flex-wrap: wrap; gap: 10px; }
 .venue-slots button { display: grid; gap: 3px; min-width: 112px; }
 .review-list { display: grid; gap: 12px; }
+.menu-workspace-heading { align-items: center; display: flex; flex-wrap: wrap; justify-content: space-between; }
+.menu-organizer-surface > details > summary { color: #17202a; cursor: pointer; font-size: 1.05rem; font-weight: 900; padding: 10px 0; }
+.menu-organizer-surface .booking-detail { border-left: 4px solid var(--brand-600); margin-top: 14px; }
+.menu-organizer-surface .booking-detail section { background: #f7f8fa; border-radius: 12px; margin-top: 12px; padding: 14px; }
+.menu-organizer-surface .booking-detail section > h5 { color: #17202a; font-size: 1rem; margin: 0 0 12px; }
 
 @media (max-width: 900px) {
   .venue-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }

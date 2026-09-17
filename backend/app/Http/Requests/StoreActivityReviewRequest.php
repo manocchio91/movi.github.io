@@ -13,6 +13,6 @@ class StoreActivityReviewRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['reservation_ulid' => ['required', 'ulid', 'exists:reservations,ulid'], 'rating' => ['required', 'integer', 'between:1,5'], 'comment' => ['nullable', 'string', 'max:3000'], 'would_recommend' => ['required', 'boolean']];
+        return ['reservation_ulid' => ['required_without:booking_ulid', 'nullable', 'ulid', 'exists:reservations,ulid'], 'booking_ulid' => ['required_without:reservation_ulid', 'nullable', 'ulid', 'exists:bookings,ulid'], 'rating' => ['required', 'integer', 'between:1,5'], 'comment' => ['nullable', 'string', 'max:3000'], 'would_recommend' => ['required', 'boolean']];
     }
 }

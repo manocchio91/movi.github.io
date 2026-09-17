@@ -29,7 +29,7 @@ class CreateReview
 
         abort_unless($booking !== null, 403, 'Serve una prenotazione confermata per recensire.');
         $eventConcludedAt = $event->ends_at ?? $event->starts_at;
-        abort_unless(in_array($booking->status, ['checked_in', 'completed'], true) || $eventConcludedAt->isPast(), 403, 'Puoi recensire solo dopo la partecipazione.');
+        abort_unless($eventConcludedAt->isPast(), 403, 'Puoi recensire solo dopo la conclusione dell’evento.');
         abort_if(Review::query()->where('booking_id', $booking->id)->exists(), 422, 'Prenotazione gia recensita.');
         abort_if(Review::query()->where('event_id', $event->id)->where('user_id', $user->id)->exists(), 422, 'Hai gia recensito questa esperienza.');
 

@@ -34,7 +34,7 @@ class BookingController extends Controller
 
     public function index(): JsonResponse
     {
-        $bookings = request()->user()->bookings()->with(['event.categories', 'items.ticketType'])->latest()->get();
+        $bookings = request()->user()->bookings()->with(['event.categories', 'event.organizerProfile:id,ulid,name', 'items.ticketType'])->latest()->get();
         $bookings->each(function (Booking $booking): void {
             $booking->makeVisible('contact_phone');
             $booking->setAttribute('can_cancel', $booking->status === 'confirmed' && $booking->event->starts_at->isFuture());
@@ -43,6 +43,8 @@ class BookingController extends Controller
             $booking->setAttribute('can_review', in_array($booking->status, ['confirmed', 'checked_in', 'completed'], true)
                 && $concludedAt->isPast()
                 && ! Review::query()->where('booking_id', $booking->id)->exists());
+            $booking->setAttribute('can_review_activity', in_array($booking->status, ['confirmed', 'checked_in', 'completed'], true)
+                && now()->startOfDay()->gte($concludedAt->copy()->startOfDay()->addDay()));
         });
 
         return response()->json([

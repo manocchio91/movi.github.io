@@ -63,7 +63,11 @@ Per `POST /events/{event}/bookings` usare `Idempotency-Key` per evitare prenotaz
 
 Il QR usa un token casuale ad alta entropia. Il database conserva separatamente l'hash per il check-in e il valore cifrato reversibile per il Customer; nessuno dei due campi interni viene serializzato. `GET /me/bookings/{booking}/qr` restituisce il token solo al proprietario autenticato. Un booking legacy privo del valore cifrato riceve `409`; dopo il check-in il token resta recuperabile, ma un secondo utilizzo viene rifiutato dal backend.
 
-Per `POST /events/{event}/reviews` l'utente deve avere una prenotazione confermata e avere partecipato: check-in effettuato, booking completato oppure evento concluso. Ogni prenotazione/evento puo generare una sola recensione e l'organizzatore non puo recensire i propri eventi.
+Per `POST /events/{event}/reviews` l'utente deve avere un booking proprio non cancellato e l'evento deve essere terminato. Ogni prenotazione/evento puo generare una sola recensione e l'organizzatore non puo recensire i propri eventi.
+
+Per `POST /activities/{activity}/reviews` il cliente deve indicare una propria Reservation non cancellata oppure un proprio Event Booking valido dello stesso Organizer e territorio. La recensione del locale è accettata soltanto dal giorno successivo all'esperienza; richieste anticipate, riferite ad altre Activity o duplicate sono respinte dal backend.
+
+Le nuove Reservation locali e gli Event Booking accodano dopo il commit una notifica WhatsApp operativa verso il telefono dell'Organizer. Il provider è selezionato tramite `WHATSAPP_PROVIDER`; credenziali ed endpoint provengono dall'ambiente. Il provider `fake` è riservato ai test e un errore di invio non annulla la prenotazione.
 
 Tutte le route cliente sono protette da `auth:sanctum` + `role:customer`.
 

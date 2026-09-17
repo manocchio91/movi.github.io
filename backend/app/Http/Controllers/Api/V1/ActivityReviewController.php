@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreActivityReviewRequest;
 use App\Models\Activity;
 use App\Models\ActivityReview;
+use App\Models\Booking;
 use App\Models\Reservation;
 use App\Services\Analytics\AnalyticsRecorder;
 use Illuminate\Http\JsonResponse;
@@ -26,9 +27,18 @@ class ActivityReviewController extends Controller
 
     public function store(StoreActivityReviewRequest $request, Activity $activity, AnalyticsRecorder $analytics): JsonResponse
     {
-        $reservation = Reservation::query()->where('ulid', $request->validated('reservation_ulid'))->where('activity_id', $activity->id)->where('user_id', $request->user()->id)->firstOrFail();
-        abort_unless(in_array($reservation->status, [ReservationStatus::Completed, ReservationStatus::Confirmed], true) && ($reservation->status === ReservationStatus::Completed || $reservation->starts_at->isPast()), 403, 'Serve una prenotazione realmente usufruita.');
-        $review = ActivityReview::query()->create([...$request->safe()->except('reservation_ulid'), 'ulid' => (string) Str::ulid(), 'activity_id' => $activity->id, 'reservation_id' => $reservation->id, 'user_id' => $request->user()->id, 'status' => 'approved', 'reviewed_at' => now()]);
+        $reservation = null;
+        $booking = null;
+        if ($request->validated('reservation_ulid')) {
+            $reservation = Reservation::query()->where('ulid', $request->validated('reservation_ulid'))->where('activity_id', $activity->id)->where('user_id', $request->user()->id)->firstOrFail();
+            abort_unless(in_array($reservation->status, [ReservationStatus::Completed, ReservationStatus::Confirmed], true) && now()->startOfDay()->gte($reservation->starts_at->copy()->startOfDay()->addDay()), 403, 'La recensione è disponibile dal giorno successivo alla visita.');
+        } else {
+            $booking = Booking::query()->where('ulid', $request->validated('booking_ulid'))->where('user_id', $request->user()->id)
+                ->whereIn('status', ['confirmed', 'checked_in', 'completed'])->whereHas('event', fn ($query) => $query->where('organizer_profile_id', $activity->organizer_profile_id)->where('municipality_id', $activity->municipality_id))->with('event')->firstOrFail();
+            $concludedAt = $booking->event->ends_at ?? $booking->event->starts_at;
+            abort_unless(now()->startOfDay()->gte($concludedAt->copy()->startOfDay()->addDay()), 403, 'La recensione è disponibile dal giorno successivo alla visita.');
+        }
+        $review = ActivityReview::query()->create([...$request->safe()->except(['reservation_ulid', 'booking_ulid']), 'ulid' => (string) Str::ulid(), 'activity_id' => $activity->id, 'reservation_id' => $reservation?->id, 'booking_id' => $booking?->id, 'user_id' => $request->user()->id, 'status' => 'approved', 'reviewed_at' => now()]);
         $analytics->recordActivity('activity_review_created', $activity, $request->user(), $reservation, "activity_review_created:{$review->id}");
 
         return response()->json(['data' => $review], 201);

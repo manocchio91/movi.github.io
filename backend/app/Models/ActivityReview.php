@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ActivityReview extends Model
 {
-    protected $fillable = ['ulid', 'activity_id', 'reservation_id', 'user_id', 'rating', 'comment', 'would_recommend', 'status', 'reviewed_at'];
+    protected $fillable = ['ulid', 'activity_id', 'reservation_id', 'booking_id', 'user_id', 'rating', 'comment', 'would_recommend', 'status', 'reviewed_at'];
 
     protected $hidden = ['id', 'activity_id', 'reservation_id', 'user_id'];
 
@@ -31,6 +31,12 @@ class ActivityReview extends Model
     public function reservation(): BelongsTo
     {
         return $this->belongsTo(Reservation::class);
+    }
+
+    /** @return BelongsTo<Booking, $this> */
+    public function booking(): BelongsTo
+    {
+        return $this->belongsTo(Booking::class);
     }
 
     /** @return BelongsTo<User, $this> */

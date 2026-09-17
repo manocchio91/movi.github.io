@@ -746,6 +746,21 @@ class EventPlatformTest extends TestCase
             ->assertUnprocessable();
     }
 
+    public function test_customer_cannot_review_before_event_end_or_with_cancelled_booking(): void
+    {
+        [$customer, , $event] = $this->setupDomain();
+        $booking = Booking::query()->create([
+            'ulid' => (string) Str::ulid(), 'user_id' => $customer->id, 'event_id' => $event->id,
+            'status' => 'confirmed', 'total_people' => 1, 'adults_count' => 1, 'children_count' => 0,
+            'booking_code' => 'EVT-REVIEW-RULE', 'qr_token_hash' => 'review-rule', 'booked_at' => now(),
+        ]);
+
+        $this->actingAs($customer, 'sanctum')->postJson("/api/v1/events/{$event->ulid}/reviews", $this->reviewPayload())->assertForbidden();
+        $event->forceFill(['starts_at' => now()->subDay(), 'ends_at' => now()->subHour()])->save();
+        $booking->forceFill(['status' => 'cancelled'])->save();
+        $this->postJson("/api/v1/events/{$event->ulid}/reviews", $this->reviewPayload())->assertForbidden();
+    }
+
     public function test_organizer_cannot_review_own_event_and_review_can_be_reported(): void
     {
         [$customer, $organizer, $event] = $this->setupDomain();

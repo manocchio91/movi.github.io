@@ -4,6 +4,7 @@ namespace App\Actions\Reservations;
 
 use App\Enums\ActivityStatus;
 use App\Enums\ReservationStatus;
+use App\Jobs\SendOrganizerWhatsAppBookingNotification;
 use App\Models\Activity;
 use App\Models\ActivityService;
 use App\Models\Notification;
@@ -58,6 +59,7 @@ class CreateReservation
             ]);
             NotificationDelivery::query()->create(['notification_id' => $notification->id, 'status' => 'sent', 'channel' => 'internal', 'recipient' => (string) $user->id, 'sent_at' => now()]);
             $this->analytics->recordActivity('reservation_created', $lockedActivity, $user, $reservation, "reservation_created:{$reservation->id}");
+            DB::afterCommit(fn () => SendOrganizerWhatsAppBookingNotification::dispatch('reservation', $reservation->id));
 
             return $this->response($reservation);
         });

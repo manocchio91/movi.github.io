@@ -1638,7 +1638,7 @@ paths:
       responses: { "200": { description: Recensioni }, "404": { $ref: "#/components/responses/NotFound" } }
     post:
       operationId: post_activity_review
-      summary: Crea recensione da Reservation completata
+      summary: Crea recensione dal giorno successivo a una Reservation o Event Booking valido
       responses: { "201": { description: Recensione creata }, "403": { $ref: "#/components/responses/Forbidden" } }
   /activities/{activity}/reservations:
     parameters: [ { name: activity, in: path, required: true, schema: { type: string } } ]

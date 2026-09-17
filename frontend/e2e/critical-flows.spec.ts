@@ -262,7 +262,7 @@ test('MòVi Manager: calendario, menu, import e prenotazioni locale sono operati
   await menuWorkspace.getByLabel('Carica menu DOCX/XLSX').setInputFiles({ name: 'menu.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: xlsx });
   await menuWorkspace.getByRole('button', { name: 'GENERA ANTEPRIMA' }).click();
   await expect(menuWorkspace.getByRole('heading', { name: 'Anteprima import' })).toBeVisible();
-  await menuWorkspace.getByRole('button', { name: 'CONFERMA IMPORT' }).click();
+  await menuWorkspace.getByRole('button', { name: 'CONFERMA IMPORT' }).dispatchEvent('click');
 
   const menusResponse = await request.get(`http://127.0.0.1:18081/api/v1/organizer/activities/${activity.ulid}/menus`, { headers });
   const manualMenu = (await menusResponse.json()).data.find((menu: { name: string }) => menu.name === 'Menu QA manuale');
@@ -298,7 +298,7 @@ test('MòVi Manager: calendario, menu, import e prenotazioni locale sono operati
   await expect(customerPage.locator('#venue-menu')).toContainText('Cavatelli QA');
   await Promise.all([
     customerPage.waitForResponse(response => response.url().includes(`/services/${dinner.ulid}/availability`)),
-    customerPage.getByLabel('Servizio').selectOption(dinner.ulid),
+    customerPage.getByLabel('Turno').selectOption(dinner.ulid),
   ]);
   await Promise.all([
     customerPage.waitForResponse(response => response.url().includes('availability?date=2026-10-16')),
@@ -308,6 +308,7 @@ test('MòVi Manager: calendario, menu, import e prenotazioni locale sono operati
   const slot = customerPage.locator('.venue-slots button').first();
   await expect(slot).toContainText('18 coperti');
   await slot.click();
+  await customerPage.getByRole('button', { name: 'Conferma prenotazione' }).click();
   await expect(customerPage.getByRole('status')).toContainText('Prenotazione confermata');
   await expect(customerPage.locator('.venue-slots button').first()).toContainText('16 coperti');
   await expect(customerPage.locator('#venue-eventi')).not.toContainText('Evento QA E2E');

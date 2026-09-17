@@ -2,8 +2,11 @@
 
 namespace App\Providers;
 
+use App\Contracts\OrganizerWhatsAppProvider;
 use App\Services\MoviAi\AiIntentProvider;
 use App\Services\MoviAi\ConfiguredAiIntentProvider;
+use App\Services\WhatsApp\FakeOrganizerWhatsAppProvider;
+use App\Services\WhatsApp\HttpOrganizerWhatsAppProvider;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -15,6 +18,9 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(AiIntentProvider::class, ConfiguredAiIntentProvider::class);
+        $this->app->singleton(OrganizerWhatsAppProvider::class, fn () => config('whatsapp.provider') === 'fake'
+            ? new FakeOrganizerWhatsAppProvider
+            : new HttpOrganizerWhatsAppProvider);
     }
 
     public function boot(): void

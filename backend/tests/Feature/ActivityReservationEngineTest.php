@@ -3,13 +3,17 @@
 namespace Tests\Feature;
 
 use App\Actions\Reservations\SendReservationReminders;
+use App\Contracts\OrganizerWhatsAppProvider;
 use App\Enums\ActivityStatus;
 use App\Enums\ActivityType;
 use App\Enums\ReservationStatus;
 use App\Enums\UserRole;
+use App\Jobs\SendOrganizerWhatsAppBookingNotification;
 use App\Models\Activity;
 use App\Models\ActivityService;
 use App\Models\AnalyticsEvent;
+use App\Models\Booking;
+use App\Models\Event;
 use App\Models\Municipality;
 use App\Models\OrganizerProfile;
 use App\Models\PreOrder;
@@ -17,6 +21,7 @@ use App\Models\Province;
 use App\Models\Region;
 use App\Models\Reservation;
 use App\Models\User;
+use App\Services\WhatsApp\FakeOrganizerWhatsAppProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -144,6 +149,73 @@ class ActivityReservationEngineTest extends TestCase
         $this->actingAs($customer, 'sanctum')->withHeader('X-Analytics-Session', 'activity-session')->getJson("/api/v1/activities/{$activity->ulid}")->assertOk();
         $this->withHeader('X-Analytics-Session', 'activity-session')->getJson("/api/v1/activities/{$activity->ulid}")->assertOk();
         $this->assertSame(1, AnalyticsEvent::query()->where('type', 'activity_detail_view')->count());
+    }
+
+    public function test_activity_review_requires_non_cancelled_experience_and_next_day(): void
+    {
+        [, $activity, $service] = $this->bookableDomain();
+        $payload = fn (Reservation $reservation): array => ['reservation_ulid' => $reservation->ulid, 'rating' => 5, 'would_recommend' => true];
+
+        foreach ([ReservationStatus::Cancelled, ReservationStatus::NoShow] as $status) {
+            $customer = User::factory()->create(['role' => UserRole::Customer, 'status' => 'active']);
+            $reservation = Reservation::query()->create(['ulid' => (string) Str::ulid(), 'user_id' => $customer->id, 'activity_id' => $activity->id, 'service_id' => $service->id, 'starts_at' => now()->subDays(2), 'party_size' => 2, 'status' => $status, 'contact_phone' => '+393331234567', 'idempotency_key' => 'review-'.$status->value]);
+            $this->actingAs($customer, 'sanctum')->postJson("/api/v1/activities/{$activity->ulid}/reviews", $payload($reservation))->assertForbidden();
+        }
+
+        $customer = User::factory()->create(['role' => UserRole::Customer, 'status' => 'active']);
+        $reservation = Reservation::query()->create(['ulid' => (string) Str::ulid(), 'user_id' => $customer->id, 'activity_id' => $activity->id, 'service_id' => $service->id, 'starts_at' => now()->subHour(), 'party_size' => 2, 'status' => ReservationStatus::Confirmed, 'contact_phone' => '+393331234567', 'idempotency_key' => 'review-too-early']);
+        $this->actingAs($customer, 'sanctum')->postJson("/api/v1/activities/{$activity->ulid}/reviews", $payload($reservation))->assertForbidden();
+        $reservation->forceFill(['starts_at' => now()->subDay()])->save();
+        $this->postJson("/api/v1/activities/{$activity->ulid}/reviews", $payload($reservation))->assertCreated();
+    }
+
+    public function test_activity_review_accepts_valid_event_booking_for_same_organizer(): void
+    {
+        [, $activity] = $this->bookableDomain();
+        $customer = User::factory()->create(['role' => UserRole::Customer, 'status' => 'active']);
+        $event = Event::query()->create(['ulid' => (string) Str::ulid(), 'organizer_profile_id' => $activity->organizer_profile_id, 'municipality_id' => $activity->municipality_id, 'title' => 'Cena evento', 'slug' => 'cena-'.Str::lower(Str::random(8)), 'summary' => 'Esperienza', 'description' => 'Esperienza locale', 'status' => 'completed', 'starts_at' => now()->subDays(2), 'ends_at' => now()->subDay(), 'capacity_total' => 10, 'available_total' => 9, 'is_free' => true, 'family_friendly' => false, 'indoor_outdoor' => 'indoor']);
+        $booking = Booking::query()->create(['ulid' => (string) Str::ulid(), 'user_id' => $customer->id, 'event_id' => $event->id, 'status' => 'confirmed', 'total_people' => 1, 'adults_count' => 1, 'children_count' => 0, 'total_price_cents' => 0, 'booking_code' => 'EVT-ACTIVITY', 'qr_token_hash' => 'hash', 'booked_at' => now()->subDays(3)]);
+
+        $this->actingAs($customer, 'sanctum')->postJson("/api/v1/activities/{$activity->ulid}/reviews", ['booking_ulid' => $booking->ulid, 'rating' => 4, 'would_recommend' => true])->assertCreated();
+    }
+
+    public function test_fake_whatsapp_provider_receives_reservation_and_event_payloads(): void
+    {
+        config(['whatsapp.enabled' => true, 'whatsapp.provider' => 'fake']);
+        $this->app->forgetInstance(OrganizerWhatsAppProvider::class);
+        [, $activity, $service] = $this->bookableDomain();
+        $activity->organizerProfile->update(['phone' => '+393339998877']);
+        $customer = User::factory()->create(['role' => UserRole::Customer, 'status' => 'active', 'name' => 'Cliente Test']);
+        $reservation = Reservation::query()->create(['ulid' => (string) Str::ulid(), 'user_id' => $customer->id, 'activity_id' => $activity->id, 'service_id' => $service->id, 'starts_at' => now()->addDay(), 'party_size' => 2, 'status' => ReservationStatus::Confirmed, 'contact_phone' => '+393331234567', 'idempotency_key' => 'whatsapp-reservation']);
+        $event = Event::query()->create(['ulid' => (string) Str::ulid(), 'organizer_profile_id' => $activity->organizer_profile_id, 'municipality_id' => $activity->municipality_id, 'title' => 'Evento WhatsApp', 'slug' => 'wa-'.Str::lower(Str::random(8)), 'summary' => 'Evento', 'description' => 'Evento', 'status' => 'published', 'starts_at' => now()->addDays(2), 'capacity_total' => 10, 'available_total' => 8, 'is_free' => true, 'family_friendly' => false, 'indoor_outdoor' => 'indoor']);
+        $booking = Booking::query()->create(['ulid' => (string) Str::ulid(), 'user_id' => $customer->id, 'event_id' => $event->id, 'status' => 'confirmed', 'total_people' => 2, 'adults_count' => 2, 'children_count' => 0, 'total_price_cents' => 0, 'booking_code' => 'EVT-WA', 'qr_token_hash' => 'hash-wa', 'booked_at' => now()]);
+
+        app(SendOrganizerWhatsAppBookingNotification::class, ['type' => 'reservation', 'id' => $reservation->id])->handle(app(OrganizerWhatsAppProvider::class));
+        app(SendOrganizerWhatsAppBookingNotification::class, ['type' => 'booking', 'id' => $booking->id])->handle(app(OrganizerWhatsAppProvider::class));
+        $provider = app(OrganizerWhatsAppProvider::class);
+        $this->assertInstanceOf(FakeOrganizerWhatsAppProvider::class, $provider);
+        $this->assertCount(2, $provider->sent());
+        $this->assertStringContainsString('Preordine: no', $provider->sent()[0]['message']);
+        $this->assertStringContainsString('Partecipanti: 2', $provider->sent()[1]['message']);
+    }
+
+    public function test_whatsapp_provider_failure_does_not_escape_the_job(): void
+    {
+        config(['whatsapp.enabled' => true, 'whatsapp.provider' => 'fake']);
+        [, $activity, $service] = $this->bookableDomain();
+        $activity->organizerProfile->update(['phone' => '+393339998877']);
+        $customer = User::factory()->create(['role' => UserRole::Customer, 'status' => 'active']);
+        $reservation = Reservation::query()->create(['ulid' => (string) Str::ulid(), 'user_id' => $customer->id, 'activity_id' => $activity->id, 'service_id' => $service->id, 'starts_at' => now()->addDay(), 'party_size' => 2, 'status' => ReservationStatus::Confirmed, 'contact_phone' => '+393331234567', 'idempotency_key' => 'whatsapp-failure']);
+        $provider = new class implements OrganizerWhatsAppProvider
+        {
+            public function send(array $payload): void
+            {
+                throw new \RuntimeException('Provider offline');
+            }
+        };
+
+        (new SendOrganizerWhatsAppBookingNotification('reservation', $reservation->id))->handle($provider);
+        $this->assertDatabaseHas('reservations', ['id' => $reservation->id, 'status' => 'confirmed']);
     }
 
     public function test_public_directory_filters_and_excludes_unverified_organizers(): void

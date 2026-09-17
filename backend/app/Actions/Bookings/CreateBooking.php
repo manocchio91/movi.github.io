@@ -3,6 +3,7 @@
 namespace App\Actions\Bookings;
 
 use App\Enums\EventStatus;
+use App\Jobs\SendOrganizerWhatsAppBookingNotification;
 use App\Models\Booking;
 use App\Models\Event;
 use App\Models\Notification;
@@ -142,6 +143,7 @@ class CreateBooking
                 $booking->setAttribute('qr_token', $qrToken);
 
                 app(AnalyticsRecorder::class)->record('booking_created', $lockedEvent, $user, "booking_created:{$booking->id}");
+                DB::afterCommit(fn () => SendOrganizerWhatsAppBookingNotification::dispatch('booking', $booking->id));
 
                 return $this->responseBooking($booking);
             });
