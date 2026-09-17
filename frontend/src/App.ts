@@ -3167,7 +3167,7 @@ export default defineComponent({
       ]);
     };
 
-    const renderAdminOrganizers = () => [
+    const renderAdminOrganizers = () => [h('div', { class: 'admin-organizer-page' }, [
       h('div', { class: 'page-heading' }, [h('h1', 'Richieste Organizzatori'), h('p', 'Esamina i dati fiscali e gestisci l’abilitazione alle funzioni operative.')]),
       h('div', { class: 'filter-strip' }, [
         h('form', { onSubmit: (event: Event) => { event.preventDefault(); adminOrganizerPage.value = 1; void loadAdminOrganizerRequests(); } }, [h('input', { value: adminOrganizerSearch.value, placeholder: 'Cerca nome o email', onInput: (event: Event) => { adminOrganizerSearch.value = (event.target as HTMLInputElement).value; } }), h('button', { type: 'submit' }, 'Cerca')]),
@@ -3201,7 +3201,7 @@ export default defineComponent({
         h('button', { disabled: adminOrganizerPage.value >= adminOrganizerMeta.value.last_page, onClick: () => { adminOrganizerPage.value += 1; void loadAdminOrganizerRequests(); } }, 'Successiva'),
       ]) : null,
       renderAdminOrganizerDetail(),
-    ];
+    ])];
 
     const renderCustomers = () => [
       h('div', { class: 'page-heading' }, [h('h1', 'Clienti'), h('p', 'Anagrafica cliente con partecipazione, recensioni, preferiti e organizer seguiti.')]),

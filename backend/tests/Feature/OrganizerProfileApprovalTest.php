@@ -77,6 +77,22 @@ class OrganizerProfileApprovalTest extends TestCase
         $this->assertDatabaseHas('activities', ['organizer_profile_id' => $profile->id, 'status' => 'published']);
     }
 
+    public function test_legacy_verified_organizer_activity_backfill_is_idempotent(): void
+    {
+        [, $profile] = $this->verifiedOrganizer();
+        $migrationPath = database_path('migrations/2026_09_17_000002_backfill_verified_organizer_activities.php');
+
+        (require $migrationPath)->up();
+        (require $migrationPath)->up();
+
+        $this->assertSame(1, Activity::query()->where('organizer_profile_id', $profile->id)->count());
+        $this->assertDatabaseHas('activities', [
+            'organizer_profile_id' => $profile->id,
+            'status' => 'published',
+            'booking_enabled' => false,
+        ]);
+    }
+
     /** @return array{User, OrganizerProfile} */
     private function verifiedOrganizer(string $status = 'verified'): array
     {

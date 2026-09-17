@@ -134,8 +134,8 @@ class ActivityReservationEngineTest extends TestCase
         [$organizer, , $municipality] = $this->organizerDomain('Owner');
         [$other] = $this->organizerDomain('Other');
 
-        $activity = $this->actingAs($organizer, 'sanctum')->postJson('/api/v1/organizer/activities', $this->activityPayload($municipality))
-            ->assertCreated()->assertJsonPath('data.type', 'restaurant');
+        $activity = $this->actingAs($organizer, 'sanctum')->postJson('/api/v1/organizer/activities', [...$this->activityPayload($municipality), 'booking_enabled' => false])
+            ->assertCreated()->assertJsonPath('data.type', 'restaurant')->assertJsonPath('data.booking_enabled', false);
         $ulid = $activity->json('data.ulid');
         $this->actingAs($other, 'sanctum')->putJson("/api/v1/organizer/activities/{$ulid}", $this->activityPayload($municipality))->assertForbidden();
 
@@ -146,6 +146,7 @@ class ActivityReservationEngineTest extends TestCase
             'rules' => [['weekday' => 6, 'start_time' => '12:30', 'capacity' => 10, 'effective_from' => '2030-06-01', 'effective_to' => '2030-06-30']],
             'exceptions' => [['date' => '2030-06-01', 'is_closed' => true, 'note' => 'Chiusura']],
         ])->assertOk()->assertJsonPath('data.rules.0.capacity', 10)->assertJsonPath('data.rules.0.effective_from', '2030-06-01T00:00:00.000000Z')->assertJsonPath('data.exceptions.0.is_closed', true);
+        $this->assertDatabaseHas('activities', ['ulid' => $ulid, 'booking_enabled' => true]);
         $this->getJson("/api/v1/activities/{$ulid}/services/{$serviceUlid}/availability?date=2030-06-08")->assertOk()->assertJsonPath('data.0.capacity', 10);
         $this->getJson("/api/v1/activities/{$ulid}/services/{$serviceUlid}/availability?date=2030-07-06")->assertOk()->assertJsonCount(0, 'data');
     }

@@ -55,7 +55,8 @@ async function login(page: Page, role: keyof typeof accounts) {
   await expect(page.getByText(accounts[role][1])).toBeVisible();
 }
 
-test('registrazione Organizer crea il locale draft e l’approvazione lo rende visibile', async ({ page, request, browser }) => {
+test('golden path: onboarding, approvazione, calendario e locale prenotabile', async ({ page, request, browser }) => {
+  test.setTimeout(120_000);
   await page.goto('/');
   await page.getByRole('button', { name: 'Organizzatore' }).click();
   await page.getByRole('button', { name: 'Registrati come Organizzatore' }).click();
@@ -75,41 +76,70 @@ test('registrazione Organizer crea il locale draft e l’approvazione lo rende v
   await page.getByRole('button', { name: 'Crea account Organizzatore' }).click();
   await expect(page.getByRole('heading', { name: /Completa il profilo/ })).toBeVisible();
 
+  await page.getByLabel('Denominazione o ragione sociale *').fill('Locale Registrato QA');
+  await page.getByLabel('Indirizzo *').fill('Via QA');
+  await page.getByLabel('Numero civico *').fill('1');
+  await page.getByLabel('CAP *').fill('86025');
+  await expect(page.getByLabel('Comune *', { exact: true })).toHaveValue('Ripalimosani');
+  await expect(page.getByLabel('Provincia *', { exact: true })).toHaveValue('CB');
+  await page.getByLabel('Partita IVA *').fill('IT12345678901');
+  await page.getByLabel('PEC *').fill('locale.qa@pec.example');
+  await page.getByLabel('Codice SDI *').fill('ABC1234');
+  await page.getByLabel('Telefono').fill('+393331234567');
+  await page.getByLabel('Email pubblica').fill('locale.qa@example.test');
+  await page.getByLabel('Descrizione').fill('Locale creato dal flusso QA');
+  await page.getByRole('button', { name: 'Invia richiesta di approvazione' }).click();
+  await expect(page.getByRole('heading', { name: 'Account in attesa di approvazione' })).toBeVisible();
+
   const organizerAuth = await request.post('http://127.0.0.1:18081/api/v1/auth/login', { data: { email: 'organizer.registration.qa@example.test', password: 'password' } });
   const organizerToken = (await organizerAuth.json()).token;
   const organizerHeaders = { Authorization: `Bearer ${organizerToken}` };
   const profile = (await (await request.get('http://127.0.0.1:18081/api/v1/organizer/profile', { headers: organizerHeaders })).json()).data;
-  const locations = await request.get('http://127.0.0.1:18081/api/v1/locations/municipalities?postal_code=86100');
-  const municipality = (await locations.json()).data[0];
   const beforeApproval = await request.get('http://127.0.0.1:18081/api/v1/activities?q=Locale%20Registrato%20QA');
   expect((await beforeApproval.json()).data).toHaveLength(0);
-  const profileUpdate = await request.patch('http://127.0.0.1:18081/api/v1/organizer/profile', { headers: organizerHeaders, data: { name: 'Locale Registrato QA', type: 'ristorante', description: 'Locale creato dal flusso QA', municipality_id: municipality.id, address: 'Via QA', street_number: '1', postal_code: '86100', province: municipality.province, country: 'Italia', vat_number: 'IT12345678901', pec: 'locale.qa@pec.example', sdi_code: 'ABC1234', phone: '+393331234567', public_email: 'locale.qa@example.test' } });
-  expect(profileUpdate.ok()).toBeTruthy();
-  expect((await request.post('http://127.0.0.1:18081/api/v1/organizer/profile/submit', { headers: organizerHeaders })).ok()).toBeTruthy();
   const adminAuth = await request.post('http://127.0.0.1:18081/api/v1/auth/login', { data: { email: 'admin@example.test', password: 'password' } });
   const adminHeaders = { Authorization: `Bearer ${(await adminAuth.json()).token}` };
   expect((await request.post(`http://127.0.0.1:18081/api/v1/admin/organizers/${profile.ulid}/approve`, { headers: adminHeaders })).ok()).toBeTruthy();
   const afterApproval = await request.get('http://127.0.0.1:18081/api/v1/activities?q=Locale%20Registrato%20QA');
   expect((await afterApproval.json()).data[0]).toMatchObject({ name: 'Locale Registrato QA', status: 'published', booking_enabled: false });
 
-  const seededOrganizerAuth = await request.post('http://127.0.0.1:18081/api/v1/auth/login', { data: { email: 'organizer@example.test', password: 'password' } });
-  const seededOrganizerHeaders = { Authorization: `Bearer ${(await seededOrganizerAuth.json()).token}` };
-  const secondActivity = await request.post('http://127.0.0.1:18081/api/v1/organizer/activities', { headers: seededOrganizerHeaders, data: { name: 'Locale Seed QA', type: 'restaurant', description: 'Secondo locale isolato', municipality_id: municipality.id, booking_enabled: false, status: 'published' } });
-  expect(secondActivity.ok()).toBeTruthy();
+  await page.reload();
+  await page.getByRole('button', { name: 'Calendario' }).click();
+  await expect(page.getByRole('heading', { name: 'Locale Registrato QA' })).toBeVisible();
+  const calendar = page.locator('article.manager-workspace').filter({ hasText: 'Locale Registrato QA' });
+  await calendar.getByLabel('Dal', { exact: true }).fill('2030-06-15');
+  await calendar.getByLabel('Al', { exact: true }).fill('2030-06-15');
+  await calendar.getByLabel('Turno').selectOption('dinner');
+  await calendar.getByLabel('Numero coperti MòVi').fill('20');
+  await calendar.getByLabel('Sabato').check();
+  await calendar.getByRole('button', { name: 'Salva disponibilità' }).click();
+  await expect(calendar.getByRole('status')).toContainText('Disponibilità salvate.');
+  await page.reload();
+  await page.getByRole('button', { name: 'Calendario' }).click();
+  await expect(page.getByText(/Giorno 6 · 20:00 · 20 coperti/)).toBeVisible();
+
+  const ownedActivities = await request.get('http://127.0.0.1:18081/api/v1/organizer/activities', { headers: organizerHeaders });
+  const registeredActivity = (await ownedActivities.json()).data[0];
+  expect(registeredActivity).toMatchObject({ name: 'Locale Registrato QA', status: 'published', booking_enabled: true });
+
+  const customerRegistration = await request.post('http://127.0.0.1:18081/api/v1/auth/register', { data: { name: 'Cliente Golden Path', email: 'customer.golden.qa@example.test', password: 'password', password_confirmation: 'password', role: 'customer', phone: '+393339998877' } });
+  expect(customerRegistration.ok()).toBeTruthy();
 
   const customerContext = await browser.newContext();
   const customerPage = await customerContext.newPage();
-  await login(customerPage, 'customer');
+  await customerPage.goto('/');
+  await customerPage.getByRole('button', { name: 'Cliente' }).click();
+  await customerPage.getByLabel('Email').fill('customer.golden.qa@example.test');
+  await customerPage.getByLabel('Password').fill('password');
+  await customerPage.locator('form.auth-form').getByRole('button', { name: 'Accedi', exact: true }).click();
   await customerPage.getByRole('button', { name: 'Locali', exact: true }).click();
   await expect(customerPage.getByRole('heading', { name: 'Locale Registrato QA' })).toBeVisible();
-  await expect(customerPage.getByRole('heading', { name: 'Locale Seed QA' })).toBeVisible();
   await customerPage.locator('.venue-card').filter({ hasText: 'Locale Registrato QA' }).getByRole('button', { name: 'Scopri il locale' }).click();
   await expect(customerPage.getByRole('heading', { name: 'Locale Registrato QA', exact: true })).toBeVisible();
-  await expect(customerPage.locator('.venue-hero')).not.toContainText('Locale Seed QA');
-  await customerPage.getByRole('button', { name: 'Locali', exact: true }).click();
-  await customerPage.locator('.venue-card').filter({ hasText: 'Locale Seed QA' }).getByRole('button', { name: 'Scopri il locale' }).click();
-  await expect(customerPage.getByRole('heading', { name: 'Locale Seed QA', exact: true })).toBeVisible();
-  await expect(customerPage.locator('.venue-hero')).not.toContainText('Locale Registrato QA');
+  await customerPage.getByLabel('Data').fill('2030-06-15');
+  await expect(customerPage.getByRole('button', { name: /20 coperti/ })).toBeVisible();
+  await customerPage.getByRole('button', { name: /20 coperti/ }).click();
+  await expect(customerPage.getByRole('button', { name: 'Conferma prenotazione' })).toBeVisible();
   await customerContext.close();
 });
 

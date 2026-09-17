@@ -36,7 +36,7 @@ class OrganizerActivityServiceController extends Controller
     {
         $this->authorize('update', $activity);
         abort_unless($service->activity_id === $activity->id, 404);
-        DB::transaction(function () use ($request, $service): void {
+        DB::transaction(function () use ($request, $activity, $service): void {
             foreach ($request->validated('rules', []) as $rule) {
                 $service->availabilityRules()->updateOrCreate([
                     'weekday' => $rule['weekday'], 'start_time' => $rule['start_time'],
@@ -45,6 +45,13 @@ class OrganizerActivityServiceController extends Controller
             }
             foreach ($request->validated('exceptions', []) as $exception) {
                 $service->availabilityExceptions()->updateOrCreate(['date' => $exception['date']], ['is_closed' => $exception['is_closed'], 'slots' => $exception['slots'] ?? null, 'note' => $exception['note'] ?? null]);
+            }
+
+            $hasBookableRule = collect($request->validated('rules', []))->contains(
+                fn (array $rule): bool => ($rule['active'] ?? true) && $rule['capacity'] > 0,
+            );
+            if ($hasBookableRule && $service->active && $service->booking_enabled && ! $activity->booking_enabled) {
+                $activity->lockForUpdate()->update(['booking_enabled' => true]);
             }
         });
 

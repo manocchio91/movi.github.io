@@ -11,6 +11,7 @@ services:
       mkdir -p storage/logs bootstrap/cache;
       touch storage/logs/laravel.log;
       chown -R www-data:www-data storage bootstrap/cache;
+      php artisan migrate --force;
       php-fpm"
     volumes:
       - ./backend:/var/www/html

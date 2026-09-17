@@ -134,6 +134,8 @@ test('MòVi Manager exposes calendar reservations menu and readable real plan ca
   assert.match(app, /Partecipanti eventi oggi/);
   assert.match(app, /renderMenuWorkspace/);
   assert.match(app, /Numero coperti MòVi/);
+  assert.match(app, /Calendario disponibilità/);
+  assert.match(app, /Aperto|Disponibilità salvate/);
   assert.match(app, /Pranzo.*Cena.*Entrambi/s);
   assert.match(app, /requestedTypes.*\['lunch', 'dinner'\]/s);
   assert.match(app, /existingServices\.find/);
@@ -148,6 +150,12 @@ test('MòVi Manager exposes calendar reservations menu and readable real plan ca
   assert.match(app, /movi-plan-card/);
   assert.match(styles, /\.movi-plan-card h2/);
   assert.match(app, /posti disponibili/);
+});
+
+test('admin organizer review uses one aligned responsive content grid', () => {
+  assert.match(app, /admin-organizer-page/);
+  assert.match(styles, /\.admin-organizer-page[\s\S]*max-width: 1440px/);
+  assert.match(styles, /\.admin-organizer-page > \.filter-strip form[\s\S]*flex: 1 1 360px/);
 });
 
 test('MòVi Manager exposes periodized aggregate reservation analytics', () => {

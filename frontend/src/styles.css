@@ -488,6 +488,53 @@ button {
   padding: 22px;
 }
 
+.admin-main > .page-heading,
+.admin-main > .filter-strip,
+.admin-main > .admin-panel,
+.admin-main > .admin-table-wrap,
+.admin-main > .organizer-events-pagination,
+.admin-organizer-page {
+  margin-inline: auto;
+  max-width: 1440px;
+  width: 100%;
+}
+
+.admin-organizer-page {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-organizer-page > .page-heading,
+.admin-organizer-page > .filter-strip,
+.admin-organizer-page > .admin-panel,
+.admin-organizer-page > .organizer-events-pagination {
+  margin-bottom: 0;
+}
+
+.admin-organizer-page > .filter-strip {
+  align-items: end;
+  background: #fff;
+  border: 1px solid #e8e7f0;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.admin-organizer-page > .filter-strip form {
+  display: flex;
+  flex: 1 1 360px;
+  gap: 10px;
+}
+
+.admin-organizer-page > .filter-strip form input {
+  min-width: 0;
+  width: 100%;
+}
+
+.admin-organizer-page > .filter-strip > strong {
+  margin-left: auto;
+  padding-block: 11px;
+}
+
 .admin-topbar {
   align-items: center;
   display: flex;

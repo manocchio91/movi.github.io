@@ -127,6 +127,13 @@ Macro 4 MòVi Engagement completata: analytics Organizer reali con writer centra
 
 Deploy controllato della Release Candidate nel Prompt 8/8.
 
+## Manual QA runtime recovery
+
+- L'ambiente Docker locale applica automaticamente le migrazioni non distruttive prima di avviare PHP-FPM, evitando che codice aggiornato interroghi uno schema manual QA arretrato.
+- Gli Organizer verificati privi di Activity ricevono tramite migrazione idempotente una sola Activity pubblicata, senza modificare Activity già esistenti.
+- Una regola di disponibilità positiva configurata dal Calendario abilita il Capacity Mode dell'Activity; pubblicazione e visibilità nella directory restano indipendenti da calendario, menu e `booking_enabled`.
+- Il Golden Path E2E parte dalla registrazione Organizer e attraversa CAP, approvazione, Activity, Calendario, persistenza e pagina pubblica senza creare Activity o disponibilità direttamente nelle fixture.
+
 ## Debiti aperti
 
 - La copertura frontend automatizzata resta limitata al flusso critico di modifica prenotazione; ampliare progressivamente agli altri componenti.
