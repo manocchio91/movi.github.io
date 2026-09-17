@@ -20,6 +20,9 @@ class FindMunicipalitiesByPostalCodeRequest extends FormRequest
     /** @return array<string, string> */
     public function messages(): array
     {
-        return ['postal_code.regex' => 'Il CAP deve contenere esattamente 5 cifre.'];
+        return [
+            'postal_code.required' => 'Inserisci il CAP.',
+            'postal_code.regex' => 'Il CAP deve contenere esattamente 5 cifre.',
+        ];
     }
 }

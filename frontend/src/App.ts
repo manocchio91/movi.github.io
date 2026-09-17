@@ -1365,7 +1365,8 @@ export default defineComponent({
     };
 
     const lookupMunicipalitiesByPostalCode = async (postalCode: string) => {
-      if (postalCode === lastPostalCodeLookup.value || !/^\d{5}$/.test(postalCode)) return;
+      if (!/^\d{5}$/.test(postalCode)) return;
+      if (postalCode === lastPostalCodeLookup.value && postalMunicipalities.value.length > 0) return;
       const requestId = ++postalCodeRequestId;
       lastPostalCodeLookup.value = postalCode;
       postalCodeLoading.value = true;
@@ -1375,6 +1376,7 @@ export default defineComponent({
         if (requestId !== postalCodeRequestId || organizerProfile.value.postal_code !== postalCode) return;
         postalMunicipalities.value = response?.data ?? [];
         if (postalMunicipalities.value.length === 0) {
+          lastPostalCodeLookup.value = '';
           postalCodeError.value = 'Nessun Comune trovato per questo CAP';
           return;
         }
@@ -1383,7 +1385,10 @@ export default defineComponent({
           organizerProfile.value.province = postalMunicipalities.value[0].province;
         }
       } catch (error) {
-        if (requestId === postalCodeRequestId) postalCodeError.value = userMessage(error, 'Impossibile cercare il Comune.');
+        if (requestId === postalCodeRequestId) {
+          lastPostalCodeLookup.value = '';
+          postalCodeError.value = userMessage(error, 'Impossibile cercare il Comune.');
+        }
       } finally {
         if (requestId === postalCodeRequestId) postalCodeLoading.value = false;
       }
@@ -1418,7 +1423,22 @@ export default defineComponent({
       organizerProfile.value.province = municipality?.province ?? '';
     };
 
-    const saveOrganizerProfile = async () => {
+    const saveOrganizerProfile = async (): Promise<boolean> => {
+      if (postalCodeLoading.value) {
+        organizerProfileError.value = 'Attendi il completamento della ricerca del Comune.';
+        return false;
+      }
+      if (/^\d{5}$/.test(organizerProfile.value.postal_code ?? '') && (!organizerProfile.value.municipality_id || !organizerProfile.value.province)) {
+        await lookupMunicipalitiesByPostalCode(organizerProfile.value.postal_code ?? '');
+      }
+      if (route.value === '/organizer/onboarding' && (!organizerProfile.value.municipality_id || !organizerProfile.value.province)) {
+        organizerProfileErrors.value = {
+          municipality_id: ['Seleziona il Comune.'],
+          province: ['Seleziona un Comune per determinare la Provincia.'],
+        };
+        organizerProfileError.value = postalCodeError.value || 'Seleziona un Comune valido per il CAP inserito.';
+        return false;
+      }
       organizerProfileSaving.value = true;
       organizerProfileError.value = '';
       organizerProfileSuccess.value = '';
@@ -1430,17 +1450,20 @@ export default defineComponent({
         organizerProfileSuccess.value = route.value === '/organizer/profile'
           ? 'Modifiche inviate. Saranno pubblicate dopo l\'approvazione dell\'amministratore.'
           : 'Profilo salvato. Puoi continuare più tardi.';
+        return true;
       } catch (error) {
         if (error instanceof ApiError) organizerProfileErrors.value = error.errors;
-        organizerProfileError.value = userMessage(error, 'Impossibile salvare il profilo.');
+        organizerProfileError.value = error instanceof ApiError && error.status === 422
+          ? 'Correggi i campi evidenziati.'
+          : userMessage(error, 'Impossibile salvare il profilo.');
+        return false;
       } finally {
         organizerProfileSaving.value = false;
       }
     };
 
     const submitOrganizerProfile = async () => {
-      await saveOrganizerProfile();
-      if (organizerProfileError.value) return;
+      if (!await saveOrganizerProfile()) return;
       organizerProfileSaving.value = true;
       organizerProfileSuccess.value = '';
       try {
@@ -2088,8 +2111,8 @@ export default defineComponent({
           organizerProfileError.value ? h('p', { class: 'api-error' }, organizerProfileError.value) : null,
           organizerProfileSuccess.value ? h('p', { class: 'form-success' }, organizerProfileSuccess.value) : null,
           h('div', { class: 'onboarding-actions' }, [
-            h('button', { class: 'auth-submit', type: route.value === '/organizer/profile' ? 'button' : 'submit', disabled: organizerProfileSaving.value, onClick: route.value === '/organizer/profile' ? () => { void saveOrganizerProfile(); } : undefined }, route.value === '/organizer/profile' ? (organizerProfileSaving.value ? 'Invio…' : 'Invia modifiche per approvazione') : (organizerProfileSaving.value ? 'Salvataggio…' : 'Invia richiesta di approvazione')),
-            route.value === '/organizer/profile' ? h('button', { type: 'button', disabled: organizerProfileSaving.value, onClick: () => { void go('/organizer/dashboard'); } }, 'Torna alla dashboard') : h('button', { type: 'button', disabled: organizerProfileSaving.value, onClick: () => { void saveOrganizerProfile(); } }, 'Salva e continua più tardi'),
+            h('button', { class: 'auth-submit', type: route.value === '/organizer/profile' ? 'button' : 'submit', disabled: organizerProfileSaving.value || postalCodeLoading.value, onClick: route.value === '/organizer/profile' ? () => { void saveOrganizerProfile(); } : undefined }, route.value === '/organizer/profile' ? (organizerProfileSaving.value ? 'Invio…' : 'Invia modifiche per approvazione') : (organizerProfileSaving.value ? 'Salvataggio…' : 'Invia richiesta di approvazione')),
+            route.value === '/organizer/profile' ? h('button', { type: 'button', disabled: organizerProfileSaving.value, onClick: () => { void go('/organizer/dashboard'); } }, 'Torna alla dashboard') : h('button', { type: 'button', disabled: organizerProfileSaving.value || postalCodeLoading.value, onClick: () => { void saveOrganizerProfile(); } }, 'Salva e continua più tardi'),
             h('button', { class: 'profile-exit-button', type: 'button', disabled: organizerProfileSaving.value, onClick: () => { void logout(); } }, 'Esci'),
           ]),
         ]),

@@ -13,6 +13,18 @@ class MunicipalityPostalCodeLookupTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_molise_seed_contains_ripalimosani_for_postal_code_86025(): void
+    {
+        config(['territory.region_code' => 'MOL']);
+        $this->seed(MoliseGeographySeeder::class);
+
+        $this->getJson('/api/v1/locations/municipalities?postal_code=86025')
+            ->assertOk()->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.name', 'Ripalimosani')
+            ->assertJsonPath('data.0.province', 'CB')
+            ->assertJsonPath('data.0.postal_code', '86025');
+    }
+
     public function test_search_uses_the_complete_configured_region_without_duplicates(): void
     {
         config(['territory.region_code' => 'MOL']);
@@ -63,6 +75,11 @@ class MunicipalityPostalCodeLookupTest extends TestCase
             $this->getJson('/api/v1/locations/municipalities?postal_code='.$postalCode)
                 ->assertUnprocessable()->assertJsonValidationErrors('postal_code');
         }
+
+        $this->getJson('/api/v1/locations/municipalities')
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'I dati forniti non sono validi.')
+            ->assertJsonPath('errors.postal_code.0', 'Inserisci il CAP.');
     }
 
     private function municipality(string $name, string $provinceCode, string $postalCode): Municipality

@@ -36,6 +36,34 @@ class OrganizerFiscalOnboardingTest extends TestCase
         $this->assertSame('incomplete', $profile->refresh()->verification_status);
     }
 
+    public function test_municipality_derives_province_and_is_returned_after_reload(): void
+    {
+        [$user, $profile, $municipality] = $this->organizer('incomplete');
+        Sanctum::actingAs($user);
+
+        $this->patchJson('/api/v1/organizer/profile', [
+            'municipality_id' => $municipality->id,
+            'postal_code' => '86100',
+        ])->assertOk()->assertJsonPath('data.province', $municipality->province->code);
+
+        $this->assertSame($municipality->province->code, $profile->refresh()->province);
+        $this->getJson('/api/v1/organizer/profile')
+            ->assertOk()->assertJsonPath('data.province', $municipality->province->code);
+    }
+
+    public function test_profile_rejects_a_postal_code_that_does_not_match_the_municipality(): void
+    {
+        [$user, , $municipality] = $this->organizer('incomplete');
+        Sanctum::actingAs($user);
+
+        $this->patchJson('/api/v1/organizer/profile', [
+            'municipality_id' => $municipality->id,
+            'postal_code' => '86025',
+        ])->assertUnprocessable()
+            ->assertJsonPath('message', 'I dati forniti non sono validi.')
+            ->assertJsonPath('errors.postal_code.0', 'Il CAP non corrisponde al Comune selezionato.');
+    }
+
     public function test_validation_rejects_invalid_pec_vat_sdi_and_unsafe_links(): void
     {
         [$user] = $this->organizer('incomplete');
@@ -58,7 +86,11 @@ class OrganizerFiscalOnboardingTest extends TestCase
 
         $this->postJson('/api/v1/organizer/profile/submit')
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['address', 'street_number', 'postal_code', 'municipality_id', 'province', 'vat_number', 'pec', 'sdi_code']);
+            ->assertJsonValidationErrors(['address', 'street_number', 'postal_code', 'municipality_id', 'province', 'vat_number', 'pec', 'sdi_code'])
+            ->assertJsonPath('message', 'I dati forniti non sono validi.')
+            ->assertJsonPath('errors.municipality_id.0', 'Seleziona il Comune.')
+            ->assertJsonPath('errors.province.0', 'Seleziona un Comune per determinare la Provincia.')
+            ->assertJsonPath('errors.vat_number.0', 'Inserisci la Partita IVA.');
 
         $this->patchJson('/api/v1/organizer/profile', $this->completePayload($municipality))->assertOk();
         $this->postJson('/api/v1/organizer/profile/submit')->assertOk()
@@ -155,7 +187,7 @@ class OrganizerFiscalOnboardingTest extends TestCase
     {
         $region = Region::query()->create(['name' => fake()->unique()->state(), 'code' => strtoupper(fake()->unique()->lexify('???'))]);
         $province = Province::query()->create(['region_id' => $region->id, 'name' => fake()->unique()->city(), 'code' => strtoupper(fake()->unique()->lexify('??'))]);
-        $municipality = Municipality::query()->create(['province_id' => $province->id, 'name' => fake()->city(), 'istat_code' => fake()->unique()->numerify('######')]);
+        $municipality = Municipality::query()->create(['province_id' => $province->id, 'name' => fake()->city(), 'istat_code' => fake()->unique()->numerify('######'), 'postal_code' => '86100']);
         $user = User::factory()->create(['role' => UserRole::Organizer]);
         $profile = OrganizerProfile::query()->create([
             'ulid' => (string) str()->ulid(), 'owner_user_id' => $user->id, 'name' => 'Impresa QA',

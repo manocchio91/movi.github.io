@@ -20,15 +20,19 @@ class MoliseGeographySeeder extends Seeder
             ]);
 
             foreach ($this->municipalities() as $municipality) {
+                $attributes = ['province_id' => $provinces[$municipality['province']]->id, 'name' => $municipality['name']];
+                if (isset($municipality['postal_code'])) {
+                    $attributes['postal_code'] = $municipality['postal_code'];
+                }
                 Municipality::query()->updateOrCreate(
                     ['istat_code' => $municipality['istat_code']],
-                    ['province_id' => $provinces[$municipality['province']]->id, 'name' => $municipality['name']],
+                    $attributes,
                 );
             }
         });
     }
 
-    /** @return list<array{istat_code: string, name: string, province: 'CB'|'IS'}> */
+    /** @return list<array{istat_code: string, name: string, province: 'CB'|'IS', postal_code?: string}> */
     private function municipalities(): array
     {
         return [
@@ -90,7 +94,7 @@ class MoliseGeographySeeder extends Seeder
             ['istat_code' => '070056', 'name' => 'Provvidenti', 'province' => 'CB'],
             ['istat_code' => '070057', 'name' => 'Riccia', 'province' => 'CB'],
             ['istat_code' => '070058', 'name' => 'Ripabottoni', 'province' => 'CB'],
-            ['istat_code' => '070059', 'name' => 'Ripalimosani', 'province' => 'CB'],
+            ['istat_code' => '070059', 'name' => 'Ripalimosani', 'province' => 'CB', 'postal_code' => '86025'],
             ['istat_code' => '070060', 'name' => 'Roccavivara', 'province' => 'CB'],
             ['istat_code' => '070061', 'name' => 'Rotello', 'province' => 'CB'],
             ['istat_code' => '070062', 'name' => 'Salcito', 'province' => 'CB'],

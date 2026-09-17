@@ -170,6 +170,18 @@ test('organizer registration leads with venue identity and keeps backend field n
   assert.match(app, /Nome locale[\s\S]*Tipo organizzazione[\s\S]*Nome referente[\s\S]*Email[\s\S]*Password[\s\S]*Conferma password/);
 });
 
+test('organizer onboarding retries CAP lookup and blocks incomplete asynchronous location state', () => {
+  assert.match(app, /postalCode === lastPostalCodeLookup\.value && postalMunicipalities\.value\.length > 0/);
+  assert.match(app, /postalMunicipalities\.value\.length === 0[\s\S]*lastPostalCodeLookup\.value = ''/);
+  assert.match(app, /catch \(error\)[\s\S]*lastPostalCodeLookup\.value = ''[\s\S]*Impossibile cercare il Comune/);
+  assert.match(app, /if \(postalCodeLoading\.value\)[\s\S]*Attendi il completamento della ricerca del Comune/);
+  assert.match(app, /await lookupMunicipalitiesByPostalCode/);
+  assert.match(app, /route\.value === '\/organizer\/onboarding' && \(!organizerProfile\.value\.municipality_id \|\| !organizerProfile\.value\.province\)/);
+  assert.match(app, /disabled: organizerProfileSaving\.value \|\| postalCodeLoading\.value/);
+  assert.match(app, /Correggi i campi evidenziati\./);
+  assert.doesNotMatch(app, /organizerProfileError\.value = userMessage\(error, 'Impossibile salvare il profilo\.'\)/);
+});
+
 test('organizer profile approval uses standalone profile actions and removes activity creation UX', () => {
   assert.match(app, /Invia modifiche per approvazione/);
   assert.match(app, /Modifiche in attesa di approvazione/);
