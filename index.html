@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>MòVi</title>
+<meta name="description" content="MòVi – Vivi quello che succede. Piattaforma web e mobile per scoprire, prenotare e gestire eventi ed esperienze locali.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: hero con telefono che mostra il feed eventi; sezioni a colonna larga, il percorso del prodotto come sequenza numerata */
+:root{
+  --paper:#F6F4EE; --surface:#FFFFFF; --ink:#172126; --muted:#5E6E75; --line:#E4DBCC;
+  --teal:#0F766E; --teal-soft:#E5F5EF; --gold:#E6B248; --gold-soft:#FFF4CF; --rust:#9B2F1E;
+  --on-teal:#FFFFFF;
+  --f-display:"Unbounded",ui-sans-serif,system-ui,sans-serif;
+  --f-body:"Manrope",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:20px;
+  --shadow:0 20px 50px -20px rgba(23,33,38,.35);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --paper:#111416; --surface:#1A2226; --ink:#EEF2F1; --muted:#9AAAB0; --line:#2A3438;
+    --teal:#3CC2A7; --teal-soft:#123430; --gold:#E6B248; --gold-soft:#3A2F14; --rust:#E07A62;
+    --on-teal:#0B1517; --shadow:0 20px 50px -20px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#111416; --surface:#1A2226; --ink:#EEF2F1; --muted:#9AAAB0; --line:#2A3438;
+  --teal:#3CC2A7; --teal-soft:#123430; --gold:#E6B248; --gold-soft:#3A2F14; --rust:#E07A62;
+  --on-teal:#0B1517; --shadow:0 20px 50px -20px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:76px}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;letter-spacing:-.03em;line-height:1.05;margin:0;text-wrap:balance}
+h2{font-size:clamp(1.75rem,4vw,2.75rem)}
+h3{font-size:1.125rem;letter-spacing:-.01em}
+p{margin:0}
+a{color:var(--teal)}
+:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:.8125rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--teal)}
+.lede{color:var(--muted);font-size:1.0625rem;max-width:60ch}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:13px 22px;border-radius:999px;font-weight:700;font-size:.9375rem;text-decoration:none;border:1.5px solid var(--teal);background:var(--teal);color:var(--on-teal);transition:transform .15s}
+.btn:hover{transform:translateY(-2px)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn svg{width:18px;height:18px}
+
+/* nav */
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--paper) 85%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid color-mix(in srgb,var(--line) 70%,transparent)}
+.nav .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-block:12px}
+.logo{font-family:var(--f-display);font-weight:800;font-size:1.375rem;letter-spacing:-.04em;color:var(--ink);text-decoration:none;display:flex;align-items:center;gap:8px}
+.logo b{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:10px;background:var(--teal);color:var(--on-teal);font-size:.875rem}
+.logo span{color:var(--gold)}
+.nav ul{display:flex;gap:4px;list-style:none;margin:0;padding:0}
+.nav ul a{color:var(--ink);text-decoration:none;font-weight:600;font-size:.9375rem;padding:8px 12px;border-radius:999px}
+.nav ul a:hover{background:var(--teal-soft)}
+@media (max-width:860px){.nav ul{display:none}}
+
+/* hero */
+.hero{padding-block:clamp(40px,7vw,88px) clamp(40px,6vw,72px);position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:-20% -10% auto auto;width:60%;aspect-ratio:1;background:radial-gradient(circle,color-mix(in srgb,var(--gold) 28%,transparent),transparent 62%);z-index:-1}
+.hero::after{content:"";position:absolute;inset:auto auto -30% -10%;width:55%;aspect-ratio:1;background:radial-gradient(circle,color-mix(in srgb,var(--teal) 22%,transparent),transparent 62%);z-index:-1}
+.hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:clamp(32px,5vw,64px);align-items:center}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;background:var(--surface);border:1px solid var(--line);font-size:.8125rem;font-weight:600}
+.pill i{width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px color-mix(in srgb,var(--gold) 25%,transparent)}
+.hero h1{font-size:clamp(2.75rem,7.5vw,5.5rem);font-weight:800;letter-spacing:-.05em;line-height:.95;margin-top:20px}
+.hero h1 em{font-style:normal;color:var(--teal);display:block}
+.hero .lede{margin-top:20px;font-size:1.1875rem}
+.ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+.stats{display:flex;gap:28px;flex-wrap:wrap;margin-top:36px}
+.stats div{display:grid}
+.stats b{font-family:var(--f-display);font-size:1.5rem;letter-spacing:-.03em}
+.stats span{font-size:.8125rem;color:var(--muted)}
+@media (max-width:900px){.hero-grid{grid-template-columns:1fr}}
+
+/* telefono */
+.phone{justify-self:center;width:min(340px,100%);aspect-ratio:9/18.5;border-radius:44px;background:#0B1214;padding:12px;box-shadow:var(--shadow),inset 0 0 0 2px #2A3438;position:relative}
+.screen{height:100%;border-radius:34px;background:#F6F4EE;overflow:hidden;display:flex;flex-direction:column;color:#172126}
+.notch{position:absolute;top:22px;left:50%;transform:translateX(-50%);width:96px;height:24px;border-radius:999px;background:#0B1214}
+.app-top{padding:48px 18px 14px;background:linear-gradient(135deg,#0F766E,#145A55);color:#fff}
+.app-top small{opacity:.8;font-size:.75rem}
+.app-top strong{display:block;font-family:var(--f-display);font-size:1.25rem;letter-spacing:-.03em;margin-top:2px}
+.chips{display:flex;gap:6px;margin-top:12px;overflow:hidden}
+.chips span{flex:none;font-size:.6875rem;font-weight:700;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.16)}
+.chips span:first-child{background:#E6B248;color:#172126}
+.feed{padding:12px;display:grid;gap:10px;overflow:hidden}
+.ev{background:#fff;border-radius:16px;padding:12px;display:grid;grid-template-columns:52px 1fr;gap:10px;align-items:center;box-shadow:0 2px 8px rgba(23,33,38,.06);animation:rise .6s ease both}
+.ev:nth-child(2){animation-delay:.12s}.ev:nth-child(3){animation-delay:.24s}.ev:nth-child(4){animation-delay:.36s}
+@keyframes rise{from{opacity:.001;transform:translateY(10px)}to{opacity:1;transform:none}}
+.ev .d{border-radius:12px;background:#E5F5EF;color:#0F766E;text-align:center;padding:6px 0;line-height:1.1}
+.ev .d b{display:block;font-family:var(--f-display);font-size:1.125rem}
+.ev .d small{font-size:.625rem;font-weight:700;text-transform:uppercase}
+.ev h4{margin:0;font-size:.8125rem;line-height:1.25}
+.ev p{font-size:.6875rem;color:#5E6E75;margin-top:2px}
+.ev .tag{display:inline-block;margin-top:4px;font-size:.625rem;font-weight:700;padding:2px 7px;border-radius:999px;background:#FFF4CF;color:#7A5A12}
+.ev .tag.free{background:#E5F5EF;color:#0F766E}
+.ev .tag.last{background:#FBE4DE;color:#9B2F1E}
+
+section{padding-block:clamp(56px,8vw,104px)}
+.head{display:grid;gap:14px;margin-bottom:40px;max-width:720px}
+.band{background:var(--surface);border-block:1px solid var(--line)}
+
+/* ruoli */
+.roles{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.role{border-radius:var(--r);padding:26px;display:flex;flex-direction:column;gap:14px;background:var(--paper);border:1px solid var(--line)}
+.role .ic{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:.9375rem}
+.role:nth-child(1) .ic{background:var(--teal-soft);color:var(--teal)}
+.role:nth-child(2) .ic{background:var(--gold-soft);color:color-mix(in srgb,var(--gold) 60%,var(--ink))}
+.role:nth-child(3) .ic{background:color-mix(in srgb,var(--rust) 14%,transparent);color:var(--rust)}
+.role h3{font-size:1.375rem}
+.role p{color:var(--muted)}
+.role ul{margin:0;padding:0;list-style:none;display:grid;gap:8px;font-size:.9375rem}
+.role li{display:flex;gap:10px}
+.role li::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--teal);margin-top:.6em}
+.role a{margin-top:auto;font-weight:700;text-decoration:none}
+.role a:hover{text-decoration:underline}
+@media (max-width:900px){.roles{grid-template-columns:1fr}}
+
+/* percorso */
+.flow{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;counter-reset:s;list-style:none;margin:0;padding:0}
+.flow li{counter-increment:s;padding:20px;border-radius:var(--r);background:var(--surface);border:1px solid var(--line);display:grid;gap:6px;align-content:start}
+.flow li::before{content:counter(s,decimal-leading-zero);font-family:var(--f-display);font-weight:800;font-size:.875rem;color:var(--teal)}
+.flow b{font-size:1.0625rem}
+.flow span{font-size:.9375rem;color:var(--muted)}
+@media (max-width:900px){.flow{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){.flow{grid-template-columns:1fr}}
+
+/* funzionalità */
+.feats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.feat{padding:18px;border-radius:16px;background:var(--paper);border:1px solid var(--line);display:grid;gap:8px;align-content:start}
+.feat svg{width:24px;height:24px;stroke:var(--teal);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.feat b{font-size:.9375rem;line-height:1.3}
+@media (max-width:1000px){.feats{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:560px){.feats{grid-template-columns:1fr 1fr}}
+
+/* piani */
+.plans{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.plan{padding:22px;border-radius:var(--r);border:1px solid var(--line);background:var(--surface);display:grid;gap:10px;align-content:start}
+.plan small{font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.plan h3{font-size:1.375rem}
+.plan p{font-size:.9375rem;color:var(--muted)}
+.plan.hot{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.plan.hot p,.plan.hot small{color:color-mix(in srgb,var(--paper) 70%,transparent)}
+.plan.hot small{color:var(--gold)}
+.note{font-size:.875rem;color:var(--muted);margin-top:16px}
+@media (max-width:1000px){.plans{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){.plans{grid-template-columns:1fr}}
+
+/* stack */
+.stack{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.layer{padding:20px;border-radius:var(--r);background:var(--paper);border:1px solid var(--line);display:grid;gap:12px;align-content:start}
+.layer small{font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--teal)}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tags span{font-size:.8125rem;font-weight:600;padding:5px 11px;border-radius:999px;background:var(--surface);border:1px solid var(--line)}
+@media (max-width:1000px){.stack{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){.stack{grid-template-columns:1fr}}
+
+/* roadmap */
+.road{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.slice{padding:20px;border-radius:var(--r);border:1px solid var(--line);background:var(--surface);display:grid;gap:10px;align-content:start;position:relative}
+.slice small{font-family:var(--f-display);font-size:.8125rem;font-weight:700;color:var(--teal)}
+.slice h3{font-size:1.0625rem}
+.slice ul{margin:0;padding-left:18px;font-size:.875rem;color:var(--muted);display:grid;gap:4px}
+@media (max-width:1000px){.road{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){.road{grid-template-columns:1fr}}
+
+/* cta finale */
+.final{border-radius:32px;padding:clamp(32px,6vw,72px);background:linear-gradient(135deg,#0F766E,#172126);color:#F6F4EE;display:grid;grid-template-columns:1.4fr 1fr;gap:32px;align-items:center}
+.final h2{color:#fff}
+.final p{color:rgba(246,244,238,.8);margin-top:14px}
+.final .ctas{justify-content:flex-end;margin:0}
+.final .btn{background:#E6B248;border-color:#E6B248;color:#172126}
+.final .btn.ghost{background:transparent;color:#F6F4EE;border-color:rgba(246,244,238,.35)}
+@media (max-width:860px){.final{grid-template-columns:1fr}.final .ctas{justify-content:flex-start}}
+footer{padding-block:32px 48px;color:var(--muted);font-size:.875rem}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+
+<nav class="nav" aria-label="Principale">
+  <div class="wrap">
+    <a class="logo" href="#top"><b aria-hidden="true">M</b>MòVi<span>.</span></a>
+    <ul>
+      <li><a href="#ruoli">Esperienze</a></li>
+      <li><a href="#percorso">Come funziona</a></li>
+      <li><a href="#funzioni">Funzionalità</a></li>
+      <li><a href="#piani">Piani</a></li>
+      <li><a href="#tecnologia">Tecnologia</a></li>
+    </ul>
+    <a class="btn" href="demo/">Prova la demo</a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="pill"><i></i>Release Candidate v2.0-rc3 · QA pre-produzione</span>
+      <h1>Vivi quello che <em>succede.</em></h1>
+      <p class="lede">MòVi è la piattaforma web e mobile per scoprire, prenotare e gestire eventi ed esperienze locali: cene in masseria, laboratori, escursioni, feste di paese. Per chi partecipa è gratuita; gli organizzatori la usano in abbonamento per riempire i posti e farsi seguire.</p>
+      <div class="ctas">
+        <a class="btn" href="demo/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Prova la demo</a>
+        <a class="btn ghost" href="https://github.com/manocchio91/movi.github.io"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 19c-4 1.5-4-2-6-2.5M15 22v-3.5a3 3 0 0 0-.9-2.4c3-.3 6-1.5 6-6.5a5 5 0 0 0-1.4-3.5 4.7 4.7 0 0 0-.1-3.5s-1.1-.3-3.6 1.4a12.3 12.3 0 0 0-6.4 0C6.1 2.3 5 2.6 5 2.6a4.7 4.7 0 0 0-.1 3.5A5 5 0 0 0 3.5 9.6c0 5 3 6.2 6 6.5a3 3 0 0 0-.9 2.4V22"/></svg>Codice su GitHub</a>
+      </div>
+      <div class="stats">
+        <div><b>3</b><span>esperienze: cliente, organizzatore, admin</span></div>
+        <div><b>Web + app</b><span>Vue e Flutter sulle stesse API</span></div>
+        <div><b>/api/v1</b><span>REST documentata in OpenAPI</span></div>
+      </div>
+    </div>
+    <div class="phone" aria-label="Anteprima dell'app cliente">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="app-top"><small>Ciao Lucia · Molise</small><strong>Cosa fai questo weekend?</strong>
+          <div class="chips"><span>Tutti</span><span>Cucina</span><span>Natura</span><span>Famiglie</span><span>Cultura</span></div>
+        </div>
+        <div class="feed">
+          <div class="ev"><div class="d"><b>18</b><small>Ott</small></div><div><h4>Laboratorio di cavatelli e sagne a pezzi</h4><p>Campobasso · 19:00</p><span class="tag">8 posti</span></div></div>
+          <div class="ev"><div class="d"><b>21</b><small>Ott</small></div><div><h4>Caccia al tesoro tra le mura di Saepinum</h4><p>Sepino · 10:00</p><span class="tag free">Gratis</span></div></div>
+          <div class="ev"><div class="d"><b>24</b><small>Ott</small></div><div><h4>Tintilia al tramonto sul Trigno</h4><p>Termoli · 18:00</p><span class="tag last">Ultimi 5 posti</span></div></div>
+          <div class="ev"><div class="d"><b>02</b><small>Nov</small></div><div><h4>Cena sul trabucco</h4><p>Termoli · 20:00</p><span class="tag last">Ultimi 4 posti</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+<section id="ruoli" class="band">
+  <div class="wrap">
+    <div class="head">
+      <span class="eyebrow">Un prodotto, tre esperienze</span>
+      <h2>Ognuno vede la sua MòVi</h2>
+      <p class="lede">Cliente, organizzatore e amministratore hanno interfacce dedicate, collegate alle stesse API e agli stessi dati. Ruoli e permessi sono controllati anche lato server.</p>
+    </div>
+    <div class="roles">
+      <article class="role">
+        <div class="ic">CL</div>
+        <h3>Cliente</h3>
+        <p>Scopre cosa succede vicino a sé e prenota un posto in pochi tocchi.</p>
+        <ul><li>Eventi consigliati e ricerca</li><li>Eventi di successo con nuove edizioni</li><li>Prenotazioni e preferenze</li><li>Avvisi quando un evento torna</li></ul>
+        <a href="demo/">Entra come cliente nella demo →</a>
+      </article>
+      <article class="role">
+        <div class="ic">OR</div>
+        <h3>Organizzatore</h3>
+        <p>Ristoranti, fattorie didattiche, Pro Loco, musei e guide gestiscono esperienze a numero chiuso.</p>
+        <ul><li>Dashboard con prenotazioni, follower e rating</li><li>Eventi aperti, conclusi e annullati</li><li>Calendario della zona per scegliere la data</li><li>Idee suggerite e recensioni per evento</li></ul>
+        <a href="demo/">Entra come organizzatore nella demo →</a>
+      </article>
+      <article class="role">
+        <div class="ic">AD</div>
+        <h3>Amministratore</h3>
+        <p>Verifica gli organizzatori, modera eventi e recensioni, governa territorio e categorie.</p>
+        <ul><li>KPI e grafici della piattaforma</li><li>Classifiche eventi e organizzatori</li><li>Clienti, abbonamenti e audit log</li><li>Categorie e comuni</li></ul>
+        <a href="demo/">Entra come admin nella demo →</a>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="percorso">
+  <div class="wrap">
+    <div class="head">
+      <span class="eyebrow">Come funziona</span>
+      <h2>Non una bacheca: il percorso completo</h2>
+      <p class="lede">Il percorso previsto dal prodotto, dalla scoperta alla recensione. Le fasi si completano seguendo la roadmap più sotto.</p>
+    </div>
+    <ol class="flow">
+      <li><b>Scoperta</b><span>Eventi pubblicati e approvati, filtrabili per categoria, comune e data.</span></li>
+      <li><b>Disponibilità</b><span>Posti reali per ogni data: non scendono mai sotto zero.</span></li>
+      <li><b>Prenotazione</b><span>Gratuita o con pagamento sul posto, protetta da doppi invii.</span></li>
+      <li><b>Conferma</b><span>Riepilogo e QR code personale, valido una sola volta.</span></li>
+      <li><b>Promemoria</b><span>Notifiche operative separate da quelle promozionali.</span></li>
+      <li><b>Partecipazione</b><span>Lista partecipanti e lista d'attesa per l'organizzatore.</span></li>
+      <li><b>Check-in</b><span>Scansione del QR all'ingresso.</span></li>
+      <li><b>Recensione</b><span>Voti e commenti, moderati, che alimentano le classifiche.</span></li>
+      <li><b>Relazione</b><span>Il cliente segue l'organizzatore e viene avvisato delle nuove edizioni.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section id="funzioni" class="band">
+  <div class="wrap">
+    <div class="head">
+      <span class="eyebrow">Funzionalità principali</span>
+      <h2>Tutto quello che serve a un evento locale</h2>
+    </div>
+    <div class="feats">
+      <div class="feat"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><b>Scoperta e ricerca eventi</b></div>
+      <div class="feat"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><b>Prenotazioni e disponibilità</b></div>
+      <div class="feat"><svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg><b>Esperienza cliente web e mobile</b></div>
+      <div class="feat"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><b>Dashboard organizzatore</b></div>
+      <div class="feat"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><b>Moderazione admin</b></div>
+      <div class="feat"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/></svg><b>Gestione partecipanti</b></div>
+      <div class="feat"><svg viewBox="0 0 24 24"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h3v3h-3zM20 14v.01M14 20h.01M20 20h.01M17 17h3v3"/></svg><b>QR code e check-in</b></div>
+      <div class="feat"><svg viewBox="0 0 24 24"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/><path d="M13 6v12"/></svg><b>Ticket e capienza</b></div>
+      <div class="feat"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><b>Profili utente</b></div>
+      <div class="feat"><svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg><b>Statistiche e gestione operativa</b></div>
+    </div>
+  </div>
+</section>
+
+<section id="piani">
+  <div class="wrap">
+    <div class="head">
+      <span class="eyebrow">Modello SaaS</span>
+      <h2>Gratis per chi partecipa, in abbonamento per chi organizza</h2>
+    </div>
+    <div class="plans">
+      <article class="plan"><small>Per iniziare</small><h3>Free Trial</h3><p>Periodo di prova configurabile, fino a 2 esperienze attive.</p></article>
+      <article class="plan"><small>Piccoli organizzatori</small><h3>Starter</h3><p>Esperienze illimitate, prenotazioni e statistiche di base.</p></article>
+      <article class="plan hot"><small>Per crescere</small><h3>Professional</h3><p>Notifiche ai follower, lista d'attesa, comunicazioni e statistiche avanzate.</p></article>
+      <article class="plan"><small>Comuni e reti</small><h3>Enterprise</h3><p>Per Comuni, reti di locali e grandi organizzazioni.</p></article>
+    </div>
+  </div>
+</section>
+
+<section id="tecnologia" class="band">
+  <div class="wrap">
+    <div class="head">
+      <span class="eyebrow">Tecnologia</span>
+      <h2>Un monolite modulare, fatto per durare</h2>
+      <p class="lede">API REST versionate, identificativi pubblici ULID, policy esplicite su ogni risorsa e protezione dagli accessi a dati altrui. Le prenotazioni usano transazioni, lock e chiavi di idempotenza.</p>
+    </div>
+    <div class="stack">
+      <div class="layer"><small>Backend</small><div class="tags"><span>Laravel</span><span>PHP 8.3</span><span>PostgreSQL</span><span>Redis</span></div></div>
+      <div class="layer"><small>Web</small><div class="tags"><span>Vue 3</span><span>TypeScript</span><span>Vite</span></div></div>
+      <div class="layer"><small>Mobile</small><div class="tags"><span>Flutter</span><span>Dart</span></div></div>
+      <div class="layer"><small>Qualità e rilascio</small><div class="tags"><span>Docker</span><span>PHPUnit</span><span>PHPStan</span><span>Pint</span><span>ESLint</span><span>OpenAPI</span><span>GitHub Actions</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="roadmap">
+  <div class="wrap">
+    <div class="head">
+      <span class="eyebrow">Roadmap</span>
+      <h2>Costruita per fette verticali</h2>
+      <p class="lede">Ogni fase porta una parte del prodotto dal database all'interfaccia, con test e documentazione.</p>
+    </div>
+    <div class="road">
+      <article class="slice"><small>Fase 1</small><h3>Fondamenta</h3><ul><li>Docker, API Laravel e web app</li><li>Autenticazione e ruoli</li><li>Territori del Molise e categorie</li><li>Bozza, moderazione e pubblicazione eventi</li></ul></article>
+      <article class="slice"><small>Fase 2</small><h3>Prenotazioni</h3><ul><li>Biglietti adulto e bambino</li><li>Prenotazione gratuita o pagamento sul posto</li><li>Disponibilità protetta da lock</li><li>QR token e dettaglio prenotazione</li></ul></article>
+      <article class="slice"><small>Fase 3</small><h3>Il giorno dell'evento</h3><ul><li>Lista d'attesa con promozione ordinata</li><li>Check-in con QR</li><li>Lista partecipanti ed export</li><li>Audit log operativo</li></ul></article>
+      <article class="slice"><small>Fase 4</small><h3>Relazione</h3><ul><li>Preferenze e notifiche</li><li>Email asincrone</li><li>Consegna notifiche senza duplicati</li></ul></article>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="final">
+      <div>
+        <h2>Prova MòVi adesso</h2>
+        <p>La demo apre l'app web con dati di esempio sul Molise. Scegli se entrare come cliente, organizzatore o amministratore: nessuna registrazione, nessun dato salvato.</p>
+      </div>
+      <div class="ctas">
+        <a class="btn" href="demo/">Apri la demo</a>
+        <a class="btn ghost" href="https://github.com/manocchio91/movi.github.io">Repository</a>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>MòVi · Vivi quello che succede.</span>
+    <span>Piattaforma full-stack per eventi ed esperienze locali</span>
+  </div>
+</footer>
+</body>
+</html>

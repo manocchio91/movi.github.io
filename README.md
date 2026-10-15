@@ -32,3 +32,8 @@ MòVi integra tre esperienze dedicate — **Customer, Organizer e Admin** — at
 `PHPUnit` · `PHPStan` · `Laravel Pint` · `ESLint` · `Flutter Analyze/Test` · `OpenAPI` · `GitHub Actions`
 
 > **Release Candidate:** sviluppo applicativo avanzato e quality gate completati. Deploy production ancora da effettuare.
+
+### Presentazione e demo online
+
+* **Presentazione:** `index.html` nella radice del repository, pubblicata con GitHub Pages.
+* **Demo navigabile:** cartella `demo/`, generata con `cd frontend && npm run build:demo`. È la web app Vue con un'API simulata (`frontend/src/demo/mockApi.ts`) e dati di esempio sul Molise: si entra come cliente, organizzatore o admin senza backend e nulla viene salvato. La build normale (`npm run build`) non include l'API simulata.
