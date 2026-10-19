@@ -24,6 +24,21 @@ flutter test
 flutter run
 ```
 
+## APK Android
+
+```bash
+cd mobile
+flutter build apk --release
+```
+
+Il file installabile viene generato in `build/app/outputs/flutter-apk/app-release.apk`. Sul telefono Android: copia il file, apri l’APK, consenti l’installazione da origini sconosciute se richiesto.
+
+`localhost` sul telefono non punta al PC. Per usare il backend locale nella stessa Wi‑Fi:
+
+```bash
+flutter build apk --release --dart-define=API_BASE_URL=http://INDIRIZZO_LAN_PC:8080/api/v1
+```
+
 Se la cartella viene aperta su una macchina dove Flutter non ha ancora generato le piattaforme native, eseguire una volta:
 
 ```bash
