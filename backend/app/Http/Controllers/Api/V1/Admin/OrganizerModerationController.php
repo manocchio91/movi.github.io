@@ -8,11 +8,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\IndexAdminOrganizerRequest;
 use App\Http\Requests\ReviewOrganizerRequest;
 use App\Models\OrganizerProfile;
+use App\Services\AuditLogger;
 use App\Services\OperationalEmailService;
 use Illuminate\Http\JsonResponse;
 
 class OrganizerModerationController extends Controller
 {
+    public function __construct(private readonly AuditLogger $audit) {}
+
     public function index(IndexAdminOrganizerRequest $request): JsonResponse
     {
         $this->authorize('moderate', OrganizerProfile::class);
@@ -53,6 +56,7 @@ class OrganizerModerationController extends Controller
 
         $organizer = $review->execute($organizer, request()->user(), 'approve')->load('owner');
         $emails->organizerReviewed($organizer);
+        $this->audit->record('admin.organizer.approved', $organizer);
 
         return response()->json(['data' => $organizer]);
     }
@@ -63,6 +67,7 @@ class OrganizerModerationController extends Controller
 
         $organizer = $review->execute($organizer, $request->user(), 'request_changes', $request->validated('reason'))->load('owner');
         $emails->organizerReviewed($organizer);
+        $this->audit->record('admin.organizer.changes_requested', $organizer, ['reason' => $request->validated('reason')]);
 
         return response()->json(['data' => $organizer]);
     }
@@ -73,6 +78,7 @@ class OrganizerModerationController extends Controller
 
         $organizer = $review->execute($organizer, $request->user(), 'reject', $request->validated('reason'))->load('owner');
         $emails->organizerReviewed($organizer);
+        $this->audit->record('admin.organizer.rejected', $organizer, ['reason' => $request->validated('reason')]);
 
         return response()->json(['data' => $organizer]);
     }
@@ -81,20 +87,27 @@ class OrganizerModerationController extends Controller
     {
         $this->authorize('moderate', OrganizerProfile::class);
 
-        return response()->json(['data' => $review->execute($organizer, request()->user(), 'approve')]);
+        $reviewed = $review->execute($organizer, request()->user(), 'approve');
+        $this->audit->record('admin.organizer.changes_approved', $organizer);
+
+        return response()->json(['data' => $reviewed]);
     }
 
     public function rejectChanges(ReviewOrganizerRequest $request, OrganizerProfile $organizer, ReviewOrganizerProfileChanges $review): JsonResponse
     {
         $this->authorize('moderate', OrganizerProfile::class);
 
-        return response()->json(['data' => $review->execute($organizer, $request->user(), 'reject', $request->validated('reason'))]);
+        $reviewed = $review->execute($organizer, $request->user(), 'reject', $request->validated('reason'));
+        $this->audit->record('admin.organizer.changes_rejected', $organizer, ['reason' => $request->validated('reason')]);
+
+        return response()->json(['data' => $reviewed]);
     }
 
     public function suspend(ReviewOrganizerRequest $request, OrganizerProfile $organizer): JsonResponse
     {
         abort_unless($organizer->verification_status === 'verified', 409, 'Solo un Organizer approvato può essere sospeso.');
         $organizer->forceFill(['verification_status' => 'suspended', 'suspended_at' => now(), 'review_notes' => $request->validated('reason')])->save();
+        $this->audit->record('admin.organizer.suspended', $organizer, ['reason' => $request->validated('reason')]);
 
         return response()->json(['data' => $organizer->refresh()->load(['owner', 'subscription.plan'])]);
     }
@@ -103,6 +116,7 @@ class OrganizerModerationController extends Controller
     {
         abort_unless($organizer->verification_status === 'suspended', 409, 'Solo un Organizer sospeso può essere riattivato.');
         $organizer->forceFill(['verification_status' => 'verified', 'suspended_at' => null, 'review_notes' => null])->save();
+        $this->audit->record('admin.organizer.reactivated', $organizer);
 
         return response()->json(['data' => $organizer->refresh()->load(['owner', 'subscription.plan'])]);
     }

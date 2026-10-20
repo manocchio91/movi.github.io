@@ -60,9 +60,14 @@ jobs:
         with:
           channel: stable
           cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
       - run: cd mobile && flutter pub get
       - run: cd mobile && flutter analyze
       - run: cd mobile && flutter test
+      - name: Smoke test runtime del target web
+        run: cd mobile && sh tool/web_smoke.sh build/web_smoke
 
   openapi:
     runs-on: ubuntu-latest

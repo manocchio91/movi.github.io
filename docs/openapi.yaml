@@ -176,6 +176,16 @@ paths:
         "200": { description: Organizzatore seguito }
         "400": { $ref: "#/components/responses/BadRequest" }
         "500": { $ref: "#/components/responses/InternalServerError" }
+    delete:
+      operationId: delete_organizers_organizer_follow
+      security: [{ bearerAuth: [] }]
+      summary: Smette di seguire un Organizer in modo idempotente
+      parameters:
+        - { name: organizer, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Stato follow aggiornato }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { description: Organizer non disponibile }
   /events/{event}/waitlist:
     get:
       operationId: get_events_event_waitlist
@@ -1168,7 +1178,7 @@ paths:
       responses:
         "201": { description: Categoria creata e subito disponibile }
         "403": { description: Solo admin }
-        "422": { description: Nome mancante, non valido o duplicato }
+        "422": { description: "Nome mancante, non valido o duplicato" }
   /admin/organizers:
     get:
       operationId: get_admin_organizers
@@ -1620,7 +1630,7 @@ paths:
       operationId: get_activity
       security: []
       summary: Pagina pubblica Activity
-      responses: { "200": { description: Activity con Organizer, servizi, eventi futuri del locale, follow e recensioni aggregate }, "404": { $ref: "#/components/responses/NotFound" } }
+      responses: { "200": { description: "Activity con Organizer, servizi, eventi futuri del locale, follow e recensioni aggregate" }, "404": { $ref: "#/components/responses/NotFound" } }
   /activities/{activity}/services/{service}/availability:
     parameters: [ { name: activity, in: path, required: true, schema: { type: string } }, { name: service, in: path, required: true, schema: { type: string } } ]
     get:

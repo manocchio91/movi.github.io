@@ -1,8 +1,9 @@
 import 'dart:convert';
-import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+
+import 'analytics_session.dart';
 
 class ApiResponse {
   const ApiResponse({required this.statusCode, required this.body});
@@ -14,8 +15,7 @@ class ApiClient {
   ApiClient({http.Client? client, String? baseUrl})
       : baseUrl = baseUrl ?? _defaultBaseUrl,
         _client = client ?? http.Client(),
-        analyticsSession =
-            '${DateTime.now().microsecondsSinceEpoch}-${Random.secure().nextInt(1 << 32)}';
+        analyticsSession = buildAnalyticsSession();
 
   static String get _defaultBaseUrl {
     const configured = String.fromEnvironment('API_BASE_URL');

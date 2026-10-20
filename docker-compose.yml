@@ -5,17 +5,23 @@ services:
       dockerfile: Dockerfile
     working_dir: /var/www/html
     command: >
-      sh -c "test -f .env || cp .env.example .env;
-      composer install --no-interaction --prefer-dist;
+      sh -c "set -e;
+      umask 0002;
+      test -f .env || cp .env.example .env;
+      composer install --no-interaction --prefer-dist --no-progress;
       grep -qE '^APP_KEY=base64:.+' .env || php artisan key:generate --force;
-      mkdir -p storage/logs bootstrap/cache;
+      mkdir -p storage/logs storage/framework/cache/data storage/framework/sessions storage/framework/views bootstrap/cache;
       touch storage/logs/laravel.log;
-      chown -R www-data:www-data storage bootstrap/cache;
       php artisan migrate --force;
-      php-fpm"
+      php artisan route:cache || true;
+      chown -R www-data:www-data storage bootstrap/cache;
+      chmod 2775 storage storage/framework bootstrap/cache;
+      exec php-fpm"
     volumes:
       - ./backend:/var/www/html
       - ./frontend:/var/www/frontend:ro
+      - vendor-data:/var/www/html/vendor
+      - ./infra/php/99-local.ini:/usr/local/etc/php/conf.d/99-local.ini:ro
     environment:
       APP_ENV: local
       DB_HOST: postgres
@@ -24,16 +30,18 @@ services:
       DB_USERNAME: eventi
       DB_PASSWORD: eventi
       REDIS_HOST: redis
+      COMPOSER_PROCESS_TIMEOUT: "0"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_started
     healthcheck:
-      test: ["CMD-SHELL", "php-fpm -t >/dev/null 2>&1"]
-      interval: 10s
-      timeout: 15s
-      retries: 20
+      test: ["CMD-SHELL", "php-fpm -t >/dev/null 2>&1 && php -r \"exit(@fsockopen('127.0.0.1', 9000) ? 0 : 1);\" && test -f vendor/autoload.php && grep -qE '^APP_KEY=base64:.+' .env"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 600s
 
   nginx:
     image: nginx:1.27-alpine
@@ -45,6 +53,12 @@ services:
     depends_on:
       app:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1/api/v1/health | grep -q '\"status\":\"ok\"'"]
+      interval: 15s
+      timeout: 30s
+      retries: 10
+      start_period: 90s
 
   frontend:
     image: node:24-alpine
@@ -82,3 +96,7 @@ services:
 
 volumes:
   postgres-data:
+  # Le dipendenze PHP stanno su un volume Docker e non sul bind mount:
+  # su Windows ogni stat()/lettura dal bind mount costa 8-12 ms e domina
+  # il tempo di risposta delle API (oltre 600 file di classi da rileggere).
+  vendor-data:

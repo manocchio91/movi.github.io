@@ -2097,7 +2097,13 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand-600); box-
   .organizer-layout .role-account { border: 0; grid-column: 2; grid-row: 1; margin: 0; padding: 0; }
   .organizer-layout .role-account > div, .organizer-layout .account-avatar { display: none; }
   .organizer-command-hero { align-items: stretch; flex-direction: column; gap: 18px; }
-  .admin-console { grid-template-columns: 1fr; }
+  .admin-console { grid-template-columns: minmax(0, 1fr); }
+  /* La sidebar non deve imporre la propria larghezza minima al contenuto:
+     senza min-width:0 la nav (flex, figli non comprimibili) gonfia il track della
+     griglia e l'intero backoffice diventa largo 1831px su un viewport da 375px. */
+  .admin-sidebar { min-width: 0; }
+  .admin-sidebar nav { min-width: 0; }
+  .admin-main { min-width: 0; }
 }
 @media (max-width: 768px) {
   .customer-layout .event-grid { display: flex; gap: 14px; overflow-x: auto; padding: 2px 2px 16px; scroll-snap-type: x mandatory; }

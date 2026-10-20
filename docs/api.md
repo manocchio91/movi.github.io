@@ -63,6 +63,13 @@ Filtri eventi: `q` (ricerca case-insensitive in titolo e descrizione), `category
 - `POST /customer/organizers/{organizer}/follow`
 - `DELETE /customer/organizers/{organizer}/follow`
 - `GET /customer/following`
+- `GET /me/reservations/{reservation}/preorder`
+- `PUT /me/reservations/{reservation}/preorder`
+- `POST /me/reservations/{reservation}/preorder/cancel`
+- `GET /events/{event}/waitlist`
+- `POST /events/{event}/waitlist`
+- `DELETE /events/{event}/waitlist`
+- `POST /events/{event}/waitlist/accept`
 
 Le route `/customer/organizers` sono il contratto corrente; gli endpoint precedenti restano alias compatibili. Il profilo pubblico espone `is_following` e `followers_count`. Le risposte follower/following sono minimizzate e non contengono email o ID sequenziali. Le preferenze distinguono notifiche operative, marketing per categorie e nuovi eventi degli Organizer seguiti; la pubblicazione accoda un job idempotente dopo il commit.
 
@@ -71,6 +78,8 @@ Per `POST /events/{event}/bookings` usare `Idempotency-Key` per evitare prenotaz
 Il QR usa un token casuale ad alta entropia. Il database conserva separatamente l'hash per il check-in e il valore cifrato reversibile per il Customer; nessuno dei due campi interni viene serializzato. `GET /me/bookings/{booking}/qr` restituisce il token solo al proprietario autenticato. Un booking legacy privo del valore cifrato riceve `409`; dopo il check-in il token resta recuperabile, ma un secondo utilizzo viene rifiutato dal backend.
 
 Per `POST /events/{event}/reviews` l'utente deve avere un booking proprio non cancellato e l'evento deve essere terminato. Ogni prenotazione/evento puo generare una sola recensione e l'organizzatore non puo recensire i propri eventi.
+
+La Reservation di un locale usa un motore distinto dal Booking di un evento. `PUT /me/reservations/{reservation}/preorder` accetta solo piatti del menu collegato al Service della Reservation (`preorder_menu_ulid`) e registra uno snapshot economico server-side; il pre-order e' bloccato alla deadline di modifica configurata dal locale. La lista d'attesa e' idempotente e FIFO: l'iscrizione avviene solo su evento esaurito, la posizione e' calcolata dal backend e `POST /events/{event}/waitlist/accept` converte l'offerta in booking senza overbooking.
 
 Per `POST /activities/{activity}/reviews` il cliente deve indicare una propria Reservation non cancellata oppure un proprio Event Booking valido dello stesso Organizer e territorio. La recensione del locale è accettata soltanto dal giorno successivo all'esperienza; richieste anticipate, riferite ad altre Activity o duplicate sono respinte dal backend.
 

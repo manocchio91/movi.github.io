@@ -54,7 +54,12 @@ return Application::configure(basePath: dirname(__DIR__))
                 403 => $exception->getMessage() ?: 'Accesso non autorizzato.',
                 404 => 'Risorsa non trovata.',
                 409 => $exception->getMessage() ?: 'Conflitto con lo stato corrente della risorsa.',
-                422 => 'I dati forniti non sono validi.',
+                // Le ValidationException dettagliano il campo in `errors` e usano un messaggio generico.
+                // Gli HttpException 422 (regole di business) portano invece un messaggio specifico
+                // ("Posti non disponibili.", "Prenotazioni chiuse."): va preservato per il cliente.
+                422 => $exception instanceof ValidationException
+                    ? 'I dati forniti non sono validi.'
+                    : ($exception->getMessage() ?: 'I dati forniti non sono validi.'),
                 429 => 'Troppe richieste. Riprova più tardi.',
                 500 => 'Non siamo riusciti a completare la richiesta. Riprova più tardi.',
                 default => $exception->getMessage() ?: 'Richiesta non completata.',

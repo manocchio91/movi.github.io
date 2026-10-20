@@ -4,16 +4,18 @@ namespace App\Actions\Events;
 
 use App\Enums\EventStatus;
 use App\Jobs\SendEventCancellationEmails;
-use App\Models\AuditLog;
 use App\Models\Event;
 use App\Models\EventCancellation;
 use App\Models\Notification;
 use App\Models\User;
+use App\Services\AuditLogger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class CancelEvent
 {
+    public function __construct(private readonly AuditLogger $audit) {}
+
     public function handle(Event $event, User $actor, array $data, bool $adminAction = false): Event
     {
         return DB::transaction(function () use ($event, $actor, $data, $adminAction): Event {
@@ -91,19 +93,17 @@ class CancelEvent
                 'cancelled_at' => now(),
             ]);
 
-            AuditLog::query()->create([
-                'actor_user_id' => $actor->id,
-                'action' => $adminAction ? 'admin.event.suspended' : 'organizer.event.cancelled',
-                'subject_type' => Event::class,
-                'subject_id' => $locked->id,
-                'metadata' => [
+            $this->audit->record(
+                $adminAction ? 'admin.event.suspended' : 'organizer.event.cancelled',
+                $locked,
+                [
                     'reason_code' => $data['reason_code'],
                     'reason' => $data['reason'],
                     'bookings_affected' => $activeBookings->count(),
                     'people_affected' => $peopleAffected,
                 ],
-                'request_id' => request()->attributes->get('request_id'),
-            ]);
+                $actor->id,
+            );
 
             DB::afterCommit(fn () => SendEventCancellationEmails::dispatch($locked->id));
 

@@ -2339,7 +2339,7 @@ export default defineComponent({
       ]);
     };
     const renderCustomerReservations = () => [h('div', { class: 'section-title' }, [h('h2', 'Prenotazioni locali')]), customerSectionMessage.value ? h('p', { role: 'status' }, customerSectionMessage.value) : null, renderPreorderForm(), customerReservations.value.length === 0 ? emptyState('Nessuna prenotazione locale.') : h('div', { class: 'event-grid' }, customerReservations.value.map((reservation) => h('article', { class: 'experience-card' }, [h('span', reservation.status), h('h3', reservation.activity?.name ?? 'Attività'), h('p', `${reservation.service?.name ?? ''} · ${new Date(reservation.starts_at).toLocaleString('it-IT')}`), h('strong', `${reservation.party_size} persone`), reservation.status === 'confirmed' && new Date(reservation.starts_at) > new Date() ? h('div', { class: 'action-row' }, [h('button', { type: 'button', disabled: preorderLoading.value, onClick: () => { void openPreorder(reservation); } }, 'SCEGLI DAL MENU'), h('button', { type: 'button', onClick: () => { void cancelCustomerReservation(reservation); } }, 'Annulla')]) : null, reservation.review_eligible ? h('button', { type: 'button', onClick: () => { void reviewActivityReservation(reservation); } }, 'Recensisci il locale') : null])))];
-    const renderMoviPlan = () => [h('div', { class: 'page-heading' }, [h('h1', 'Organizza con MòVi'), h('p', 'Descrivi cosa vuoi fare: mostriamo soltanto proposte e disponibilità reali.')]), h('form', { class: 'wide-panel movi-plan-search', onSubmit: generateMoviPlan }, [h('label', 'Cosa vuoi fare?'), h('div', { class: 'action-row' }, [h('input', { value: moviAiMessage.value, onInput: (event: Event) => { moviAiMessage.value = (event.target as HTMLInputElement).value; }, maxlength: 1000, placeholder: 'Il 15/10/2026 vorrei andare a cena con mia moglie.' }), h('button', { type: 'submit', disabled: planLoading.value || !moviAiMessage.value.trim() }, planLoading.value ? 'Ricerca…' : 'CHIEDI A MÒVI')]), h('div', { class: 'action-row' }, ['Stasera', 'Weekend', 'Cena + evento', 'Famiglia', 'Vicino a me'].map((suggestion) => h('button', { type: 'button', onClick: () => { moviAiMessage.value = suggestion; } }, suggestion)))]), moviAiError.value ? h('p', { class: 'error-message' }, moviAiError.value) : null, moviAiResponse.value ? h('section', { class: 'wide-panel movi-plan-summary' }, [h('h2', 'Ho interpretato la richiesta'), h('p', moviAiResponse.value.interpretation_summary), ...(moviAiResponse.value.warnings ?? []).map((warning: string) => h('p', { class: 'section-message' }, warning)), moviAiResponse.value.clarification_needed ? h('p', moviAiResponse.value.clarification_needed) : null]) : null, ...moviPlans.value.map((plan: any) => h('article', { class: 'wide-panel movi-plan-card', onClick: () => { void trackPlanInteraction('plan_opened', plan); } }, [h('h2', plan.title), h('p', plan.reasons.join(' · ')), h('p', plan.known_total_price_cents === null ? 'Costo totale non completamente disponibile' : `Costo noto € ${(plan.known_total_price_cents / 100).toFixed(2)}`), ...plan.steps.map((step: any) => h('div', { class: 'booking-detail movi-plan-step' }, [h('strong', `${new Date(step.start).toLocaleDateString('it-IT')} · ${new Date(step.start).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`), h('span', `${step.title} · ${step.location ?? 'Località non indicata'} · ${step.available ?? 0} posti disponibili`), h('small', step.price_cents === null ? 'Costo non disponibile' : `€ ${(step.price_cents / 100).toFixed(2)}`), h('button', { type: 'button', onClick: (event: Event) => { event.stopPropagation(); void trackPlanInteraction('plan_step_opened', plan, step); void go((step.entity_type === 'event' ? `/customer/events/${step.entity_id}` : `/customer/activities/${step.entity_id}`) as AppRoute); } }, step.entity_type === 'activity' ? 'Dettaglio / Prenota' : 'Dettaglio')]))]))];
+    const renderMoviPlan = () => [h('div', { class: 'page-heading' }, [h('h1', 'Organizza con MòVi'), h('p', 'Descrivi cosa vuoi fare: mostriamo soltanto proposte e disponibilità reali.')]), h('form', { class: 'wide-panel movi-plan-search', onSubmit: generateMoviPlan }, [h('label', 'Cosa vuoi fare?'), h('div', { class: 'action-row' }, [h('input', { value: moviAiMessage.value, onInput: (event: Event) => { moviAiMessage.value = (event.target as HTMLInputElement).value; }, maxlength: 1000, placeholder: 'Il 15/10/2026 vorrei andare a cena con mia moglie.' }), h('button', { type: 'submit', disabled: planLoading.value || !moviAiMessage.value.trim() }, planLoading.value ? 'Ricerca…' : 'CHIEDI A MÒVI')]), h('div', { class: 'action-row' }, ['Stasera', 'Weekend', 'Cena + evento', 'Famiglia', 'Vicino a me'].map((suggestion) => h('button', { type: 'button', onClick: () => { moviAiMessage.value = suggestion; } }, suggestion)))]), moviAiError.value ? h('p', { class: 'error-message' }, moviAiError.value) : null, moviAiResponse.value ? h('section', { class: 'wide-panel movi-plan-summary' }, [h('h2', 'Ho interpretato la richiesta'), h('p', moviAiResponse.value.interpretation_summary), ...(moviAiResponse.value.warnings ?? []).map((warning: string) => h('p', { class: 'section-message' }, warning)), moviAiResponse.value.clarification_needed ? h('p', moviAiResponse.value.clarification_needed) : null]) : null, ...moviPlans.value.map((plan: any) => h('article', { class: 'wide-panel movi-plan-card', onClick: () => { void trackPlanInteraction('plan_opened', plan); } }, [h('h2', plan.title), h('p', plan.reasons.join(' · ')), h('p', plan.known_total_price_cents === null ? 'Costo totale non completamente disponibile' : `Costo noto € ${(plan.known_total_price_cents / 100).toFixed(2)}`), ...plan.steps.map((step: any) => h('div', { class: 'booking-detail movi-plan-step' }, [h('strong', `${new Date(step.start).toLocaleDateString('it-IT')} · ${new Date(step.start).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`), h('span', `${step.title} ${step.organizer && step.organizer !== step.title ? '· ' + step.organizer : ''} · ${step.location ?? 'Località non indicata'} · ${step.available ?? 0} posti disponibili`), h('small', step.price_cents === null ? 'Costo non disponibile' : `€ ${(step.price_cents / 100).toFixed(2)}`), h('button', { type: 'button', onClick: (event: Event) => { event.stopPropagation(); void trackPlanInteraction('plan_step_opened', plan, step); void go((step.entity_type === 'event' ? `/customer/events/${step.entity_id}` : `/customer/activities/${step.entity_id}`) as AppRoute); } }, step.entity_type === 'activity' ? 'Dettaglio / Prenota' : 'Dettaglio')]))]))];
 
 
     const CustomerLayout = () => h('main', { class: 'role-shell customer-layout' }, [
@@ -2913,6 +2913,9 @@ export default defineComponent({
     }[label] ?? label.slice(0, 2).toUpperCase());
 
     const number = (value: any) => new Intl.NumberFormat('it-IT').format(Number(value ?? 0));
+    // I KPI possono ricevere gia' un valore formattato (importi, percentuali): in quel caso
+    // la stringa va resa cosi' com'e', altrimenti Number() la riduce a NaN.
+    const kpiValue = (value: any) => (typeof value === 'number' ? number(value) : String(value ?? ''));
     const overview = () => adminOverview.value ?? {};
     const kpis = () => overview().kpis ?? {};
     const chart = (key: string) => overview().charts?.[key] ?? [];
@@ -2920,7 +2923,7 @@ export default defineComponent({
 
     const adminKpi = (label: string, value: any, note: string, tone = 'neutral', onClick?: () => void) => h('article', { class: ['admin-kpi', tone, onClick ? 'clickable' : ''], tabindex: onClick ? 0 : undefined, role: onClick ? 'button' : undefined, onClick, onKeydown: onClick ? (event: KeyboardEvent) => { if (event.key === 'Enter' || event.key === ' ') onClick(); } : undefined }, [
       h('span', label),
-      h('strong', number(value)),
+      h('strong', kpiValue(value)),
       h('small', note),
     ]);
 
@@ -2977,7 +2980,7 @@ export default defineComponent({
         adminKpi('Prenotazioni valide', adminDashboard.value?.bookings?.valid, `${number(adminDashboard.value?.bookings?.cancelled)} annullate`, 'mint'),
         adminKpi('Partecipanti', adminDashboard.value?.participants, 'fatturabili sui piani PpB', 'blue'),
         adminKpi('Check-in', adminDashboard.value?.check_ins, 'registrati', 'gold'),
-        adminKpi('Ricavi teorici', `€ ${(Number(adminDashboard.value?.economics?.theoretical_revenue_cents ?? 0) / 100).toFixed(2)}`, 'nessun incasso online', 'mint'),
+        adminKpi('Ricavi teorici', formatEuro(adminDashboard.value?.economics?.theoretical_revenue_cents ?? 0), 'nessun incasso online', 'mint'),
       ]),
       h('section', { class: 'admin-chart-grid' }, [
         renderMiniBars('Eventi pubblicati per mese', chart('events_by_month')),
@@ -3013,7 +3016,17 @@ export default defineComponent({
         h('td', number(event.booked ?? event.bookings_count)),
         h('td', number(event.participants ?? event.participants_count)),
         h('td', `${event.average_rating ?? 0}/5`),
-        h('td', h('button', { onClick: () => { void moderateAdminEvent(event); } }, event.status === 'suspended' ? 'Riattiva' : 'Sospendi')),
+        h('td', (() => {
+          // Le azioni di moderazione sono mostrate solo quando il backend le consente:
+          // sospensione per published/sold_out, riattivazione per suspended.
+          const label = event.status === 'suspended'
+            ? 'Riattiva'
+            : (['published', 'sold_out'].includes(event.status) ? 'Sospendi' : null);
+
+          return label
+            ? h('button', { onClick: () => { void moderateAdminEvent(event); } }, label)
+            : h('span', { class: 'muted-label' }, '—');
+        })()),
       ],
     );
 

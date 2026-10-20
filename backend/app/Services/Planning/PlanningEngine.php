@@ -56,10 +56,19 @@ class PlanningEngine
         $seen = [];
 
         return $plans->filter(function (array $plan) use (&$seen): bool {
-            $signature = collect($plan['steps'])->pluck('entity_id')->sort()->join(':');
+            $signature = collect($plan['steps'])
+                ->map(fn (array $step): string => implode('|', [
+                    (string) ($step['entity_type'] ?? ''),
+                    (string) ($step['entity_id'] ?? ''),
+                    (string) ($step['service_id'] ?? ''),
+                    (string) ($step['start'] ?? $step['starts_at'] ?? ''),
+                ]))
+                ->sort()
+                ->join(';');
             if (isset($seen[$signature])) {
                 return false;
-            } $seen[$signature] = true;
+            }
+            $seen[$signature] = true;
 
             return true;
         })

@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Enums\EventStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
+use App\Services\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class EventModerationController extends Controller
 {
+    public function __construct(private readonly AuditLogger $audit) {}
+
     public function index(Request $request): JsonResponse
     {
         $this->authorize('moderate', Event::class);
@@ -82,6 +85,11 @@ class EventModerationController extends Controller
 
         abort_unless(in_array($event->status, [EventStatus::Published, EventStatus::SoldOut], true), 409, 'Solo un evento pubblicato può essere sospeso.');
         $event->forceFill(['status' => EventStatus::Suspended])->save();
+        $this->audit->record('admin.event.suspended', $event, [
+            'reason_code' => $data['reason_code'] ?? 'ADMIN_SUSPENSION',
+            'reason' => $data['reason'] ?? 'Evento sospeso dall amministrazione.',
+            'previous_status' => EventStatus::Published->value,
+        ]);
 
         return response()->json(['data' => $event->refresh()->load(['organizerProfile', 'cancellation'])]);
     }
@@ -90,7 +98,9 @@ class EventModerationController extends Controller
     {
         $this->authorize('moderate', Event::class);
 
+        $previousStatus = $event->status;
         $event->forceFill(['status' => EventStatus::Archived])->save();
+        $this->audit->record('admin.event.archived', $event, ['previous_status' => $previousStatus]);
 
         return response()->json(['data' => $event->refresh()->load(['organizerProfile'])]);
     }
@@ -99,7 +109,9 @@ class EventModerationController extends Controller
     {
         $this->authorize('moderate', Event::class);
         abort_unless($event->status === EventStatus::Suspended, 409, 'Solo un evento sospeso può essere riattivato.');
+        $previousStatus = $event->status;
         $event->forceFill(['status' => $event->starts_at->isFuture() ? EventStatus::Published : EventStatus::Completed])->save();
+        $this->audit->record('admin.event.reactivated', $event, ['previous_status' => $previousStatus]);
 
         return response()->json(['data' => $event->refresh()->load('organizerProfile')]);
     }
